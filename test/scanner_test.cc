@@ -1,0 +1,32 @@
+#include "wamon/scanner.h"
+
+#include "gtest/gtest.h"
+
+TEST(wamon, scanner) {
+  std::string str(R"(
+    if ( a > 3) { 
+      a = 4;
+    }
+  )");
+  wamon::Scanner scan;
+  auto tokens = scan.Scan(str);
+  EXPECT_EQ(tokens[0].token, wamon::Token::IF);
+  EXPECT_EQ(tokens[1].token, wamon::Token::LEFT_PARENTHESIS);
+  EXPECT_EQ(tokens[2].token, wamon::Token::ID);
+  EXPECT_EQ(tokens[2].Get<std::string>(), "a");
+  EXPECT_EQ(tokens[3].token, wamon::Token::GT);
+  EXPECT_EQ(tokens[4].token, wamon::Token::INT_ITERAL);
+  EXPECT_EQ(tokens[5].token, wamon::Token::RIGHT_PARENTHESIS);
+  EXPECT_EQ(tokens[6].token, wamon::Token::LEFT_BRACE);
+  EXPECT_EQ(tokens[7].token, wamon::Token::ID);
+  EXPECT_EQ(tokens[8].token, wamon::Token::ASSIGN);
+  EXPECT_EQ(tokens[9].token, wamon::Token::INT_ITERAL);
+  EXPECT_EQ(tokens[10].token, wamon::Token::SEMICOLON);
+  EXPECT_EQ(tokens[11].token, wamon::Token::RIGHT_BRACE);
+  EXPECT_EQ(tokens[12].token, wamon::Token::TEOF);
+  EXPECT_EQ(tokens.size(), 13);
+
+  str = "23id3$";
+  EXPECT_THROW(scan.Scan(str), std::runtime_error);
+
+}
