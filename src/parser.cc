@@ -69,6 +69,43 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
   return ret;
 }
 
+int64_t FindMatchedParenthesis(const std::vector<WamonToken> &tokens, size_t begin) {
+  AssertTokenOrThrow(tokens, begin, Token::LEFT_PARENTHESIS);
+  size_t counter = 1;
+  size_t index = begin;
+  while(index < tokens.size()) {
+    if (tokens[index].token == Token::LEFT_PARENTHESIS) {
+      ++counter;
+    }
+    else if (tokens[index].token == Token::RIGHT_PARENTHESIS) {
+      --counter;
+      if (counter == 0) {
+        return index;
+      }
+    }
+    ++index;
+  }
+  return -1;
+}
+
+std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken>& tokens, size_t begin, size_t end) {
+  return std::make_unique<Expression>();
+}
+
+std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken>& tokens, size_t begin, size_t& end) {
+  return std::make_unique<Statement>();
+}
+
+std::vector<std::pair<std::string, std::unique_ptr<Type>>> ParseParameterList(const std::vector<WamonToken>& tokens, size_t begin, size_t end) {
+  return std::vector<std::pair<std::string, std::unique_ptr<Type>>>();
+}
+
+//   (  expr1, expr2, expr3, ...   )
+// begin                          end
+std::vector<std::unique_ptr<Expression>> ParseExprList(const std::vector<WamonToken>& tokens, size_t begin, size_t end) {
+  return std::vector<std::unique_ptr<Expression>>();
+}
+
 void TryToParseFunctionDeclaration(const std::vector<WamonToken> &tokens, size_t& begin) {
   bool succ = AssertToken(tokens, begin, Token::FUNC);
   if (succ == false) {
@@ -106,6 +143,10 @@ void TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens, size_t
   auto type = ParseType(tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::ASSIGN);
   // parse expr list.
+  size_t end = FindMatchedParenthesis(tokens, begin);
+  ParseExprList(tokens, begin, end);
+  begin = end + 1;
+  AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
   return;
 }
 
