@@ -1,7 +1,9 @@
 #include "wamon/scanner.h"
-#include "wamon/key_words.h"
+
 #include <regex>
 #include <stdexcept>
+
+#include "wamon/key_words.h"
 
 namespace wamon {
 
@@ -32,104 +34,13 @@ void Scanner::scan(const std::string &str, std::vector<WamonToken> &tokens) {
   auto end = str.cend();
   while (true) {
     std::smatch result;
-    if (std::regex_search(begin, end, result, std::regex("[ \\r\\n\\t]"),
-                          std::regex_constants::match_continuous)) {
+    if (std::regex_search(begin, end, result, std::regex("[ \\r\\n\\t]"), std::regex_constants::match_continuous)) {
       ++begin;
     }
     // 单行注释
-    else if (std::regex_search(begin, end, result, std::regex("//.*?\\n"),
-                               std::regex_constants::match_continuous)) {
+    else if (std::regex_search(begin, end, result, std::regex("//.*?\\n"), std::regex_constants::match_continuous)) {
       begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("\\("),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::LEFT_PARENTHESIS));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("\\)"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::RIGHT_PARENTHESIS));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("\\["),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::LEFT_BRACKETS));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("\\]"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::RIGHT_BRACKETS));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("\\{"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::LEFT_BRACE));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("\\}"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::RIGHT_BRACE));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex(";"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::SEMICOLON));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex(":"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::COLON));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("\\."),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::DECIMAL_POINT));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex(","),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::COMMA));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("\\+"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::PLUS));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("-"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::MINUS));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("\\*"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::MULTIPLY));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("/"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::DIVIDE));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("&"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::AND));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("\\|"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::OR));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("!"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::NOT));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("=="),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::COMPARE));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("="),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::ASSIGN));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex(">"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::GT));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("<"),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::LT));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("\"(.*?)\""),
-                                 std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::STRING_ITERAL, result[1].str()));
-      begin = result[0].second;
-    } else if (std::regex_search(begin, end, result,
-                                 std::regex("[+-]?(0|[1-9][0-9]*)\\.[0-9]*"),
+    } else if (std::regex_search(begin, end, result, std::regex("[+-]?(0|[1-9][0-9]*)\\.[0-9]*"),
                                  std::regex_constants::match_continuous)) {
       double num;
       std::stringstream stream;
@@ -137,14 +48,12 @@ void Scanner::scan(const std::string &str, std::vector<WamonToken> &tokens) {
       stream >> num;
       tokens.push_back(WamonToken(Token::DOUBLE_ITERAL, num));
       begin = result[0].second;
-    } else if (std::regex_search(begin, end, result,
-                                 std::regex("0X[0-9A-F][0-9A-F]"),
+    } else if (std::regex_search(begin, end, result, std::regex("0X[0-9A-F][0-9A-F]"),
                                  std::regex_constants::match_continuous)) {
       uint8_t byte = string_to_byte(result[0].str());
       tokens.push_back(WamonToken(Token::BYTE_ITERAL, byte));
       begin = result[0].second;
-    } else if (std::regex_search(begin, end, result,
-                                 std::regex("[+-]?(0|[1-9][0-9]*)"),
+    } else if (std::regex_search(begin, end, result, std::regex("[+-]?(0|[1-9][0-9]*)"),
                                  std::regex_constants::match_continuous)) {
       int64_t num;
       std::stringstream stream;
@@ -152,16 +61,81 @@ void Scanner::scan(const std::string &str, std::vector<WamonToken> &tokens) {
       stream >> num;
       tokens.push_back(WamonToken(Token::INT_ITERAL, num));
       begin = result[0].second;
-    } else if (std::regex_search(begin, end, result,
-                                 std::regex("[a-zA-Z_][a-zA-Z0-9_]*"),
+    } else if (std::regex_search(begin, end, result, std::regex("[a-zA-Z_][a-zA-Z0-9_]*"),
                                  std::regex_constants::match_continuous)) {
-      const std::string& id = result[0].str();
+      const std::string &id = result[0].str();
       // 关键字 or 自定义标识符
       if (KeyWords::Instance().Find(id) == true) {
         tokens.push_back(WamonToken(KeyWords::Instance().Get(id), id));
       } else {
         tokens.push_back(WamonToken(Token::ID, id));
       }
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\\("), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::LEFT_PARENTHESIS));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\\)"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::RIGHT_PARENTHESIS));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\\["), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::LEFT_BRACKETS));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\\]"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::RIGHT_BRACKETS));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\\{"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::LEFT_BRACE));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\\}"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::RIGHT_BRACE));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex(";"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::SEMICOLON));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex(":"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::COLON));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\\."), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::DECIMAL_POINT));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex(","), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::COMMA));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\\+"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::PLUS));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("-"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::MINUS));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\\*"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::MULTIPLY));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("/"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::DIVIDE));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("&"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::AND));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\\|"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::OR));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("!"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::NOT));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("=="), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::COMPARE));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("="), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::ASSIGN));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex(">"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::GT));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("<"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::LT));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\"(.*?)\""), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::STRING_ITERAL, result[1].str()));
       begin = result[0].second;
     } else {
       // 无法识别为合法的token
@@ -173,4 +147,4 @@ void Scanner::scan(const std::string &str, std::vector<WamonToken> &tokens) {
   }
 }
 
-} // namespace wamon
+}  // namespace wamon

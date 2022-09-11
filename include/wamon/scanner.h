@@ -19,26 +19,24 @@ struct WamonToken {
 
   WamonToken() : token(Token::INVALID), type(ValueType::NONE), value() {}
 
-  explicit WamonToken(Token token)
-      : token(token), type(ValueType::NONE), value() {}
+  explicit WamonToken(Token token) : token(token), type(ValueType::NONE), value() {}
 
-  WamonToken(Token token, const std::string &str)
-      : token(token), type(ValueType::STR), value(str) {}
+  WamonToken(Token token, const std::string &str) : token(token), type(ValueType::STR), value(str) {}
 
-  WamonToken(Token token, double num)
-      : token(token), type(ValueType::DOUBLE), value(num) {}
+  WamonToken(Token token, double num) : token(token), type(ValueType::DOUBLE), value(num) {}
 
-  WamonToken(Token token, uint8_t num)
-      : token(token), type(ValueType::BYTE), value(num) {}
+  WamonToken(Token token, uint8_t num) : token(token), type(ValueType::BYTE), value(num) {}
 
-  WamonToken(Token token, int64_t num)
-      : token(token), type(ValueType::INT), value(num) {}
+  WamonToken(Token token, int64_t num) : token(token), type(ValueType::INT), value(num) {}
 
-  template <typename T> T Get() const { return std::any_cast<T>(value); }
+  template <typename T>
+  T Get() const {
+    return std::any_cast<T>(value);
+  }
 };
 
 class Scanner {
-public:
+ public:
   Scanner() = default;
 
   const std::vector<WamonToken> &Scan(const std::string &str) {
@@ -48,10 +46,10 @@ public:
     return tokens_;
   }
 
-private:
+ private:
   std::vector<WamonToken> tokens_;
 
   void scan(const std::string &str, std::vector<WamonToken> &tokens);
 };
 
-} // namespace wamon
+}  // namespace wamon

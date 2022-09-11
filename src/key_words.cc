@@ -2,7 +2,7 @@
 
 namespace wamon {
 
-static void register_buildin_keywords(std::unordered_map<std::string, Token>& kws) {
+static void register_buildin_keywords(std::unordered_map<std::string, Token> &kws) {
   kws["if"] = Token::IF;
   kws["else"] = Token::ELSE;
   kws["while"] = Token::WHILE;
@@ -20,10 +20,9 @@ static void register_buildin_keywords(std::unordered_map<std::string, Token>& kw
   kws["void"] = Token::VOID;
   kws["func"] = Token::FUNC;
   kws["struct"] = Token::STRUCT;
+  kws["let"] = Token::LET;
 }
 
-KeyWords::KeyWords() {
-  register_buildin_keywords(key_words_);
-}
+KeyWords::KeyWords() { register_buildin_keywords(key_words_); }
 
-}
+}  // namespace wamon

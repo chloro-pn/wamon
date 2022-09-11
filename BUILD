@@ -5,6 +5,9 @@ cc_library(
   hdrs = glob(["include/**/*.h"]),
   srcs = glob(["src/*.cc"]),
   includes = ["include"],
+  deps = [
+    "@fmt//:fmt",
+  ]
 )
 
 cc_test(

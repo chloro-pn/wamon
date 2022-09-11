@@ -2,7 +2,7 @@
 
 #include "gtest/gtest.h"
 
-TEST(wamon, scanner) {
+TEST(scanner, basic) {
   std::string str(R"(
     if ( a > 3) { 
       a = 4;
@@ -25,8 +25,36 @@ TEST(wamon, scanner) {
   EXPECT_EQ(tokens[11].token, wamon::Token::RIGHT_BRACE);
   EXPECT_EQ(tokens[12].token, wamon::Token::TEOF);
   EXPECT_EQ(tokens.size(), 13);
+}
 
-  str = "23id3$";
-  EXPECT_THROW(scan.Scan(str), std::runtime_error);
+TEST(scanner, str) {
+  std::string str("\"hello world\"");
+  wamon::Scanner scan;
+  auto tokens = scan.Scan(str);
+  EXPECT_EQ(tokens.size(), 2);
+  EXPECT_EQ(tokens[0].token, wamon::Token::STRING_ITERAL);
+}
 
+TEST(scanner, int_) {
+  std::string str("-232");
+  wamon::Scanner scan;
+  auto tokens = scan.Scan(str);
+  EXPECT_EQ(tokens.size(), 2);
+  EXPECT_EQ(tokens[0].token, wamon::Token::INT_ITERAL);
+}
+
+TEST(scanner, byte) {
+  std::string str("0XAB");
+  wamon::Scanner scan;
+  auto tokens = scan.Scan(str);
+  EXPECT_EQ(tokens.size(), 2);
+  EXPECT_EQ(tokens[0].token, wamon::Token::BYTE_ITERAL);
+}
+
+TEST(scanner, double_) {
+  std::string str("+2.143");
+  wamon::Scanner scan;
+  auto tokens = scan.Scan(str);
+  EXPECT_EQ(tokens.size(), 2);
+  EXPECT_EQ(tokens[0].token, wamon::Token::DOUBLE_ITERAL);
 }
