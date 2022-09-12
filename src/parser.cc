@@ -96,14 +96,42 @@ std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken>& tokens,
   return std::make_unique<Statement>();
 }
 
+//   (  type id, type id, ... )
+// begin                     end
 std::vector<std::pair<std::string, std::unique_ptr<Type>>> ParseParameterList(const std::vector<WamonToken>& tokens, size_t begin, size_t end) {
-  return std::vector<std::pair<std::string, std::unique_ptr<Type>>>();
+  std::vector<std::pair<std::string, std::unique_ptr<Type>>> ret;
+  AssertTokenOrThrow(tokens, begin, Token::LEFT_PARENTHESIS);
+  if (AssertToken(tokens, begin, Token::RIGHT_PARENTHESIS)) {
+    return ret;
+  }
+  while(true) {
+    auto type = ParseType(tokens, begin);
+    std::string id = ParseIdentifier(tokens, begin);
+    ret.push_back(std::pair<std::string, std::unique_ptr<Type>>(id, std::move(type)));
+    bool succ = AssertToken(tokens, begin, Token::COMMA);
+    if (succ == false) {
+      AssertTokenOrThrow(tokens, begin, Token::RIGHT_PARENTHESIS);
+      break;
+    }
+  }
+  if (begin != end + 1) {
+    throw std::runtime_error(fmt::format("parse parameter list error, {} != {}", begin, end+1));
+  }
+  return ret;
 }
 
 //   (  expr1, expr2, expr3, ...   )
 // begin                          end
 std::vector<std::unique_ptr<Expression>> ParseExprList(const std::vector<WamonToken>& tokens, size_t begin, size_t end) {
-  return std::vector<std::unique_ptr<Expression>>();
+  std::vector<std::unique_ptr<Expression>> ret;
+  size_t current = begin;
+  while(current != end) {
+    size_t next = FindNextToken<Token::COMMA>(tokens, current, end);
+    auto expr = ParseExpression(tokens, current + 1, next);
+    ret.push_back(std::move(expr));
+    current = next;
+  }
+  return ret;
 }
 
 void TryToParseFunctionDeclaration(const std::vector<WamonToken> &tokens, size_t& begin) {

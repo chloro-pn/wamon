@@ -37,6 +37,8 @@ size_t FindNextToken(const std::vector<WamonToken> &tokens, size_t begin, size_t
   return end;
 }
 
+std::vector<std::pair<std::string, std::unique_ptr<Type>>> ParseParameterList(const std::vector<WamonToken>& tokens, size_t begin, size_t end);
+
 void TryToParseFunctionDeclaration(const std::vector<WamonToken> &tokens, size_t& begin);
 
 void TryToParseStructDeclaration(const std::vector<WamonToken> &tokens, size_t& begin);
