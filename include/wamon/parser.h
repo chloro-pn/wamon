@@ -65,6 +65,8 @@ void TryToParseStructDeclaration(const std::vector<WamonToken> &tokens, size_t& 
 
 void TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens, size_t& begin);
 
+std::vector<std::unique_ptr<Statement>> ParseStmtBlock(const std::vector<WamonToken>& tokens, size_t begin, size_t end);
+
 void Parse(const std::vector<WamonToken> &tokens);
 
 }  // namespace wamon
