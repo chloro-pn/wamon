@@ -4,8 +4,28 @@
 #include "wamon/scanner.h"
 
 namespace wamon {
-  
-int64_t FindMatchedParenthesis(const std::vector<WamonToken> &tokens, size_t begin);
+
+void AssertTokenOrThrow(const std::vector<WamonToken> &tokens, size_t &begin, Token token);
+
+template<Token left, Token right>
+size_t FindMatchedToken(const std::vector<WamonToken> &tokens, size_t begin) {
+  AssertTokenOrThrow(tokens, begin, left);
+  size_t counter = 1;
+  size_t index = begin;
+  while(index < tokens.size()) {
+    if (tokens[index].token == left) {
+      ++counter;
+    }
+    else if (tokens[index].token == right) {
+      --counter;
+      if (counter == 0) {
+        return index;
+      }
+    }
+    ++index;
+  }
+  throw std::runtime_error("find matched parenthesis error");
+}
 
 template <Token token>
 size_t FindNextToken(const std::vector<WamonToken> &tokens, size_t begin, size_t end) {

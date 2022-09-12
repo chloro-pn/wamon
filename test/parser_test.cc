@@ -25,7 +25,7 @@ TEST(parser, find_match) {
   wamon::Scanner scan;
   std::string str = "(func(2,3), func(()(())()), ax)";
   auto tokens = scan.Scan(str);
-  auto end = wamon::FindMatchedParenthesis(tokens, 0);
+  auto end = wamon::FindMatchedToken<wamon::Token::LEFT_PARENTHESIS, wamon::Token::RIGHT_PARENTHESIS>(tokens, 0);
   EXPECT_EQ(end, tokens.size() - 2);
 }
 
@@ -33,7 +33,7 @@ TEST(parser, find_next) {
   wamon::Scanner scan;
   std::string str = "(func(2,3), [,], func((,){,(),},()), ax)";
   auto tokens = scan.Scan(str);
-  auto end = wamon::FindMatchedParenthesis(tokens, 0);
+  auto end = wamon::FindMatchedToken<wamon::Token::LEFT_PARENTHESIS, wamon::Token::RIGHT_PARENTHESIS>(tokens, 0);
   EXPECT_EQ(end, tokens.size() - 2);
   size_t begin = 0;
   std::vector<size_t> indexs = {7, 11, 27, 29};
@@ -61,4 +61,13 @@ TEST(parser, parse_parameter_list) {
   tokens = scan.Scan(str);
   param_list = wamon::ParseParameterList(tokens, 0, tokens.size() - 2);
   EXPECT_EQ(param_list.size(), 0);
+}
+
+TEST(parser, function_declaration) {
+  wamon::Scanner scan;
+  std::string str = "func myfunc(int a, double b, string c) -> void {}";
+  auto tokens = scan.Scan(str);
+  size_t begin = 0;
+  wamon::TryToParseFunctionDeclaration(tokens, begin);
+  EXPECT_EQ(tokens[begin].token, wamon::Token::TEOF);
 }

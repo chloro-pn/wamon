@@ -42,6 +42,7 @@ enum class Token {
   COLON,
   DECIMAL_POINT,
   COMMA,
+  ARROW,
 
   // 运算符
   PLUS,
@@ -134,6 +135,8 @@ inline const char *GetTokenStr(Token token) {
       return ".";
     case Token::COMMA:
       return ",";
+    case Token::ARROW:
+      return "->";
     case Token::PLUS:
       return "+";
     case Token::MINUS:

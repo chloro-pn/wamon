@@ -69,31 +69,16 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
   return ret;
 }
 
-int64_t FindMatchedParenthesis(const std::vector<WamonToken> &tokens, size_t begin) {
-  AssertTokenOrThrow(tokens, begin, Token::LEFT_PARENTHESIS);
-  size_t counter = 1;
-  size_t index = begin;
-  while(index < tokens.size()) {
-    if (tokens[index].token == Token::LEFT_PARENTHESIS) {
-      ++counter;
-    }
-    else if (tokens[index].token == Token::RIGHT_PARENTHESIS) {
-      --counter;
-      if (counter == 0) {
-        return index;
-      }
-    }
-    ++index;
-  }
-  return -1;
-}
-
 std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken>& tokens, size_t begin, size_t end) {
   return std::make_unique<Expression>();
 }
 
-std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken>& tokens, size_t begin, size_t& end) {
+std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken>& tokens, size_t begin, size_t end) {
   return std::make_unique<Statement>();
+}
+
+std::vector<std::unique_ptr<Statement>> ParseStmtBlock(const std::vector<WamonToken>& tokens, size_t begin, size_t end) {
+  return std::vector<std::unique_ptr<Statement>>();
 }
 
 //   (  type id, type id, ... )
@@ -140,8 +125,14 @@ void TryToParseFunctionDeclaration(const std::vector<WamonToken> &tokens, size_t
     return;
   }
   std::string func_name = ParseIdentifier(tokens, begin);
-  AssertTokenOrThrow(tokens, begin, Token::LEFT_PARENTHESIS);
-
+  size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
+  auto param_list = ParseParameterList(tokens, begin, end);
+  begin = end + 1;
+  AssertTokenOrThrow(tokens, begin, Token::ARROW);
+  auto return_type = ParseType(tokens, begin);
+  end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
+  auto stmt_block = ParseStmtBlock(tokens, begin, end);
+  begin = end + 1;
   return;
 }
 
@@ -171,7 +162,7 @@ void TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens, size_t
   auto type = ParseType(tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::ASSIGN);
   // parse expr list.
-  size_t end = FindMatchedParenthesis(tokens, begin);
+  size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
   ParseExprList(tokens, begin, end);
   begin = end + 1;
   AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
@@ -188,7 +179,7 @@ void Parse(const std::vector<WamonToken> &tokens) {
     if (token.token == Token::TEOF) {
       break;
     }
-    bool old_index = current_index;
+    size_t old_index = current_index;
     TryToParseFunctionDeclaration(tokens, current_index);
     TryToParseStructDeclaration(tokens, current_index);
     TryToParseVariableDeclaration(tokens, current_index);
