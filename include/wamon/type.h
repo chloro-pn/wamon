@@ -31,13 +31,9 @@ class Type {
 
 class BasicType : public Type {
  public:
-  explicit BasicType(const std::string& type_name) : type_name_(type_name) {
+  explicit BasicType(const std::string& type_name) : type_name_(type_name) {}
 
-  }
-
-  std::string GetTypeInfo() const override {
-    return type_name_;
-  }
+  std::string GetTypeInfo() const override { return type_name_; }
 
  private:
   std::string type_name_;

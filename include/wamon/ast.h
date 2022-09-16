@@ -20,6 +20,10 @@ class Expression : public AstNode {
 
 class FuncCallExpr : public Expression {
  public:
+  void SetFuncName(const std::string& func_name) { func_name_ = func_name; }
+
+  void SetParameters(std::vector<std::unique_ptr<Expression>>&& param) { parameters_ = std::move(param); }
+
  private:
   std::string func_name_;
   std::vector<std::unique_ptr<Expression>> parameters_;
@@ -34,6 +38,12 @@ class DataMemberExpr : public Expression {
 
 class BinaryExpr : public Expression {
  public:
+  void SetLeft(std::unique_ptr<Expression>&& left) { left_ = std::move(left); }
+
+  void SetRight(std::unique_ptr<Expression>&& right) { right_ = std::move(right); }
+
+  void SetOp(Token op) { op_ = op; }
+
  private:
   std::unique_ptr<Expression> left_;
   std::unique_ptr<Expression> right_;
@@ -49,6 +59,8 @@ class UnaryExpr : public Expression {
 
 class IdExpr : public Expression {
  public:
+  void SetId(const std::string& id) { id_name_ = id; }
+
  private:
   std::string id_name_;
 };
@@ -62,6 +74,8 @@ class IndexExpr : public Expression {
 
 class StringIteralExpr : public Expression {
  public:
+  void SetStringIter(const std::string& str) { str_ = str; }
+
  private:
   std::string str_;
 };

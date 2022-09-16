@@ -43,6 +43,7 @@ enum class Token {
   DECIMAL_POINT,
   COMMA,
   ARROW,
+  CALL,
 
   // 运算符
   PLUS,
@@ -137,6 +138,8 @@ inline const char *GetTokenStr(Token token) {
       return ",";
     case Token::ARROW:
       return "->";
+    case Token::CALL:
+      return "call";
     case Token::PLUS:
       return "+";
     case Token::MINUS:

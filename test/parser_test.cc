@@ -38,7 +38,7 @@ TEST(parser, find_next) {
   size_t begin = 0;
   std::vector<size_t> indexs = {7, 11, 27, 29};
   size_t count = 0;
-  while(begin != end) {
+  while (begin != end) {
     auto next = wamon::FindNextToken<wamon::Token::COMMA>(tokens, begin, end);
     EXPECT_EQ(next, indexs[count++]);
     begin = next;
@@ -70,4 +70,13 @@ TEST(parser, function_declaration) {
   size_t begin = 0;
   wamon::TryToParseFunctionDeclaration(tokens, begin);
   EXPECT_EQ(tokens[begin].token, wamon::Token::TEOF);
+}
+
+TEST(parser, parse_stmt) {
+  wamon::Scanner scan;
+  std::string str = "if (a + b * c) { call myfunc(b, c, d); } else { \"string_iter\"; }";
+  auto tokens = scan.Scan(str);
+  size_t next = 0;
+  wamon::ParseStatement(tokens, 0, next);
+  EXPECT_EQ(next, 25);
 }
