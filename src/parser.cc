@@ -129,12 +129,55 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
         operands.push(std::move(str_iter_expr));
         continue;
       }
+      if (current_token == Token::INT_ITERAL) {
+        std::unique_ptr<IntIteralExpr> int_iter_expr(new IntIteralExpr());
+        int_iter_expr->SetIntIter(tokens[i].Get<int64_t>());
+
+        operands.push(std::move(int_iter_expr));
+        continue;
+      }
+      if (current_token == Token::BYTE_ITERAL) {
+        std::unique_ptr<ByteIteralExpr> byte_iter_expr(new ByteIteralExpr());
+        byte_iter_expr->SetByteIter(tokens[i].Get<uint8_t>());
+
+        operands.push(std::move(byte_iter_expr));
+        continue;
+      }
       // id表达式
       if (current_token != Token::ID) {
         throw std::runtime_error("parse expression error");
       }
+      size_t tmp_i = i;
+      std::string var_name = ParseIdentifier(tokens, tmp_i);
+      size_t tmp = i + 1;
+      if (AssertToken(tokens, tmp, Token::DECIMAL_POINT)) {
+        std::string member_name = ParseIdentifier(tokens, tmp);
+        if (AssertToken(tokens, tmp, Token::LEFT_PARENTHESIS)) {
+          // 方法调用
+          size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp - 1);
+          auto expr_list = ParseExprList(tokens, tmp, end);
+          i = end;
+          std::unique_ptr<MethodExpr> method_expr(new MethodExpr());
+          method_expr->SetVarName(var_name);
+          method_expr->SetMethodName(member_name);
+          method_expr->SetParamList(std::move(expr_list));
+          operands.push(std::move(method_expr));
+          continue;
+        } else {
+          // 数据成员调用
+          // a    .    b
+          // i   i+1  i+2
+          i = i + 2;
+          std::unique_ptr<DataMemberExpr> data_member_expr(new DataMemberExpr());
+          data_member_expr->SetVarName(var_name);
+          data_member_expr->SetDataMemberName(member_name);
+          operands.push(std::move(data_member_expr));
+          continue;
+        }
+      }
+      // 普通的id表达式
       std::unique_ptr<IdExpr> id_expr(new IdExpr());
-      id_expr->SetId(tokens[i].Get<std::string>());
+      id_expr->SetId(var_name);
 
       operands.push(std::move(id_expr));
     }
@@ -168,7 +211,7 @@ std::unique_ptr<Statement> TryToParseIfStmt(const std::vector<WamonToken> &token
   auto end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
   ParseExpression(tokens, begin + 1, end);
   begin = end + 1;
-  
+
   end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
   ParseStmtBlock(tokens, begin, end);
 
@@ -218,10 +261,13 @@ std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken> &tokens,
   if (ret != nullptr) {
     return ret;
   }
+  // parse expr stmt.
   size_t colon = FindNextToken<Token::SEMICOLON>(tokens, begin);
   auto expr = ParseExpression(tokens, begin, colon);
   next = colon + 1;
-  return std::make_unique<Statement>();
+  std::unique_ptr<ExpressionStmt> expr_stmt(new ExpressionStmt());
+  expr_stmt->SetExpr(std::move(expr));
+  return expr_stmt;
 }
 
 std::vector<std::unique_ptr<Statement>> ParseStmtBlock(const std::vector<WamonToken> &tokens, size_t begin,

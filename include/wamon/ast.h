@@ -31,9 +31,37 @@ class FuncCallExpr : public Expression {
 
 class DataMemberExpr : public Expression {
  public:
+  void SetVarName(const std::string& var_name) {
+    var_name_ = var_name;
+  }
+
+  void SetDataMemberName(const std::string& data_member_name) {
+    data_member_name_ = data_member_name;
+  }
+
  private:
   std::string var_name_;
   std::string data_member_name_;
+};
+
+class MethodExpr : public Expression {
+ public:
+  void SetVarName(const std::string& var_name) {
+    var_name_ = var_name;
+  }
+
+  void SetMethodName(const std::string& method_name) {
+    method_name_ = method_name;
+  }
+
+  void SetParamList(std::vector<std::unique_ptr<Expression>>&& param_list) {
+    param_list_ = std::move(param_list);
+  }
+
+ private:
+  std::string var_name_;
+  std::string method_name_;
+  std::vector<std::unique_ptr<Expression>> param_list_;
 };
 
 class BinaryExpr : public Expression {
@@ -82,12 +110,16 @@ class StringIteralExpr : public Expression {
 
 class IntIteralExpr : public Expression {
  public:
+  void SetIntIter(const int64_t& n) { num_ = n; }
+
  private:
   int64_t num_;
 };
 
 class DoubleIteralExpr : public Expression {
  public:
+  void SetDoubleIter(const double& d) { d_ = d; }
+
  private:
   double d_;
 };
@@ -100,6 +132,8 @@ class BoolIteralExpr : public Expression {
 
 class ByteIteralExpr : public Expression {
  public:
+  void SetByteIter(uint8_t byte) { byte_ = byte; }
+
  private:
   uint8_t byte_;
 };
@@ -150,6 +184,8 @@ class ReturnStmt : public Statement {
 
 class ExpressionStmt : public Statement {
  public:
+  void SetExpr(std::unique_ptr<Expression>&& expr) { expr_ = std::move(expr); }
+  
  private:
   std::unique_ptr<Expression> expr_;
 };

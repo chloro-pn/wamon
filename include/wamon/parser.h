@@ -74,6 +74,8 @@ std::vector<std::unique_ptr<Statement>> ParseStmtBlock(const std::vector<WamonTo
 
 std::vector<std::unique_ptr<Expression>> ParseExprList(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
 
+std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
+
 void Parse(const std::vector<WamonToken> &tokens);
 
 }  // namespace wamon

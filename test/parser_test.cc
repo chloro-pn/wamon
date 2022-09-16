@@ -74,9 +74,21 @@ TEST(parser, function_declaration) {
 
 TEST(parser, parse_stmt) {
   wamon::Scanner scan;
-  std::string str = "if (a + b * c) { call myfunc(b, c, d); } else { \"string_iter\"; }";
+  std::string str = "if (a.b(c, d)) { call myfunc(b, c, d); } else { \"string_iter\"; }";
   auto tokens = scan.Scan(str);
   size_t next = 0;
   wamon::ParseStatement(tokens, 0, next);
-  EXPECT_EQ(next, 25);
+  EXPECT_EQ(next, tokens.size() - 1);
+}
+
+TEST(parse, parse_expression) {
+  wamon::Scanner scan;
+  std::string str = "var_name.data_member";
+  auto tokens = scan.Scan(str);
+  auto expr = wamon::ParseExpression(tokens, 0, tokens.size() - 1);
+  EXPECT_NE(expr, nullptr);
+  str = "var_name.method(param_a, param_b, call myfunc(c, d))";
+  tokens = scan.Scan(str);
+  expr = wamon::ParseExpression(tokens, 0, tokens.size() - 1);
+  EXPECT_NE(expr, nullptr);
 }
