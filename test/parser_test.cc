@@ -79,6 +79,12 @@ TEST(parser, parse_stmt) {
   size_t next = 0;
   wamon::ParseStatement(tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
+
+  str = "while(true) { call myfunc(a, b, c); }";
+  tokens = scan.Scan(str);
+  next = 0;
+  wamon::ParseStatement(tokens, 0, next);
+  EXPECT_EQ(next, tokens.size() - 1);
 }
 
 TEST(parse, parse_expression) {

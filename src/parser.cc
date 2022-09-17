@@ -143,6 +143,20 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
         operands.push(std::move(byte_iter_expr));
         continue;
       }
+      if (current_token == Token::DOUBLE_ITERAL) {
+        std::unique_ptr<DoubleIteralExpr> double_iter_expr(new DoubleIteralExpr());
+        double_iter_expr->SetDoubleIter(tokens[i].Get<double>());
+
+        operands.push(std::move(double_iter_expr));
+        continue;
+      }
+      if (current_token == Token::TRUE || current_token == Token::FALSE) {
+        std::unique_ptr<BoolIteralExpr> bool_iter_expr(new BoolIteralExpr());
+        bool_iter_expr->SetBoolIter(current_token == Token::TRUE ? true : false);
+
+        operands.push(std::move(bool_iter_expr));
+        continue;
+      }
       // id表达式
       if (current_token != Token::ID) {
         throw std::runtime_error("parse expression error");
@@ -250,6 +264,20 @@ std::unique_ptr<Statement> TryToParseForStmt(const std::vector<WamonToken> &toke
   return ret;
 }
 
+std::unique_ptr<Statement> TryToParseWhileStmt(const std::vector<WamonToken>& tokens, size_t begin, size_t &next) {
+  std::unique_ptr<WhileStmt> ret(new WhileStmt());
+  if (AssertToken(tokens, begin, Token::WHILE) == false) {
+    return nullptr;
+  }
+  auto end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
+  ParseExpression(tokens, begin + 1, end);
+  begin = end + 1;
+  end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
+  auto stmt_block = ParseStmtBlock(tokens, begin, end);
+  next = end + 1;
+  return ret;
+}
+
 // 从tokens[begin]开始解析一个语句，并更新next为下一次解析的开始位置
 std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
   std::unique_ptr<Statement> ret(nullptr);
@@ -258,6 +286,10 @@ std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken> &tokens,
     return ret;
   }
   ret = TryToParseForStmt(tokens, begin, next);
+  if (ret != nullptr) {
+    return ret;
+  }
+  ret = TryToParseWhileStmt(tokens, begin, next);
   if (ret != nullptr) {
     return ret;
   }

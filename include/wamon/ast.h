@@ -126,6 +126,8 @@ class DoubleIteralExpr : public Expression {
 
 class BoolIteralExpr : public Expression {
  public:
+  void SetBoolIter(bool b) { b_ = b; }
+  
  private:
   bool b_;
 };
