@@ -195,6 +195,14 @@ class ExpressionStmt : public Statement {
 // let var_name_ = type_(constructors_)
 class VariableDefineStmt : public Statement {
  public:
+  void SetType(std::unique_ptr<Type>&& type) { type_ = std::move(type); }
+
+  void SetVarName(const std::string& var_name) { var_name_ = var_name; }
+
+  void SetConstructors(std::vector<std::unique_ptr<Expression>>&& cos) {
+    constructors_ = std::move(cos);
+  }
+  
  private:
   std::unique_ptr<Type> type_;
   std::string var_name_;

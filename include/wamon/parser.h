@@ -68,7 +68,7 @@ void TryToParseFunctionDeclaration(const std::vector<WamonToken> &tokens, size_t
 
 void TryToParseStructDeclaration(const std::vector<WamonToken> &tokens, size_t &begin);
 
-void TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens, size_t &begin);
+std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens, size_t &begin);
 
 std::vector<std::unique_ptr<Statement>> ParseStmtBlock(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
 

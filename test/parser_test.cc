@@ -85,6 +85,12 @@ TEST(parser, parse_stmt) {
   next = 0;
   wamon::ParseStatement(tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
+
+  str = "let var : string = (\"hello world\");";
+  tokens = scan.Scan(str);
+  next = 0;
+  wamon::ParseStatement(tokens, 0, next);
+  EXPECT_EQ(next, tokens.size() - 1);
 }
 
 TEST(parse, parse_expression) {

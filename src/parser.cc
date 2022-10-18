@@ -71,6 +71,13 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
   return ret;
 }
 
+// 目前支持：
+//  - 函数调用表达式
+//  - 字面量表达式（5种基本类型）
+//  - 方法调用表达式
+//  - 成员调用表达式
+//  - id表达式
+//  - 表达式嵌套（二元运算，括号）
 std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &tokens, size_t begin, size_t end) {
   if (begin == end) {
     return nullptr;
@@ -278,7 +285,20 @@ std::unique_ptr<Statement> TryToParseWhileStmt(const std::vector<WamonToken>& to
   return ret;
 }
 
+// wrapper for TryToParseVariableDeclaration
+std::unique_ptr<Statement> TryToParseVarDefStmt(const std::vector<WamonToken>& tokens, size_t begin, size_t &next) {
+  std::unique_ptr<Statement> ret = TryToParseVariableDeclaration(tokens, begin);
+  next = begin;
+  return ret;
+}
+
 // 从tokens[begin]开始解析一个语句，并更新next为下一次解析的开始位置
+// 目前支持：
+//  - if语句
+//  - for语句
+//  - while语句
+//  - 变量定义语句
+//  - 表达式语句
 std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
   std::unique_ptr<Statement> ret(nullptr);
   ret = TryToParseIfStmt(tokens, begin, next);
@@ -290,6 +310,10 @@ std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken> &tokens,
     return ret;
   }
   ret = TryToParseWhileStmt(tokens, begin, next);
+  if (ret != nullptr) {
+    return ret;
+  }
+  ret = TryToParseVarDefStmt(tokens, begin, next);
   if (ret != nullptr) {
     return ret;
   }
@@ -389,13 +413,14 @@ void TryToParseStructDeclaration(const std::vector<WamonToken> &tokens, size_t &
 }
 
 // let var_name : type = (expr_list) | expr;
-void TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens, size_t &begin) {
+std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens, size_t &begin) {
+  std::unique_ptr<VariableDefineStmt> ret(nullptr);
   bool succ = AssertToken(tokens, begin, Token::LET);
   if (succ == false) {
-    return;
+    return ret;
   }
   std::string var_name = ParseIdentifier(tokens, begin);
-  AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
+  AssertTokenOrThrow(tokens, begin, Token::COLON);
   auto type = ParseType(tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::ASSIGN);
   // parse expr list.
@@ -403,7 +428,11 @@ void TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens, size_t
   auto expr_list = ParseExprList(tokens, begin, end);
   begin = end + 1;
   AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
-  return;
+  ret.reset(new VariableDefineStmt());
+  ret->SetType(std::move(type));
+  ret->SetVarName(var_name);
+  ret->SetConstructors(std::move(expr_list));
+  return ret;
 }
 
 void Parse(const std::vector<WamonToken> &tokens) {
