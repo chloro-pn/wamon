@@ -10,6 +10,8 @@ TEST(parser, basic) {
   EXPECT_THROW(wamon::Parse(tokens), std::runtime_error);
 
   str = R"(
+    package main;
+
     struct my_struct_name {
       int a;
       double b;
@@ -103,4 +105,17 @@ TEST(parse, parse_expression) {
   tokens = scan.Scan(str);
   expr = wamon::ParseExpression(tokens, 0, tokens.size() - 1);
   EXPECT_NE(expr, nullptr);
+}
+
+TEST(parse, parse_package) {
+  wamon::Scanner scan;
+  std::string str = "package main; import net; import os;";
+  auto tokens = scan.Scan(str);
+  size_t begin = 0;
+  std::string package_name = wamon::ParsePackageName(tokens, begin);
+  auto imports = wamon::ParseImportPackages(tokens, begin);
+  EXPECT_EQ(package_name, "main");
+  EXPECT_EQ(imports.size(), 2);
+  EXPECT_EQ(imports[0], "net");
+  EXPECT_EQ(imports[1], "os");
 }

@@ -75,6 +75,10 @@ enum class Token {
   // 变量定义
   LET,
 
+  // 包管理
+  PACKAGE,
+  IMPORT,
+
   // 标志文件结尾，由词法分析器添加
   TEOF,
   INVALID,
@@ -184,6 +188,10 @@ inline const char *GetTokenStr(Token token) {
       return "struct";
     case Token::LET:
       return "let";
+    case Token::PACKAGE:
+      return "package";
+    case Token::IMPORT:
+      return "import";
     case Token::TEOF:
       return "TEOF";
     default:

@@ -76,6 +76,10 @@ std::vector<std::unique_ptr<Expression>> ParseExprList(const std::vector<WamonTo
 
 std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
 
+std::string ParsePackageName(const std::vector<WamonToken>& tokens, size_t &begin);
+
+std::vector<std::string> ParseImportPackages(const std::vector<WamonToken>& tokens, size_t begin);
+
 void Parse(const std::vector<WamonToken> &tokens);
 
 }  // namespace wamon

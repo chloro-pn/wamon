@@ -435,11 +435,39 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vec
   return ret;
 }
 
+std::string ParsePackageName(const std::vector<WamonToken>& tokens, size_t &begin) {
+  AssertTokenOrThrow(tokens, begin, Token::PACKAGE);
+  std::string package_name = ParseIdentifier(tokens, begin);
+  AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
+  return package_name;
+}
+
+std::vector<std::string> ParseImportPackages(const std::vector<WamonToken>& tokens, size_t begin) {
+  std::vector<std::string> packages;
+  while(true) {
+    bool succ = AssertToken(tokens, begin, Token::IMPORT);
+    if (succ == false) {
+      break;
+    }
+    std::string package_name = ParseIdentifier(tokens, begin);
+    AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
+    packages.push_back(package_name);
+  }
+  return packages;
+}
+
+// 解析一个package
+// package的构成：
+// package声明语句（必须且唯一，位于package首部）
+// import语句（0或多个，位于package声明语句之后，其他之前）
+// 函数声明、结构体声明、变量定义声明（均位于package作用域，顺序无关）
 void Parse(const std::vector<WamonToken> &tokens) {
   if (tokens.empty() == true || tokens.back().token != Token::TEOF) {
     throw std::runtime_error("invalid tokens");
   }
   size_t current_index = 0;
+  std::string package_name = ParsePackageName(tokens, current_index);
+  std::vector<std::string> import_packages = ParseImportPackages(tokens, current_index);
   while (current_index < tokens.size()) {
     WamonToken token = tokens[current_index];
     if (token.token == Token::TEOF) {
