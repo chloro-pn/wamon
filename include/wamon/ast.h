@@ -146,6 +146,10 @@ class Statement : public AstNode {
 
 class BlockStmt : public Statement {
  public:
+  void SetBlock(std::vector<std::unique_ptr<Statement>>&& block) {
+    block_ = std::move(block);
+  }
+
  private:
   std::vector<std::unique_ptr<Statement>> block_;
 };
@@ -195,16 +199,24 @@ class ExpressionStmt : public Statement {
 // let var_name_ = type_(constructors_)
 class VariableDefineStmt : public Statement {
  public:
-  void SetType(std::unique_ptr<Type>&& type) { type_ = std::move(type); }
+  void SetType(const std::string& type) { type_ = type; }
 
   void SetVarName(const std::string& var_name) { var_name_ = var_name; }
 
   void SetConstructors(std::vector<std::unique_ptr<Expression>>&& cos) {
     constructors_ = std::move(cos);
   }
+
+  const std::string& GetType() const {
+    return type_;
+  }
+
+  const std::string& GetVarName() const {
+    return var_name_;
+  }
   
  private:
-  std::unique_ptr<Type> type_;
+  std::string type_;
   std::string var_name_;
   std::vector<std::unique_ptr<Expression>> constructors_;
 };

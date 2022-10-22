@@ -2,6 +2,8 @@
 
 #include "wamon/ast.h"
 #include "wamon/scanner.h"
+#include "wamon/struct_def.h"
+#include "wamon/function_def.h"
 
 namespace wamon {
 
@@ -64,9 +66,9 @@ std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken> &tokens,
 std::vector<std::pair<std::string, std::unique_ptr<Type>>> ParseParameterList(const std::vector<WamonToken> &tokens,
                                                                               size_t begin, size_t end);
 
-void TryToParseFunctionDeclaration(const std::vector<WamonToken> &tokens, size_t &begin);
+std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(const std::vector<WamonToken> &tokens, size_t &begin);
 
-void TryToParseStructDeclaration(const std::vector<WamonToken> &tokens, size_t &begin);
+std::unique_ptr<StructDef> TryToParseStructDeclaration(const std::vector<WamonToken> &tokens, size_t &begin);
 
 std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens, size_t &begin);
 
@@ -78,7 +80,7 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
 
 std::string ParsePackageName(const std::vector<WamonToken>& tokens, size_t &begin);
 
-std::vector<std::string> ParseImportPackages(const std::vector<WamonToken>& tokens, size_t begin);
+std::vector<std::string> ParseImportPackages(const std::vector<WamonToken>& tokens, size_t& begin);
 
 void Parse(const std::vector<WamonToken> &tokens);
 

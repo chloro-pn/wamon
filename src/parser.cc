@@ -5,6 +5,7 @@
 
 #include "fmt/format.h"
 #include "wamon/operator.h"
+#include "wamon/package_unit.h"
 
 namespace wamon {
 /*
@@ -380,36 +381,54 @@ std::vector<std::unique_ptr<Expression>> ParseExprList(const std::vector<WamonTo
   return ret;
 }
 
-void TryToParseFunctionDeclaration(const std::vector<WamonToken> &tokens, size_t &begin) {
+std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(const std::vector<WamonToken> &tokens, size_t &begin) {
+  std::unique_ptr<FunctionDef> ret(nullptr);
   bool succ = AssertToken(tokens, begin, Token::FUNC);
   if (succ == false) {
-    return;
+    return ret;
   }
   std::string func_name = ParseIdentifier(tokens, begin);
+  // 
+  ret.reset(new FunctionDef(func_name));
   size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
   auto param_list = ParseParameterList(tokens, begin, end);
+  for(auto& each : param_list) {
+    //
+    ret->AddParamList(each.second->GetTypeInfo(), each.first);
+  }
   begin = end + 1;
   AssertTokenOrThrow(tokens, begin, Token::ARROW);
   auto return_type = ParseType(tokens, begin);
+  //
+  ret->SetReturnType(return_type->GetTypeInfo());
   end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
   auto stmt_block = ParseStmtBlock(tokens, begin, end);
+  
+  std::unique_ptr<BlockStmt> bs(new BlockStmt());
+  bs->SetBlock(std::move(stmt_block));
+  //
+  ret->SetBlockStmt(std::move(bs));
+
   begin = end + 1;
-  return;
+  return ret;
 }
 
-void TryToParseStructDeclaration(const std::vector<WamonToken> &tokens, size_t &begin) {
+std::unique_ptr<StructDef> TryToParseStructDeclaration(const std::vector<WamonToken> &tokens, size_t &begin) {
+  std::unique_ptr<StructDef> ret(nullptr);
   bool succ = AssertToken(tokens, begin, Token::STRUCT);
   if (succ == false) {
-    return;
+    return ret;
   }
   std::string struct_name = ParseIdentifier(tokens, begin);
+  ret.reset(new StructDef(struct_name));
   AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACE);
   while (AssertToken(tokens, begin, Token::RIGHT_BRACE) == false) {
     auto type = ParseType(tokens, begin);
     auto field_name = ParseIdentifier(tokens, begin);
     AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
+    ret->AddDataMember(field_name, type->GetTypeInfo());
   }
-  return;
+  return ret;
 }
 
 // let var_name : type = (expr_list) | expr;
@@ -429,7 +448,7 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vec
   begin = end + 1;
   AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
   ret.reset(new VariableDefineStmt());
-  ret->SetType(std::move(type));
+  ret->SetType(type->GetTypeInfo());
   ret->SetVarName(var_name);
   ret->SetConstructors(std::move(expr_list));
   return ret;
@@ -442,7 +461,7 @@ std::string ParsePackageName(const std::vector<WamonToken>& tokens, size_t &begi
   return package_name;
 }
 
-std::vector<std::string> ParseImportPackages(const std::vector<WamonToken>& tokens, size_t begin) {
+std::vector<std::string> ParseImportPackages(const std::vector<WamonToken>& tokens, size_t &begin) {
   std::vector<std::string> packages;
   while(true) {
     bool succ = AssertToken(tokens, begin, Token::IMPORT);
@@ -467,16 +486,32 @@ void Parse(const std::vector<WamonToken> &tokens) {
   }
   size_t current_index = 0;
   std::string package_name = ParsePackageName(tokens, current_index);
+  PackageUnit::Instance().SetName(package_name);
+
   std::vector<std::string> import_packages = ParseImportPackages(tokens, current_index);
+  PackageUnit::Instance().SetImportPackage(import_packages);
+  
   while (current_index < tokens.size()) {
     WamonToken token = tokens[current_index];
     if (token.token == Token::TEOF) {
       break;
     }
     size_t old_index = current_index;
-    TryToParseFunctionDeclaration(tokens, current_index);
-    TryToParseStructDeclaration(tokens, current_index);
-    TryToParseVariableDeclaration(tokens, current_index);
+    auto func_def = TryToParseFunctionDeclaration(tokens, current_index);
+    if (func_def != nullptr) {
+      PackageUnit::Instance().AddFuncDef(std::move(func_def));
+      continue;
+    }
+    auto struct_def = TryToParseStructDeclaration(tokens, current_index);
+    if (struct_def != nullptr) {
+      PackageUnit::Instance().AddStructDef(std::move(struct_def));
+      continue;
+    }
+    auto var_declaration = TryToParseVariableDeclaration(tokens, current_index);
+    if (var_declaration != nullptr) {
+      PackageUnit::Instance().AddVarDef(std::move(var_declaration));
+      continue;
+    }
     if (old_index == current_index) {
       throw std::runtime_error("parse error");
     }
