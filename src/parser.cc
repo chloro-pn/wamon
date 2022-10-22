@@ -293,6 +293,30 @@ std::unique_ptr<Statement> TryToParseVarDefStmt(const std::vector<WamonToken>& t
   return ret;
 }
 
+std::unique_ptr<Statement> TryToParseSkipStmt(const std::vector<WamonToken>& tokens, size_t begin, size_t &next) {
+  std::unique_ptr<Statement> ret(nullptr);
+  if (AssertToken(tokens, begin, Token::CONTINUE)) {
+    ret.reset(new ContinueStmt());
+    AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
+    next = begin;
+  } else if (AssertToken(tokens, begin, Token::BREAK)) {
+    ret.reset(new BreakStmt());
+    AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
+    next = begin;
+  } else if (AssertToken(tokens, begin, Token::RETURN)) {
+    ret.reset(new ReturnStmt());
+    if (AssertToken(tokens, begin, Token::SEMICOLON) == false) {
+      auto end = FindNextToken<Token::SEMICOLON>(tokens, begin);
+      auto expr = ParseExpression(tokens, begin, end);
+      next = end + 1;
+      static_cast<ReturnStmt*>(ret.get())->SetReturn(std::move(expr));
+    } else {
+      next = begin;
+    }
+  }
+  return ret;
+}
+
 // 从tokens[begin]开始解析一个语句，并更新next为下一次解析的开始位置
 // 目前支持：
 //  - if语句
@@ -315,6 +339,10 @@ std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken> &tokens,
     return ret;
   }
   ret = TryToParseVarDefStmt(tokens, begin, next);
+  if (ret != nullptr) {
+    return ret;
+  }
+  ret = TryToParseSkipStmt(tokens, begin, next);
   if (ret != nullptr) {
     return ret;
   }

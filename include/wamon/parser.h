@@ -28,6 +28,7 @@ size_t FindMatchedToken(const std::vector<WamonToken> &tokens, size_t begin) {
   throw std::runtime_error("find matched parenthesis error");
 }
 
+// 在区间(begin, end]中找到第一个值为token的token，注意需要跳过所有不匹配的大中小括号，如果找不到的话，返回end。
 template <Token token>
 size_t FindNextToken(const std::vector<WamonToken> &tokens, size_t begin,
                      size_t end = std::numeric_limits<size_t>::max()) {
@@ -37,6 +38,7 @@ size_t FindNextToken(const std::vector<WamonToken> &tokens, size_t begin,
     }
   }
   begin += 1;
+  end = std::min(end, tokens.size() - 1);
   size_t counter1 = 0;  // ()
   size_t counter2 = 0;  // []
   size_t counter3 = 0;  // {}
@@ -77,6 +79,8 @@ std::vector<std::unique_ptr<Statement>> ParseStmtBlock(const std::vector<WamonTo
 std::vector<std::unique_ptr<Expression>> ParseExprList(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
 
 std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
+
+std::unique_ptr<Statement> TryToParseSkipStmt(const std::vector<WamonToken>& tokens, size_t begin, size_t &next);
 
 std::string ParsePackageName(const std::vector<WamonToken>& tokens, size_t &begin);
 

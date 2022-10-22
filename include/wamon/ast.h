@@ -184,6 +184,10 @@ class ContinueStmt : public Statement {};
 
 class ReturnStmt : public Statement {
  public:
+  void SetReturn(std::unique_ptr<Expression>&& ret) {
+    return_ = std::move(ret);
+  }
+  
  private:
   std::unique_ptr<Expression> return_;
 };

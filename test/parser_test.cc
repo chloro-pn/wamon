@@ -76,7 +76,7 @@ TEST(parser, function_declaration) {
 
 TEST(parser, parse_stmt) {
   wamon::Scanner scan;
-  std::string str = "if (a.b(c, d)) { call myfunc(b, c, d); } else { \"string_iter\"; }";
+  std::string str = "if (a.b(c, d)) { call myfunc(b, c, d); break; } else { \"string_iter\"; }";
   auto tokens = scan.Scan(str);
   size_t next = 0;
   wamon::ParseStatement(tokens, 0, next);
@@ -92,6 +92,18 @@ TEST(parser, parse_stmt) {
   tokens = scan.Scan(str);
   next = 0;
   wamon::ParseStatement(tokens, 0, next);
+  EXPECT_EQ(next, tokens.size() - 1);
+
+  str = "continue;";
+  tokens = scan.Scan(str);
+  next = 0;
+  wamon::TryToParseSkipStmt(tokens, 0, next);
+  EXPECT_EQ(next, tokens.size() - 1);
+
+  str = "return call my_func();";
+  tokens = scan.Scan(str);
+  next = 0;
+  wamon::TryToParseSkipStmt(tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
 }
 
