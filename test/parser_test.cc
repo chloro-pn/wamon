@@ -23,12 +23,21 @@ TEST(parser, basic) {
   EXPECT_NO_THROW(wamon::Parse(tokens));
 }
 
+void test_func(const std::vector<wamon::WamonToken>& tokens) {
+  std::string str = "{{{";
+  wamon::FindMatchedToken<wamon::Token::LEFT_PARENTHESIS, wamon::Token::RIGHT_PARENTHESIS>(tokens, 0);
+}
+
 TEST(parser, find_match) {
   wamon::Scanner scan;
   std::string str = "(func(2,3), func(()(())()), ax)";
   auto tokens = scan.Scan(str);
   auto end = wamon::FindMatchedToken<wamon::Token::LEFT_PARENTHESIS, wamon::Token::RIGHT_PARENTHESIS>(tokens, 0);
   EXPECT_EQ(end, tokens.size() - 2);
+
+  str = "{{{";
+  tokens = scan.Scan(str);
+  EXPECT_THROW(test_func(tokens), std::runtime_error);
 }
 
 TEST(parser, find_next) {
@@ -76,35 +85,55 @@ TEST(parser, function_declaration) {
 
 TEST(parser, parse_stmt) {
   wamon::Scanner scan;
-  std::string str = "if (a.b(c, d)) { call myfunc(b, c, d); break; } else { \"string_iter\"; }";
+  std::string str = "if (a.b(c, d)) { call myfunc(b, c, d[3]); break; } else { \"string_iter\"; }";
   auto tokens = scan.Scan(str);
   size_t next = 0;
-  wamon::ParseStatement(tokens, 0, next);
+  auto stmt = wamon::ParseStatement(tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
+  EXPECT_EQ(stmt->GetStmtName(), "if_stmt");
+
+  str = "{}";
+  tokens = scan.Scan(str);
+  next = wamon::FindMatchedToken<wamon::Token::LEFT_BRACE, wamon::Token::RIGHT_BRACE>(tokens, 0);
+  stmt = wamon::ParseStmtBlock(tokens, 0, next);
+  next += 1;
+  EXPECT_EQ(next, tokens.size() - 1);
+  EXPECT_EQ(stmt->GetStmtName(), "block_stmt");
 
   str = "while(true) { call myfunc(a, b, c); }";
   tokens = scan.Scan(str);
   next = 0;
-  wamon::ParseStatement(tokens, 0, next);
+  stmt = wamon::ParseStatement(tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
+  EXPECT_EQ(stmt->GetStmtName(), "while_stmt");
 
   str = "let var : string = (\"hello world\");";
   tokens = scan.Scan(str);
   next = 0;
-  wamon::ParseStatement(tokens, 0, next);
+  stmt = wamon::ParseStatement(tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
+  EXPECT_EQ(stmt->GetStmtName(), "var_def_stmt");
 
   str = "continue;";
   tokens = scan.Scan(str);
   next = 0;
-  wamon::TryToParseSkipStmt(tokens, 0, next);
+  stmt = wamon::TryToParseSkipStmt(tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
+  EXPECT_GE(stmt->GetStmtName(), "continue_stmt");
 
   str = "return call my_func();";
   tokens = scan.Scan(str);
   next = 0;
-  wamon::TryToParseSkipStmt(tokens, 0, next);
+  stmt = wamon::TryToParseSkipStmt(tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
+  EXPECT_EQ(stmt->GetStmtName(), "return_stmt");
+
+  str = "marr[call get_arr_index()];";
+  tokens = scan.Scan(str);
+  next = 0;
+  stmt = wamon::ParseExprStmt(tokens, 0, next);
+  EXPECT_EQ(next, tokens.size() - 1);
+  EXPECT_EQ(stmt->GetStmtName(), "expr_stmt");
 }
 
 TEST(parse, parse_expression) {

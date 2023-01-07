@@ -95,9 +95,17 @@ class IdExpr : public Expression {
 
 class IndexExpr : public Expression {
  public:
+  void SetName(const std::string& var_name) {
+    var_name_ = var_name;
+  }
+
+  void SetNestedExpr(std::unique_ptr<Expression>&& nested_expr) {
+    nested_expr_ = std::move(nested_expr);
+  }
+  
  private:
   std::string var_name_;
-  size_t index_;
+  std::unique_ptr<Expression> nested_expr_;
 };
 
 class StringIteralExpr : public Expression {
@@ -142,6 +150,7 @@ class ByteIteralExpr : public Expression {
 
 class Statement : public AstNode {
  public:
+  virtual std::string GetStmtName() = 0;
 };
 
 class BlockStmt : public Statement {
@@ -150,12 +159,36 @@ class BlockStmt : public Statement {
     block_ = std::move(block);
   }
 
+  std::string GetStmtName() override {
+    return "block_stmt";
+  }
+
  private:
   std::vector<std::unique_ptr<Statement>> block_;
 };
 
 class ForStmt : public Statement {
  public:
+  void SetInit(std::unique_ptr<Expression>&& init) {
+    init_ = std::move(init);
+  }
+
+  void SetCheck(std::unique_ptr<Expression>&& check) {
+    check_ = std::move(check);
+  }
+
+  void SetUpdate(std::unique_ptr<Expression>&& update) {
+    update_ = std::move(update);
+  }
+
+  void SetBlock(std::unique_ptr<BlockStmt>&& block) {
+    block_ = std::move(block);
+  }
+
+  std::string GetStmtName() override {
+    return "for_stmt";
+  }
+
  private:
   std::unique_ptr<Expression> init_;
   std::unique_ptr<Expression> check_;
@@ -165,6 +198,22 @@ class ForStmt : public Statement {
 
 class IfStmt : public Statement {
  public:
+  void SetCheck(std::unique_ptr<Expression>&& check) {
+    check_ = std::move(check);
+  }
+
+  void SetIfStmt(std::unique_ptr<BlockStmt>&& if_block) {
+    if_block_ = std::move(if_block);
+  }
+
+  void SetElseStmt(std::unique_ptr<BlockStmt>&& else_block) {
+    else_block_ = std::move(else_block);
+  }
+
+  std::string GetStmtName() override {
+    return "if_stmt";
+  }
+  
  private:
   std::unique_ptr<Expression> check_;
   std::unique_ptr<BlockStmt> if_block_;
@@ -173,19 +222,45 @@ class IfStmt : public Statement {
 
 class WhileStmt : public Statement {
  public:
+  void SetCheck(std::unique_ptr<Expression>&& check) {
+    check_ = std::move(check);
+  }
+
+  void SetBlock(std::unique_ptr<BlockStmt>&& block) {
+    block_ = std::move(block);
+  }
+
+  std::string GetStmtName() override {
+    return "while_stmt";
+  }
+
  private:
   std::unique_ptr<Expression> check_;
   std::unique_ptr<BlockStmt> block_;
 };
 
-class BreakStmt : public Statement {};
+class BreakStmt : public Statement {
+ public:
+  std::string GetStmtName() override {
+    return "break_stmt";
+  }
+};
 
-class ContinueStmt : public Statement {};
+class ContinueStmt : public Statement {
+ public:
+  std::string GetStmtName() override {
+    return "continue_stmt";
+  }
+};
 
 class ReturnStmt : public Statement {
  public:
   void SetReturn(std::unique_ptr<Expression>&& ret) {
     return_ = std::move(ret);
+  }
+
+  std::string GetStmtName() override {
+    return "return_stmt";
   }
   
  private:
@@ -196,6 +271,10 @@ class ExpressionStmt : public Statement {
  public:
   void SetExpr(std::unique_ptr<Expression>&& expr) { expr_ = std::move(expr); }
   
+  std::string GetStmtName() override {
+    return "expr_stmt";
+  }
+
  private:
   std::unique_ptr<Expression> expr_;
 };
@@ -217,6 +296,10 @@ class VariableDefineStmt : public Statement {
 
   const std::string& GetVarName() const {
     return var_name_;
+  }
+
+  std::string GetStmtName() override {
+    return "var_def_stmt";
   }
   
  private:

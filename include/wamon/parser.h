@@ -5,10 +5,19 @@
 #include "wamon/struct_def.h"
 #include "wamon/function_def.h"
 
+#include "fmt/format.h"
+
+#include <numeric>
+#include <string>
+
 namespace wamon {
 
 void AssertTokenOrThrow(const std::vector<WamonToken> &tokens, size_t &begin, Token token);
 
+/*
+ * @brief 需要匹配的token，tokens[begin]必须合法，并且tokens[begin] == left。
+ * 如果找不到匹配的token，抛出异常。
+ */
 template <Token left, Token right>
 size_t FindMatchedToken(const std::vector<WamonToken> &tokens, size_t begin) {
   AssertTokenOrThrow(tokens, begin, left);
@@ -25,7 +34,7 @@ size_t FindMatchedToken(const std::vector<WamonToken> &tokens, size_t begin) {
     }
     ++index;
   }
-  throw std::runtime_error("find matched parenthesis error");
+  throw std::runtime_error(fmt::format("find matched token : {} - {} error", GetTokenStr(left), GetTokenStr(right)));
 }
 
 // 在区间(begin, end]中找到第一个值为token的token，注意需要跳过所有不匹配的大中小括号，如果找不到的话，返回end。
@@ -74,13 +83,15 @@ std::unique_ptr<StructDef> TryToParseStructDeclaration(const std::vector<WamonTo
 
 std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens, size_t &begin);
 
-std::vector<std::unique_ptr<Statement>> ParseStmtBlock(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
+std::unique_ptr<BlockStmt> ParseStmtBlock(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
 
 std::vector<std::unique_ptr<Expression>> ParseExprList(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
 
 std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
 
 std::unique_ptr<Statement> TryToParseSkipStmt(const std::vector<WamonToken>& tokens, size_t begin, size_t &next);
+
+std::unique_ptr<ExpressionStmt> ParseExprStmt(const std::vector<WamonToken>& tokens, size_t begin, size_t &next);
 
 std::string ParsePackageName(const std::vector<WamonToken>& tokens, size_t &begin);
 
