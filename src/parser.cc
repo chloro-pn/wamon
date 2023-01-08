@@ -21,7 +21,6 @@ bool AssertToken(const std::vector<WamonToken> &tokens, size_t &begin, Token tok
   return true;
 }
 
-
 /*
  * @brief 判断tokens[begin]处的token值 == token，如果索引不合法，或者token值不相同，抛出runtime_error异常，否则递增索引
  * @todo 具化异常信息
@@ -458,13 +457,13 @@ std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(const std::vector<Wam
   auto param_list = ParseParameterList(tokens, begin, end);
   for(auto& each : param_list) {
     //
-    ret->AddParamList(each.second->GetTypeInfo(), each.first);
+    ret->AddParamList(std::move(each.second), each.first);
   }
   begin = end + 1;
   AssertTokenOrThrow(tokens, begin, Token::ARROW);
   auto return_type = ParseType(tokens, begin);
   //
-  ret->SetReturnType(return_type->GetTypeInfo());
+  ret->SetReturnType(std::move(return_type));
   end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
   auto stmt_block = ParseStmtBlock(tokens, begin, end);
 
@@ -488,12 +487,12 @@ std::unique_ptr<StructDef> TryToParseStructDeclaration(const std::vector<WamonTo
     auto type = ParseType(tokens, begin);
     auto field_name = ParseIdentifier(tokens, begin);
     AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
-    ret->AddDataMember(field_name, type->GetTypeInfo());
+    ret->AddDataMember(field_name, std::move(type));
   }
   return ret;
 }
 
-// let var_name : type = (expr_list) | expr;
+// let var_name : type = (expr_list);
 std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens, size_t &begin) {
   std::unique_ptr<VariableDefineStmt> ret(nullptr);
   bool succ = AssertToken(tokens, begin, Token::LET);

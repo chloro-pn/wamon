@@ -10,17 +10,19 @@
 /*
  * 类型系统：
  * - 基本类型：
- *   - int
- *   - string
- *   - byte
- *   - double
- *   - bool
- *   - void
+ *   - 内置类型
+ *     - int
+ *     - string
+ *     - byte
+ *     - double
+ *     - bool
+ *     - void
+ *   - 结构体类型
  * - 复合类型(类型加工器):
  *   - 指针类型 *       int*
  *   - 数组类型 [num]   int[2]
  *   - 函数类型 <-      int <- (type_list)
- *   - 结构体类型 {}
+ * 
  */
 namespace wamon {
 
@@ -59,12 +61,6 @@ class FuncType : public CompoundType {
  private:
   std::unique_ptr<Type> return_type_;
   std::vector<std::unique_ptr<Type>> param_type_;
-};
-
-class StructType : public CompoundType {
- public:
- private:
-  std::unordered_map<std::string, std::unique_ptr<Type>> field_and_type_;
 };
 
 }  // namespace wamon

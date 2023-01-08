@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <memory>
 
+#include "wamon/type.h"
+
 namespace wamon {
 
 class StructDef {
@@ -16,12 +18,12 @@ class StructDef {
     return name_;
   }
 
-  void AddDataMember(const std::string& name, const std::string& type) {
-    data_members_[name] = type;
+  void AddDataMember(const std::string& name, std::unique_ptr<Type>&& type) {
+    data_members_[name] = std::move(type);
   }
   
  private:
   std::string name_;
-  std::unordered_map<std::string, std::string> data_members_;
+  std::unordered_map<std::string, std::unique_ptr<Type>> data_members_;
 };
 }
