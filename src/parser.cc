@@ -49,33 +49,95 @@ std::string ParseBasicType(const std::vector<WamonToken> &tokens, size_t &begin)
   std::string ret;
   if (tokens[begin].token == Token::STRING) {
     ret = "string";
+    begin += 1;
   } else if (tokens[begin].token == Token::INT) {
     ret = "int";
+    begin += 1;
   } else if (tokens[begin].token == Token::BYTE) {
     ret = "byte";
+    begin += 1;
   } else if (tokens[begin].token == Token::BOOL) {
     ret = "bool";
+    begin += 1;
   } else if (tokens[begin].token == Token::DOUBLE) {
     ret = "double";
+    begin += 1;
   } else if (tokens[begin].token == Token::VOID) {
     ret = "void";
-  }
-  if (ret != "") {
     begin += 1;
+  } else {
+    ret = ParseIdentifier(tokens, begin);
   }
   return ret;
 }
 
 // 从tokens[begin]开始解析一个类型信息，更新begin，并返回解析到的类型
+// 仅从语法分析的角度进行解析，不一定是合法的类型。
 std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &begin) {
+  if (AssertToken(tokens, begin, Token::PTR)) {
+    size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
+    begin += 1;
+    std::unique_ptr<PointerType> tmp(new PointerType);
+    auto nested_type = ParseType(tokens, begin);
+    tmp->SetHoldType(std::move(nested_type));
+    if (right_parent != begin) {
+      throw std::runtime_error("parse type error");
+    }
+    begin += 1;
+    return tmp;
+  } else if (AssertToken(tokens, begin, Token::ARRAY)) {
+    size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
+    begin += 1;
+    std::unique_ptr<ArrayType> tmp(new ArrayType);
+    auto nested_type = ParseType(tokens, begin);
+    tmp->SetHoldType(std::move(nested_type));
+    AssertTokenOrThrow(tokens, begin, Token::COMMA);
+    auto count_expr = ParseExpression(tokens, begin, right_parent);
+    tmp->SetCount(std::move(count_expr));
+
+    begin = right_parent + 1;
+    return tmp;
+  } else if (AssertToken(tokens, begin, Token::F)) {
+    size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
+    begin += 1;
+    std::unique_ptr<FuncType> tmp(new FuncType);
+    std::vector<std::unique_ptr<Type>> param_list;
+    std::unique_ptr<Type> return_type;
+    ParseTypeList(tokens, begin, right_parent, param_list, return_type);
+
+    tmp->SetParamTypeAndReturnType(std::move(param_list), std::move(return_type));
+    begin = right_parent + 1;
+    return tmp;
+  }
+  // parse basic type
   std::unique_ptr<Type> ret;
   std::string type_name = ParseBasicType(tokens, begin);
-  if (type_name == "") {
-    type_name = ParseIdentifier(tokens, begin);
-  }
   ret = std::make_unique<BasicType>(type_name);
   // todo 支持复合类型
   return ret;
+}
+
+/*
+ *  ( type1, type2, type3, ..., typen ) -> return_type )
+ * begin                                              end
+ */
+void ParseTypeList(const std::vector<WamonToken>& tokens, size_t begin, size_t end, std::vector<std::unique_ptr<Type>>& param_list, std::unique_ptr<Type>& return_type) {
+  size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
+  begin += 1;
+  while(begin != right_parent) {
+    auto type = ParseType(tokens, begin);
+    param_list.push_back(std::move(type));
+    if(AssertToken(tokens, begin, Token::COMMA) == false) {
+      break;
+    }
+  }
+  AssertTokenOrThrow(tokens, begin, Token::RIGHT_PARENTHESIS);
+  if(AssertToken(tokens, begin, Token::ARROW) == true) {
+    return_type = ParseType(tokens, begin);
+  }
+  if (begin != end) {
+    throw std::runtime_error("parse type list error");
+  }
 }
 
 // 目前支持：

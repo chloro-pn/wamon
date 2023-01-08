@@ -9,6 +9,7 @@
 
 #include <numeric>
 #include <string>
+#include <vector>
 
 namespace wamon {
 
@@ -71,6 +72,11 @@ size_t FindNextToken(const std::vector<WamonToken> &tokens, size_t begin,
   }
   return end;
 }
+
+class Type;
+std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &begin);
+
+void ParseTypeList(const std::vector<WamonToken>& tokens, size_t begin, size_t end, std::vector<std::unique_ptr<Type>>& param_list, std::unique_ptr<Type>& return_type);
 
 std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken> &tokens, size_t begin, size_t &next);
 
