@@ -75,6 +75,11 @@ enum class Token {
   // 变量定义
   LET,
 
+  // 复合类型声明
+  PTR,
+  ARRAY,
+  F,
+
   // 包管理
   PACKAGE,
   IMPORT,
@@ -188,6 +193,12 @@ inline const char *GetTokenStr(Token token) {
       return "struct";
     case Token::LET:
       return "let";
+    case Token::PTR:
+      return "ptr";
+    case Token::ARRAY:
+      return "array";
+    case Token::F:
+      return "f";
     case Token::PACKAGE:
       return "package";
     case Token::IMPORT:
