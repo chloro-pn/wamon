@@ -80,6 +80,10 @@ class BinaryExpr : public Expression {
 
 class UnaryExpr : public Expression {
  public:
+  void SetOp(Token op) { op_ = op; }
+
+  void SetOperand(std::unique_ptr<Expression>&& operand) { operand_ = std::move(operand); }
+  
  private:
   std::unique_ptr<Expression> operand_;
   Token op_;

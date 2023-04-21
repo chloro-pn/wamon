@@ -1,5 +1,6 @@
 #include "wamon/parser.h"
 
+#include <cassert>
 #include <stack>
 #include <stdexcept>
 
@@ -140,6 +141,44 @@ void ParseTypeList(const std::vector<WamonToken>& tokens, size_t begin, size_t e
   }
 }
 
+/*
+ * 这个enum标识了在ParseExpression循环中，上一次解析的情况，如果：
+ * 这是解析的第一个token，BEGIN，
+ * 上一个解析的token是二元运算符， B_OP，
+ * 上一个解析的token是单元运算符，U_OP,
+ * 上一个解析的token不是运算符，NO_OP,
+ */
+enum class ParseExpressionState {
+  BEGIN,
+  B_OP,
+  U_OP,
+  NO_OP,
+};
+
+bool canParseUnaryOperator(const ParseExpressionState& ps) {
+  return ps == ParseExpressionState::BEGIN || ps == ParseExpressionState::B_OP || ps == ParseExpressionState::U_OP;
+}
+
+bool canParseBinaryOperator(const ParseExpressionState& ps) {
+  return ps == ParseExpressionState::NO_OP;
+}
+
+/*
+ * 将单元运算符的运算附加到operand，例如：
+ * * & id
+ * u_opers = stack [* &], id = operand
+ */
+std::unique_ptr<Expression> AttachUnaryOperators(std::unique_ptr<Expression> operand, std::stack<Token>& u_opers) {
+  while(u_opers.empty() == false) {
+    std::unique_ptr<UnaryExpr> tmp(new UnaryExpr);
+    tmp->SetOp(u_opers.top());
+    u_opers.pop();
+    tmp->SetOperand(std::move(operand));
+    operand = std::move(tmp);
+  }
+  return operand;
+}
+
 // 目前支持：
 //  - 函数调用表达式
 //  - 字面量表达式（5种基本类型）
@@ -148,12 +187,14 @@ void ParseTypeList(const std::vector<WamonToken>& tokens, size_t begin, size_t e
 //  - id表达式
 //  - 表达式嵌套（二元运算，括号）
 std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &tokens, size_t begin, size_t end) {
+  assert(begin <= end);
   if (begin == end) {
     return nullptr;
   }
   std::stack<std::unique_ptr<Expression>> operands;
   std::stack<Token> b_operators;
   std::stack<Token> u_operators;
+  ParseExpressionState parse_state = ParseExpressionState::BEGIN;
   for (size_t i = begin; i < end; ++i) {
     Token current_token = tokens[i].token;
     if (current_token == Token::LEFT_PARENTHESIS) {
@@ -163,7 +204,12 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
       i = match_parent;
       continue;
     }
-    if (Operator::Instance().FindBinary(current_token) == true) {
+    if (canParseUnaryOperator(parse_state) && Operator::Instance().FindUnary(current_token) == true) {
+      u_operators.push(current_token);
+      parse_state = ParseExpressionState::U_OP;
+      continue;
+    }
+    if (canParseBinaryOperator(parse_state) && Operator::Instance().FindBinary(current_token) == true) {
       while (b_operators.empty() == false &&
              Operator::Instance().GetLevel(current_token) <= Operator::Instance().GetLevel(b_operators.top())) {
         std::unique_ptr<BinaryExpr> bin_expr(new BinaryExpr());
@@ -181,7 +227,9 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
         operands.push(std::move(bin_expr));
       }
       b_operators.push(current_token);
+      parse_state = ParseExpressionState::B_OP;
     } else {
+      parse_state = ParseExpressionState::NO_OP;
       // 函数调用表达式
       if (current_token == Token::CALL) {
         std::unique_ptr<FuncCallExpr> func_call_expr(new FuncCallExpr());
@@ -192,8 +240,7 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
         size_t tmp_end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp);
         auto expr_list = ParseExprList(tokens, tmp, tmp_end);
         func_call_expr->SetParameters(std::move(expr_list));
-
-        operands.push(std::move(func_call_expr));
+        operands.push(AttachUnaryOperators(std::move(func_call_expr), u_operators));
         i = tmp_end;
         continue;
       }
@@ -202,34 +249,35 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
         std::unique_ptr<StringIteralExpr> str_iter_expr(new StringIteralExpr());
         str_iter_expr->SetStringIter(tokens[i].Get<std::string>());
 
-        operands.push(std::move(str_iter_expr));
+        operands.push(AttachUnaryOperators(std::move(str_iter_expr), u_operators));
         continue;
       }
       if (current_token == Token::INT_ITERAL) {
         std::unique_ptr<IntIteralExpr> int_iter_expr(new IntIteralExpr());
         int_iter_expr->SetIntIter(tokens[i].Get<int64_t>());
-        operands.push(std::move(int_iter_expr));
+
+        operands.push(AttachUnaryOperators(std::move(int_iter_expr), u_operators));
         continue;
       }
       if (current_token == Token::BYTE_ITERAL) {
         std::unique_ptr<ByteIteralExpr> byte_iter_expr(new ByteIteralExpr());
         byte_iter_expr->SetByteIter(tokens[i].Get<uint8_t>());
 
-        operands.push(std::move(byte_iter_expr));
+        operands.push(AttachUnaryOperators(std::move(byte_iter_expr), u_operators));
         continue;
       }
       if (current_token == Token::DOUBLE_ITERAL) {
         std::unique_ptr<DoubleIteralExpr> double_iter_expr(new DoubleIteralExpr());
         double_iter_expr->SetDoubleIter(tokens[i].Get<double>());
 
-        operands.push(std::move(double_iter_expr));
+        operands.push(AttachUnaryOperators(std::move(double_iter_expr), u_operators));
         continue;
       }
       if (current_token == Token::TRUE || current_token == Token::FALSE) {
         std::unique_ptr<BoolIteralExpr> bool_iter_expr(new BoolIteralExpr());
         bool_iter_expr->SetBoolIter(current_token == Token::TRUE ? true : false);
 
-        operands.push(std::move(bool_iter_expr));
+        operands.push(AttachUnaryOperators(std::move(bool_iter_expr), u_operators));
         continue;
       }
       // id表达式
@@ -239,6 +287,10 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
       size_t tmp_i = i;
       std::string var_name = ParseIdentifier(tokens, tmp_i);
       size_t tmp = i + 1;
+      // id.data_member
+      // id.method(...)
+      // id[index]
+      // id
       if (AssertToken(tokens, tmp, Token::DECIMAL_POINT)) {
         std::string member_name = ParseIdentifier(tokens, tmp);
         if (AssertToken(tokens, tmp, Token::LEFT_PARENTHESIS)) {
@@ -250,7 +302,7 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
           method_expr->SetVarName(var_name);
           method_expr->SetMethodName(member_name);
           method_expr->SetParamList(std::move(expr_list));
-          operands.push(std::move(method_expr));
+          operands.push(AttachUnaryOperators(std::move(method_expr), u_operators));
           continue;
         } else {
           // 数据成员调用
@@ -260,7 +312,7 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
           std::unique_ptr<DataMemberExpr> data_member_expr(new DataMemberExpr());
           data_member_expr->SetVarName(var_name);
           data_member_expr->SetDataMemberName(member_name);
-          operands.push(std::move(data_member_expr));
+          operands.push(AttachUnaryOperators(std::move(data_member_expr), u_operators));
           continue;
         }
       } else if (AssertToken(tokens, tmp, Token::LEFT_BRACKETS)) {
@@ -272,14 +324,14 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
         std::unique_ptr<IndexExpr> index_expr(new IndexExpr());
         index_expr->SetName(var_name);
         index_expr->SetNestedExpr(std::move(nested_expr));
-        operands.push(std::move(index_expr));
+        operands.push(AttachUnaryOperators(std::move(index_expr), u_operators));
         continue;
       }
       // 普通的id表达式
       std::unique_ptr<IdExpr> id_expr(new IdExpr());
       id_expr->SetId(var_name);
 
-      operands.push(std::move(id_expr));
+      operands.push(AttachUnaryOperators(std::move(id_expr), u_operators));
     }
   }
   while (b_operators.empty() == false) {
@@ -297,8 +349,11 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
     operands.pop();
     operands.push(std::move(bin_expr));
   }
-  if (operands.size() != 1) {
+  if (operands.size() != 1 || b_operators.empty() != true || u_operators.empty() != true) {
     throw std::runtime_error("parse expression error, operands.size() != 1");
+  }
+  if (parse_state != ParseExpressionState::NO_OP) {
+    throw std::runtime_error("parse expression error, parse_state != NO_OP");
   }
   return std::move(operands.top());
 }

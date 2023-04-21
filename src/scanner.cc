@@ -116,14 +116,20 @@ void Scanner::scan(const std::string &str, std::vector<WamonToken> &tokens) {
     } else if (std::regex_search(begin, end, result, std::regex("/"), std::regex_constants::match_continuous)) {
       tokens.push_back(WamonToken(Token::DIVIDE));
       begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("&"), std::regex_constants::match_continuous)) {
+    } else if (std::regex_search(begin, end, result, std::regex("&&"), std::regex_constants::match_continuous)) {
       tokens.push_back(WamonToken(Token::AND));
       begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("\\|"), std::regex_constants::match_continuous)) {
+    } else if (std::regex_search(begin, end, result, std::regex("\\|\\|"), std::regex_constants::match_continuous)) {
       tokens.push_back(WamonToken(Token::OR));
       begin = result[0].second;
     } else if (std::regex_search(begin, end, result, std::regex("!"), std::regex_constants::match_continuous)) {
       tokens.push_back(WamonToken(Token::NOT));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("&"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::ADDRESS_OF));
+      begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\\|"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::PIPE));
       begin = result[0].second;
     } else if (std::regex_search(begin, end, result, std::regex("=="), std::regex_constants::match_continuous)) {
       tokens.push_back(WamonToken(Token::COMPARE));

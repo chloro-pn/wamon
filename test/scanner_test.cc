@@ -58,3 +58,29 @@ TEST(scanner, double_) {
   EXPECT_EQ(tokens.size(), 2);
   EXPECT_EQ(tokens[0].token, wamon::Token::DOUBLE_ITERAL);
 }
+
+TEST(scanner, logical) {
+  std::string str("&&");
+  wamon::Scanner scan;
+  auto tokens = scan.Scan(str);
+  EXPECT_EQ(tokens.size(), 2);
+  EXPECT_EQ(tokens[0].token, wamon::Token::AND);
+
+  str = "||";
+  tokens = scan.Scan(str);
+  EXPECT_EQ(tokens.size(), 2);
+  EXPECT_EQ(tokens[0].token, wamon::Token::OR);
+
+  str = "!";
+  tokens = scan.Scan(str);
+  EXPECT_EQ(tokens.size(), 2);
+  EXPECT_EQ(tokens[0].token, wamon::Token::NOT);
+}
+
+TEST(scanner, pipe) {
+  std::string str("range | view");
+  wamon::Scanner scan;
+  auto tokens = scan.Scan(str);
+  EXPECT_EQ(tokens.size(), 4);
+  EXPECT_EQ(tokens[1].token, wamon::Token::PIPE);
+}

@@ -1,7 +1,10 @@
-#include "wamon/parser.h"
-
 #include "gtest/gtest.h"
+
+// for test
+#define private public
+
 #include "wamon/scanner.h"
+#include "wamon/parser.h"
 
 TEST(parser, basic) {
   wamon::Scanner scan;
@@ -153,6 +156,27 @@ TEST(parse, parse_expression) {
   tokens = scan.Scan(str);
   expr = wamon::ParseExpression(tokens, 0, tokens.size() - 1);
   EXPECT_NE(expr, nullptr);
+  str = "range | view";
+  tokens = scan.Scan(str);
+  expr = wamon::ParseExpression(tokens, 0, tokens.size() - 1);
+  EXPECT_NE(expr, nullptr);
+  EXPECT_NE(dynamic_cast<wamon::BinaryExpr*>(expr.get()), nullptr);
+  auto ptr = dynamic_cast<wamon::BinaryExpr*>(expr.get());
+  EXPECT_EQ(ptr->op_, wamon::Token::PIPE);
+}
+
+TEST(parse, unary_operator) {
+  wamon::Scanner scan;
+  std::string str = "a + -&b";
+  auto tokens = scan.Scan(str);
+  auto expr = wamon::ParseExpression(tokens, 0, tokens.size() - 1);
+  EXPECT_NE(expr, nullptr);
+  auto tmp = dynamic_cast<wamon::BinaryExpr*>(expr.get())->right_.get();
+  auto tmp2 = dynamic_cast<wamon::UnaryExpr*>(tmp);
+  EXPECT_NE(tmp2, nullptr);
+  EXPECT_EQ(tmp2->op_, wamon::Token::MINUS);
+  tmp2 = dynamic_cast<wamon::UnaryExpr*>(tmp2->operand_.get());
+  EXPECT_EQ(tmp2->op_, wamon::Token::ADDRESS_OF);
 }
 
 TEST(parse, parse_package) {

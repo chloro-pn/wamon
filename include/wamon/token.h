@@ -58,6 +58,7 @@ enum class Token {
   GT,  // GREATER_THAN
   LT,  // LESS_THAN,
   ADDRESS_OF,
+  PIPE,
 
   // 自定义标识符和字面量
   ID,
@@ -158,9 +159,9 @@ inline const char *GetTokenStr(Token token) {
     case Token::DIVIDE:
       return "/";
     case Token::AND:
-      return "&";
+      return "&&";
     case Token::OR:
-      return "|";
+      return "||";
     case Token::NOT:
       return "!";
     case Token::ASSIGN:
@@ -172,7 +173,9 @@ inline const char *GetTokenStr(Token token) {
     case Token::LT:
       return "<";
     case Token::ADDRESS_OF:
-      return "addr";
+      return "&";
+    case Token::PIPE:
+      return "|";
     case Token::ID:
       return "id";
     case Token::STRING_ITERAL:
