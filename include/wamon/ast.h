@@ -29,41 +29,6 @@ class FuncCallExpr : public Expression {
   std::vector<std::unique_ptr<Expression>> parameters_;
 };
 
-class DataMemberExpr : public Expression {
- public:
-  void SetVarName(const std::string& var_name) {
-    var_name_ = var_name;
-  }
-
-  void SetDataMemberName(const std::string& data_member_name) {
-    data_member_name_ = data_member_name;
-  }
-
- private:
-  std::string var_name_;
-  std::string data_member_name_;
-};
-
-class MethodExpr : public Expression {
- public:
-  void SetVarName(const std::string& var_name) {
-    var_name_ = var_name;
-  }
-
-  void SetMethodName(const std::string& method_name) {
-    method_name_ = method_name;
-  }
-
-  void SetParamList(std::vector<std::unique_ptr<Expression>>&& param_list) {
-    param_list_ = std::move(param_list);
-  }
-
- private:
-  std::string var_name_;
-  std::string method_name_;
-  std::vector<std::unique_ptr<Expression>> param_list_;
-};
-
 class BinaryExpr : public Expression {
  public:
   void SetLeft(std::unique_ptr<Expression>&& left) { left_ = std::move(left); }

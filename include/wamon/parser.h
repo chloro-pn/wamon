@@ -4,8 +4,8 @@
 #include "wamon/scanner.h"
 #include "wamon/struct_def.h"
 #include "wamon/function_def.h"
-
-#include "fmt/format.h"
+#include "wamon/package_unit.h"
+#include "wamon/exception.h"
 
 #include <numeric>
 #include <string>
@@ -35,7 +35,7 @@ size_t FindMatchedToken(const std::vector<WamonToken> &tokens, size_t begin) {
     }
     ++index;
   }
-  throw std::runtime_error(fmt::format("find matched token : {} - {} error", GetTokenStr(left), GetTokenStr(right)));
+  throw WamonExecption("find matched token : {} - {} error", GetTokenStr(left), GetTokenStr(right));
 }
 
 // 在区间(begin, end]中找到第一个值为token的token，注意需要跳过所有不匹配的大中小括号，如果找不到的话，返回end。
@@ -44,7 +44,7 @@ size_t FindNextToken(const std::vector<WamonToken> &tokens, size_t begin,
                      size_t end = std::numeric_limits<size_t>::max()) {
   if (end != std::numeric_limits<size_t>::max()) {
     if (tokens.size() <= end || tokens[end].token == token) {
-      throw std::runtime_error("find next token error");
+      throw WamonExecption("find next token error");
     }
   }
   begin += 1;
@@ -103,6 +103,6 @@ std::string ParsePackageName(const std::vector<WamonToken>& tokens, size_t &begi
 
 std::vector<std::string> ParseImportPackages(const std::vector<WamonToken>& tokens, size_t& begin);
 
-void Parse(const std::vector<WamonToken> &tokens);
+PackageUnit Parse(const std::vector<WamonToken> &tokens);
 
 }  // namespace wamon

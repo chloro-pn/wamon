@@ -1,10 +1,9 @@
+#include "gtest/gtest.h"
+// just for test
+#define private public
 #include "wamon/parser.h"
 #include "wamon/scanner.h"
 
-#include "gtest/gtest.h"
-
-// just for test
-#define private public
 #include "wamon/package_unit.h"
 
 TEST(package_unit, basic) {
@@ -26,19 +25,19 @@ TEST(package_unit, basic) {
 
     let my_var : bool = (call init());
   )";
-
+  wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
-  EXPECT_NO_THROW(wamon::Parse(tokens));
-  EXPECT_EQ(wamon::PackageUnit::Instance().package_name_, "main");
-  EXPECT_EQ(wamon::PackageUnit::Instance().import_packages_.size(), 2);
-  EXPECT_EQ(wamon::PackageUnit::Instance().funcs_.size(), 1);
-  EXPECT_EQ(wamon::PackageUnit::Instance().structs_.size(), 1);
-  EXPECT_EQ(wamon::PackageUnit::Instance().var_define_.size(), 1);
+  pu = wamon::Parse(tokens);
+  EXPECT_EQ(pu.package_name_, "main");
+  EXPECT_EQ(pu.import_packages_.size(), 2);
+  EXPECT_EQ(pu.funcs_.size(), 1);
+  EXPECT_EQ(pu.structs_.size(), 1);
+  EXPECT_EQ(pu.var_define_.size(), 1);
   bool find = false;
-  find = wamon::PackageUnit::Instance().funcs_.count("my_func") > 0;
+  find = pu.funcs_.count("my_func") > 0;
   EXPECT_EQ(find, true);
-  find = wamon::PackageUnit::Instance().structs_.count("my_struct_name") > 0;
+  find = pu.structs_.count("my_struct_name") > 0;
   EXPECT_EQ(find, true);
-  find = wamon::PackageUnit::Instance().var_define_[0]->GetType() == "bool";
+  find = pu.var_define_[0]->GetType() == "bool";
   EXPECT_EQ(find, true);
 }

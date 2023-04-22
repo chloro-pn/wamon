@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include "wamon/variable.h"
+#include "wamon/exception.h"
 
 namespace wamon {
 /*
@@ -18,7 +19,7 @@ class Context {
 
   void RegisterVariable(std::unique_ptr<Variable>&& v) {
     if (v == nullptr || v->GetName() == "" || vars_.find(v->GetName()) != vars_.end()) {
-      throw std::runtime_error("register variable error");
+      throw WamonExecption("register variable error");
     }
     std::string name = v->GetName();
     vars_[name] = std::move(v);

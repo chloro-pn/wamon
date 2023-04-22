@@ -5,12 +5,13 @@
 
 #include "wamon/scanner.h"
 #include "wamon/parser.h"
+#include "wamon/exception.h"
 
 TEST(parser, basic) {
   wamon::Scanner scan;
   std::string str = "struct test [int a;]";
   auto tokens = scan.Scan(str);
-  EXPECT_THROW(wamon::Parse(tokens), std::runtime_error);
+  EXPECT_THROW(wamon::Parse(tokens), wamon::WamonExecption);
 
   str = R"(
     package main;
@@ -40,7 +41,7 @@ TEST(parser, find_match) {
 
   str = "{{{";
   tokens = scan.Scan(str);
-  EXPECT_THROW(test_func(tokens), std::runtime_error);
+  EXPECT_THROW(test_func(tokens), wamon::WamonExecption);
 }
 
 TEST(parser, find_next) {
@@ -88,7 +89,7 @@ TEST(parser, function_declaration) {
 
 TEST(parser, parse_stmt) {
   wamon::Scanner scan;
-  std::string str = "if (a.b(c, d)) { call myfunc(b, c, d[3]); break; } else { \"string_iter\"; }";
+  std::string str = "if (a.b) { call myfunc(b, c, d[3]); break; } else { \"string_iter\"; }";
   auto tokens = scan.Scan(str);
   size_t next = 0;
   auto stmt = wamon::ParseStatement(tokens, 0, next);
@@ -151,10 +152,6 @@ TEST(parse, parse_expression) {
   std::string str = "var_name.data_member";
   auto tokens = scan.Scan(str);
   auto expr = wamon::ParseExpression(tokens, 0, tokens.size() - 1);
-  EXPECT_NE(expr, nullptr);
-  str = "var_name.method(param_a, param_b, call myfunc(c, d))";
-  tokens = scan.Scan(str);
-  expr = wamon::ParseExpression(tokens, 0, tokens.size() - 1);
   EXPECT_NE(expr, nullptr);
   str = "range | view";
   tokens = scan.Scan(str);

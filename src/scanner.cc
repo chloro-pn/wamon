@@ -4,12 +4,13 @@
 #include <stdexcept>
 
 #include "wamon/key_words.h"
+#include "wamon/exception.h"
 
 namespace wamon {
 
 static uint8_t string_to_byte(const std::string &str) {
   if (str.size() != 4 || str[0] != '0' || str[1] != 'X') {
-    throw std::runtime_error("invalid byte");
+    throw WamonExecption("invalid byte");
   }
   int b1 = 0, b2 = 0;
   if (str[2] >= '0' && str[2] <= '9') {
@@ -17,14 +18,14 @@ static uint8_t string_to_byte(const std::string &str) {
   } else if (str[2] >= 'A' && str[2] <= 'F') {
     b1 = str[2] - 'A' + 10;
   } else {
-    throw std::runtime_error("invalid byte");
+    throw WamonExecption("invalid byte");
   }
   if (str[3] >= '0' && str[3] <= '9') {
     b2 = str[3] - '0';
   } else if (str[3] >= 'A' && str[3] <= 'F') {
     b2 = str[3] - 'A' + 10;
   } else {
-    throw std::runtime_error("invalid byte");
+    throw WamonExecption("invalid byte");
   }
   return static_cast<uint8_t>(b1 * 16 + b2);
 }
@@ -95,9 +96,6 @@ void Scanner::scan(const std::string &str, std::vector<WamonToken> &tokens) {
     } else if (std::regex_search(begin, end, result, std::regex(":"), std::regex_constants::match_continuous)) {
       tokens.push_back(WamonToken(Token::COLON));
       begin = result[0].second;
-    } else if (std::regex_search(begin, end, result, std::regex("\\."), std::regex_constants::match_continuous)) {
-      tokens.push_back(WamonToken(Token::DECIMAL_POINT));
-      begin = result[0].second;
     } else if (std::regex_search(begin, end, result, std::regex(","), std::regex_constants::match_continuous)) {
       tokens.push_back(WamonToken(Token::COMMA));
       begin = result[0].second;
@@ -131,6 +129,9 @@ void Scanner::scan(const std::string &str, std::vector<WamonToken> &tokens) {
     } else if (std::regex_search(begin, end, result, std::regex("\\|"), std::regex_constants::match_continuous)) {
       tokens.push_back(WamonToken(Token::PIPE));
       begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\\."), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::MEMBER_ACCESS));
+      begin = result[0].second;
     } else if (std::regex_search(begin, end, result, std::regex("=="), std::regex_constants::match_continuous)) {
       tokens.push_back(WamonToken(Token::COMPARE));
       begin = result[0].second;
@@ -148,7 +149,7 @@ void Scanner::scan(const std::string &str, std::vector<WamonToken> &tokens) {
       begin = result[0].second;
     } else {
       // 无法识别为合法的token
-      throw std::runtime_error("scan error");
+      throw WamonExecption("scan error");
     }
     if (begin == end) {
       break;

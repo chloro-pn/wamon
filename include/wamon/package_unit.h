@@ -13,10 +13,10 @@ namespace wamon {
 
 class PackageUnit {
  public:
-  static PackageUnit& Instance() {
-    static PackageUnit obj;
-    return obj;
-  }
+  PackageUnit() = default;
+
+  PackageUnit(PackageUnit&&) = default;
+  PackageUnit& operator=(PackageUnit&&) = default;
 
   void SetName(const std::string& name) { package_name_ = name; }
   void SetImportPackage(const std::vector<std::string>& import_packages) { import_packages_ = import_packages; }
@@ -41,8 +41,6 @@ class PackageUnit {
   std::vector<std::unique_ptr<VariableDefineStmt>> var_define_;
   std::unordered_map<std::string, std::unique_ptr<FunctionDef>> funcs_;
   std::unordered_map<std::string, std::unique_ptr<StructDef>> structs_;
-
-  PackageUnit() = default;
 };
 
 }

@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include "wamon/exception.h"
+
 namespace wamon {
 
 // wamon语言的token列表
@@ -40,7 +42,6 @@ enum class Token {
   // 格式控制
   SEMICOLON,
   COLON,
-  DECIMAL_POINT,
   COMMA,
   ARROW,
   CALL,
@@ -59,6 +60,10 @@ enum class Token {
   LT,  // LESS_THAN,
   ADDRESS_OF,
   PIPE,
+  MEMBER_ACCESS, // a.b == a MEMBER_ACCESS b
+
+  // 特殊的TOKEN，不会在词法分析阶段出现，而是将一些语法等价为二元运算符
+  SUBSCRIPT,   // a[b] == a SUBSCRIPT b
 
   // 自定义标识符和字面量
   ID,
@@ -142,8 +147,6 @@ inline const char *GetTokenStr(Token token) {
       return ";";
     case Token::COLON:
       return ":";
-    case Token::DECIMAL_POINT:
-      return ".";
     case Token::COMMA:
       return ",";
     case Token::ARROW:
@@ -176,6 +179,10 @@ inline const char *GetTokenStr(Token token) {
       return "&";
     case Token::PIPE:
       return "|";
+    case Token::SUBSCRIPT:
+      return "[]";
+    case Token::MEMBER_ACCESS:
+      return ".";
     case Token::ID:
       return "id";
     case Token::STRING_ITERAL:
@@ -209,7 +216,7 @@ inline const char *GetTokenStr(Token token) {
     case Token::TEOF:
       return "TEOF";
     default:
-      throw std::runtime_error("invalid token");
+      throw WamonExecption("invalid token");
   }
 }
 

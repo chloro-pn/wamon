@@ -28,15 +28,14 @@ bool AssertToken(const std::vector<WamonToken> &tokens, size_t &begin, Token tok
  */
 void AssertTokenOrThrow(const std::vector<WamonToken> &tokens, size_t &begin, Token token) {
   if (tokens.size() <= begin || tokens[begin].token != token) {
-    throw std::runtime_error(
-        fmt::format("parse token error, {} != {}", GetTokenStr(token), GetTokenStr(tokens[begin].token)));
+    throw WamonExecption("assert token error, assert {}, but {}", GetTokenStr(token), GetTokenStr(tokens[begin].token));
   }
   begin += 1;
 }
 
 std::string ParseIdentifier(const std::vector<WamonToken> &tokens, size_t &begin) {
   if (tokens.size() <= begin || tokens[begin].token != Token::ID || tokens[begin].type != WamonToken::ValueType::STR) {
-    throw std::runtime_error("parse identifier error");
+    throw WamonExecption("parse identifier error : {}", GetTokenStr(tokens[begin].token));
   }
   std::string ret = tokens[begin].Get<std::string>();
   begin += 1;
@@ -45,7 +44,7 @@ std::string ParseIdentifier(const std::vector<WamonToken> &tokens, size_t &begin
 
 std::string ParseBasicType(const std::vector<WamonToken> &tokens, size_t &begin) {
   if (tokens.size() <= begin) {
-    throw std::runtime_error(fmt::format("parse basictype error, invalid index {}", begin));
+    throw WamonExecption("parse basic type error, invalid index {}", begin);
   }
   std::string ret;
   if (tokens[begin].token == Token::STRING) {
@@ -82,7 +81,7 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
     auto nested_type = ParseType(tokens, begin);
     tmp->SetHoldType(std::move(nested_type));
     if (right_parent != begin) {
-      throw std::runtime_error("parse type error");
+      throw WamonExecption("parse ptr type error");
     }
     begin += 1;
     return tmp;
@@ -114,7 +113,6 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
   std::unique_ptr<Type> ret;
   std::string type_name = ParseBasicType(tokens, begin);
   ret = std::make_unique<BasicType>(type_name);
-  // todo 支持复合类型
   return ret;
 }
 
@@ -137,7 +135,7 @@ void ParseTypeList(const std::vector<WamonToken>& tokens, size_t begin, size_t e
     return_type = ParseType(tokens, begin);
   }
   if (begin != end) {
-    throw std::runtime_error("parse type list error");
+    throw WamonExecption("parse type list error");
   }
 }
 
@@ -200,8 +198,9 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
     if (current_token == Token::LEFT_PARENTHESIS) {
       size_t match_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, i);
       auto expr = ParseExpression(tokens, i + 1, match_parent);
-      operands.push(std::move(expr));
+      operands.push(AttachUnaryOperators(std::move(expr), u_operators));
       i = match_parent;
+      parse_state = ParseExpressionState::NO_OP;
       continue;
     }
     if (canParseUnaryOperator(parse_state) && Operator::Instance().FindUnary(current_token) == true) {
@@ -214,7 +213,7 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
              Operator::Instance().GetLevel(current_token) <= Operator::Instance().GetLevel(b_operators.top())) {
         std::unique_ptr<BinaryExpr> bin_expr(new BinaryExpr());
         if (operands.size() < 2 || b_operators.empty() == true) {
-          throw std::runtime_error("parse expression error");
+          throw WamonExecption("parse expression error");
         }
         bin_expr->SetOp(b_operators.top());
         b_operators.pop();
@@ -280,42 +279,16 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
         operands.push(AttachUnaryOperators(std::move(bool_iter_expr), u_operators));
         continue;
       }
+
+      size_t tmp = i;
+      std::string var_name = ParseIdentifier(tokens, tmp);
       // id表达式
-      if (current_token != Token::ID) {
-        throw std::runtime_error(fmt::format("parse expression error, need id token ({}), get : {}", i, GetTokenStr(current_token)));
-      }
-      size_t tmp_i = i;
-      std::string var_name = ParseIdentifier(tokens, tmp_i);
-      size_t tmp = i + 1;
-      // id.data_member
-      // id.method(...)
-      // id[index]
-      // id
-      if (AssertToken(tokens, tmp, Token::DECIMAL_POINT)) {
-        std::string member_name = ParseIdentifier(tokens, tmp);
-        if (AssertToken(tokens, tmp, Token::LEFT_PARENTHESIS)) {
-          // 方法调用
-          size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp - 1);
-          auto expr_list = ParseExprList(tokens, tmp, end);
-          i = end;
-          std::unique_ptr<MethodExpr> method_expr(new MethodExpr());
-          method_expr->SetVarName(var_name);
-          method_expr->SetMethodName(member_name);
-          method_expr->SetParamList(std::move(expr_list));
-          operands.push(AttachUnaryOperators(std::move(method_expr), u_operators));
-          continue;
-        } else {
-          // 数据成员调用
-          // a    .    b
-          // i   i+1  i+2
-          i = i + 2;
-          std::unique_ptr<DataMemberExpr> data_member_expr(new DataMemberExpr());
-          data_member_expr->SetVarName(var_name);
-          data_member_expr->SetDataMemberName(member_name);
-          operands.push(AttachUnaryOperators(std::move(data_member_expr), u_operators));
-          continue;
-        }
-      } else if (AssertToken(tokens, tmp, Token::LEFT_BRACKETS)) {
+      std::unique_ptr<IdExpr> id_expr(new IdExpr());
+      id_expr->SetId(var_name);
+      operands.push(AttachUnaryOperators(std::move(id_expr), u_operators));
+
+      if (AssertToken(tokens, tmp, Token::LEFT_BRACKETS)) {
+        b_operators.push(Token::SUBSCRIPT);
         // var_name [ nested_expr ]
         //                        i
         size_t right_bracket = FindMatchedToken<Token::LEFT_BRACKETS, Token::RIGHT_BRACKETS>(tokens, tmp - 1);
@@ -327,33 +300,28 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
         operands.push(AttachUnaryOperators(std::move(index_expr), u_operators));
         continue;
       }
-      // 普通的id表达式
-      std::unique_ptr<IdExpr> id_expr(new IdExpr());
-      id_expr->SetId(var_name);
-
-      operands.push(AttachUnaryOperators(std::move(id_expr), u_operators));
     }
   }
   while (b_operators.empty() == false) {
     if (operands.size() < 2 || b_operators.empty() == true) {
-      throw std::runtime_error("parse expression error");
+      throw WamonExecption("parse expression error");
     }
     std::unique_ptr<BinaryExpr> bin_expr(new BinaryExpr());
-    bin_expr->SetOp(b_operators.top());
-    b_operators.pop();
+        bin_expr->SetOp(b_operators.top());
+        b_operators.pop();
 
-    bin_expr->SetRight(std::move(operands.top()));
-    operands.pop();
+        bin_expr->SetRight(std::move(operands.top()));
+        operands.pop();
 
-    bin_expr->SetLeft(std::move(operands.top()));
-    operands.pop();
-    operands.push(std::move(bin_expr));
-  }
+        bin_expr->SetLeft(std::move(operands.top()));
+        operands.pop();
+        operands.push(std::move(bin_expr));
+      }
   if (operands.size() != 1 || b_operators.empty() != true || u_operators.empty() != true) {
-    throw std::runtime_error("parse expression error, operands.size() != 1");
+    throw WamonExecption("parse expression error, operands.size() != 1");
   }
   if (parse_state != ParseExpressionState::NO_OP) {
-    throw std::runtime_error("parse expression error, parse_state != NO_OP");
+    throw WamonExecption("parse expression error, parse_state != NO_OP");
   }
   return std::move(operands.top());
 }
@@ -402,7 +370,7 @@ std::unique_ptr<Statement> TryToParseForStmt(const std::vector<WamonToken> &toke
 
   tnext = FindNextToken<Token::SEMICOLON>(tokens, begin, end);
   if (tnext != end) {
-    throw std::runtime_error("parse for stmt error");
+    throw WamonExecption("parse for stmt error");
   }
   auto update = ParseExpression(tokens, begin, end);
   ret->SetUpdate(std::move(update));
@@ -541,7 +509,7 @@ std::vector<std::pair<std::string, std::unique_ptr<Type>>> ParseParameterList(co
     }
   }
   if (begin != end + 1) {
-    throw std::runtime_error(fmt::format("parse parameter list error, {} != {}", begin, end + 1));
+    throw WamonExecption("parse parameter list error, {} != {}", begin, end + 1);
   }
   return ret;
 }
@@ -632,6 +600,8 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vec
   return ret;
 }
 
+
+
 std::string ParsePackageName(const std::vector<WamonToken>& tokens, size_t &begin) {
   AssertTokenOrThrow(tokens, begin, Token::PACKAGE);
   std::string package_name = ParseIdentifier(tokens, begin);
@@ -658,16 +628,17 @@ std::vector<std::string> ParseImportPackages(const std::vector<WamonToken>& toke
 // package声明语句（必须且唯一，位于package首部）
 // import语句（0或多个，位于package声明语句之后，其他之前）
 // 函数声明、结构体声明、变量定义声明（均位于package作用域，顺序无关）
-void Parse(const std::vector<WamonToken> &tokens) {
+PackageUnit Parse(const std::vector<WamonToken> &tokens) {
   if (tokens.empty() == true || tokens.back().token != Token::TEOF) {
-    throw std::runtime_error("invalid tokens");
+    throw WamonExecption("invalid tokens");
   }
+  PackageUnit package_unit;
   size_t current_index = 0;
   std::string package_name = ParsePackageName(tokens, current_index);
-  PackageUnit::Instance().SetName(package_name);
+  package_unit.SetName(package_name);
 
   std::vector<std::string> import_packages = ParseImportPackages(tokens, current_index);
-  PackageUnit::Instance().SetImportPackage(import_packages);
+  package_unit.SetImportPackage(import_packages);
   
   while (current_index < tokens.size()) {
     WamonToken token = tokens[current_index];
@@ -677,23 +648,24 @@ void Parse(const std::vector<WamonToken> &tokens) {
     size_t old_index = current_index;
     auto func_def = TryToParseFunctionDeclaration(tokens, current_index);
     if (func_def != nullptr) {
-      PackageUnit::Instance().AddFuncDef(std::move(func_def));
+      package_unit.AddFuncDef(std::move(func_def));
       continue;
     }
     auto struct_def = TryToParseStructDeclaration(tokens, current_index);
     if (struct_def != nullptr) {
-      PackageUnit::Instance().AddStructDef(std::move(struct_def));
+      package_unit.AddStructDef(std::move(struct_def));
       continue;
     }
     auto var_declaration = TryToParseVariableDeclaration(tokens, current_index);
     if (var_declaration != nullptr) {
-      PackageUnit::Instance().AddVarDef(std::move(var_declaration));
+      package_unit.AddVarDef(std::move(var_declaration));
       continue;
     }
     if (old_index == current_index) {
-      throw std::runtime_error("parse error");
+      throw WamonExecption("parse error");
     }
   }
+  return package_unit;
 }
 
 }  // namespace wamon

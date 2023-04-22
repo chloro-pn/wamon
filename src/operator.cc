@@ -3,6 +3,8 @@
 namespace wamon {
 
 static void register_buildin_operators(std::unordered_map<Token, int>& ops) {
+  ops[Token::COMPARE] = 0;
+  ops[Token::ASSIGN] = 0;
   ops[Token::PLUS] = 1;
   ops[Token::MINUS] = 1;
   ops[Token::MULTIPLY] = 2;
@@ -11,7 +13,8 @@ static void register_buildin_operators(std::unordered_map<Token, int>& ops) {
   ops[Token::OR] = 4;
   ops[Token::NOT] = 3;
   ops[Token::PIPE] = 6;
-  ops[Token::ASSIGN] = 7;
+  ops[Token::MEMBER_ACCESS] = 7;
+  ops[Token::SUBSCRIPT] = 7;
 }
 
 static void register_buildin_u_operators(std::unordered_map<Token, int>& ops) {
