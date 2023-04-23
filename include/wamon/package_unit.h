@@ -4,10 +4,13 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <cassert>
 
 #include "wamon/ast.h"
 #include "wamon/function_def.h"
 #include "wamon/struct_def.h"
+#include "wamon/method_def.h"
+#include "wamon/exception.h"
 
 namespace wamon {
 
@@ -32,6 +35,14 @@ class PackageUnit {
   void AddStructDef(std::unique_ptr<StructDef>&& struct_def) {
     auto name = struct_def->GetStructName();
     structs_[name] = std::move(struct_def);
+  }
+
+  void AddMethod(const std::string& type_name, std::unique_ptr<methods_def>&& methods) {
+    assert(type_name.empty() == false);
+    if (structs_.find(type_name) == structs_.end()) {
+      throw WamonExecption("add method error, invalid type : {}", type_name);
+    }
+    structs_[type_name]->AddMethods(std::move(methods));
   }
   
  private:

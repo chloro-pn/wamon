@@ -7,6 +7,7 @@
 #include "fmt/format.h"
 #include "wamon/operator.h"
 #include "wamon/package_unit.h"
+#include "wamon/method_def.h"
 
 #include <iostream>
 
@@ -559,6 +560,39 @@ std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(const std::vector<Wam
   return ret;
 }
 
+// method type_name {
+//   func method_name(param_list) -> return_type {
+//     ...
+//   }
+// }
+
+std::unique_ptr<methods_def> TryToParseMethodDeclaration(const std::vector<WamonToken>& tokens, size_t& begin, std::string& type_name) {
+  std::unique_ptr<methods_def> ret;
+  bool succ = AssertToken(tokens, begin, Token::METHOD);
+  if (succ == false) {
+    return ret;
+  }
+  ret.reset(new methods_def());
+  // 只允许为结构体类型自定义方法，这里需要判断是否为复合类型以及是否为内置类型。
+  type_name = ParseBasicType(tokens, begin);
+  size_t end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
+  begin += 1;
+  while(begin < end) {
+    std::unique_ptr<MethodDef> md;
+    // 在 method块中依次解析方法
+    auto method = TryToParseFunctionDeclaration(tokens, begin);
+    // 之后可以支持运算符重载等更多功能，目前如果不是方法声明则抛出异常。
+    if (method == nullptr) {
+      throw WamonExecption("parse method error");
+    }
+    md.reset(new MethodDef(type_name, std::move(method)));
+    ret->emplace_back(std::move(md));
+  }
+  assert(begin == end);
+  AssertTokenOrThrow(tokens, begin, Token::RIGHT_BRACE);
+  return ret;
+}
+
 std::unique_ptr<StructDef> TryToParseStructDeclaration(const std::vector<WamonToken> &tokens, size_t &begin) {
   std::unique_ptr<StructDef> ret(nullptr);
   bool succ = AssertToken(tokens, begin, Token::STRUCT);
@@ -599,8 +633,6 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vec
   ret->SetConstructors(std::move(expr_list));
   return ret;
 }
-
-
 
 std::string ParsePackageName(const std::vector<WamonToken>& tokens, size_t &begin) {
   AssertTokenOrThrow(tokens, begin, Token::PACKAGE);
@@ -659,6 +691,12 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
     auto var_declaration = TryToParseVariableDeclaration(tokens, current_index);
     if (var_declaration != nullptr) {
       package_unit.AddVarDef(std::move(var_declaration));
+      continue;
+    }
+    std::string type_name;
+    auto methods_declaration = TryToParseMethodDeclaration(tokens, current_index, type_name);
+    if (methods_declaration != nullptr) {
+      package_unit.AddMethod(type_name, std::move(methods_declaration));
       continue;
     }
     if (old_index == current_index) {
