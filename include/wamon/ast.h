@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "wamon/token.h"
-#include "wamon/type.h"
 
 namespace wamon {
 
@@ -18,8 +17,17 @@ class Expression : public AstNode {
  public:
 };
 
+class TypeChecker;
+class Type;
+class MethodDef;
+class FunctionDef;
+
 class FuncCallExpr : public Expression {
  public:
+  friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& sa, FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const FunctionDef* function, const FuncCallExpr* call_expr);
+  
   void SetFuncName(const std::string& func_name) { func_name_ = func_name; }
 
   void SetParameters(std::vector<std::unique_ptr<Expression>>&& param) { parameters_ = std::move(param); }
@@ -31,6 +39,10 @@ class FuncCallExpr : public Expression {
 
 class BinaryExpr : public Expression {
  public:
+  friend class TypeChecker;
+  friend std::unique_ptr<Type> CheckAndGetMemberAccessResultType(const TypeChecker& tc, BinaryExpr* binary_expr);
+  friend std::unique_ptr<Type> CheckAndGetSSResultType(const TypeChecker& tc, BinaryExpr* binary_expr);
+
   void SetLeft(std::unique_ptr<Expression>&& left) { left_ = std::move(left); }
 
   void SetRight(std::unique_ptr<Expression>&& right) { right_ = std::move(right); }
@@ -45,6 +57,8 @@ class BinaryExpr : public Expression {
 
 class UnaryExpr : public Expression {
  public:
+  friend class TypeChecker;
+
   void SetOp(Token op) { op_ = op; }
 
   void SetOperand(std::unique_ptr<Expression>&& operand) { operand_ = std::move(operand); }
@@ -56,25 +70,15 @@ class UnaryExpr : public Expression {
 
 class IdExpr : public Expression {
  public:
+  friend class TypeChecker;
   void SetId(const std::string& id) { id_name_ = id; }
+
+  const std::string& GetId() const {
+    return id_name_;
+  }
 
  private:
   std::string id_name_;
-};
-
-class IndexExpr : public Expression {
- public:
-  void SetName(const std::string& var_name) {
-    var_name_ = var_name;
-  }
-
-  void SetNestedExpr(std::unique_ptr<Expression>&& nested_expr) {
-    nested_expr_ = std::move(nested_expr);
-  }
-  
- private:
-  std::string var_name_;
-  std::unique_ptr<Expression> nested_expr_;
 };
 
 class StringIteralExpr : public Expression {
@@ -87,6 +91,8 @@ class StringIteralExpr : public Expression {
 
 class IntIteralExpr : public Expression {
  public:
+  friend class ArrayType;
+
   void SetIntIter(const int64_t& n) { num_ = n; }
 
  private:
@@ -115,6 +121,14 @@ class ByteIteralExpr : public Expression {
 
  private:
   uint8_t byte_;
+};
+
+class VoidIteralExpr : public Expression {
+
+};
+
+class SelfExpr : public Expression {
+
 };
 
 class Statement : public AstNode {

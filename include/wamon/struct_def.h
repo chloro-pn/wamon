@@ -28,6 +28,23 @@ class StructDef {
       methods_.emplace_back(std::move(each));
     }
   }
+
+  const MethodDef* GetMethod(const std::string& method_name) {
+    for (auto& each : methods_) {
+      if (each->GetMethodName() == method_name) {
+        return each.get();
+      }
+    }
+    return nullptr;
+  }
+
+  std::unique_ptr<Type> GetDataMemberType(const std::string& field_name) {
+    auto it = data_members_.find(field_name);
+    if (it == data_members_.end()) {
+      throw WamonExecption("get data member' type error, field {} not exist", field_name);
+    }
+    return it->second->Clone();
+  }
   
  private:
   std::string name_;

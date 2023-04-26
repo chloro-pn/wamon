@@ -94,7 +94,11 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
     tmp->SetHoldType(std::move(nested_type));
     AssertTokenOrThrow(tokens, begin, Token::COMMA);
     auto count_expr = ParseExpression(tokens, begin, right_parent);
-    tmp->SetCount(std::move(count_expr));
+    if (dynamic_cast<IntIteralExpr*>(count_expr.get()) == nullptr) {
+      throw WamonExecption("array type's count can only be intiteralexpr now");
+    }
+    auto int_count_expr = std::unique_ptr<IntIteralExpr>(static_cast<IntIteralExpr*>(count_expr.release()));
+    tmp->SetCount(std::move(int_count_expr));
 
     begin = right_parent + 1;
     return tmp;
@@ -276,8 +280,12 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
       if (current_token == Token::TRUE || current_token == Token::FALSE) {
         std::unique_ptr<BoolIteralExpr> bool_iter_expr(new BoolIteralExpr());
         bool_iter_expr->SetBoolIter(current_token == Token::TRUE ? true : false);
-
         operands.push(AttachUnaryOperators(std::move(bool_iter_expr), u_operators));
+        continue;
+      }
+      if (current_token == Token::SELF) {
+        std::unique_ptr<SelfExpr> self_expr(new SelfExpr());
+        operands.push(AttachUnaryOperators(std::move(self_expr), u_operators));
         continue;
       }
 
@@ -289,16 +297,14 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
       operands.push(AttachUnaryOperators(std::move(id_expr), u_operators));
 
       if (AssertToken(tokens, tmp, Token::LEFT_BRACKETS)) {
+        // 目前的实现默认[]具有最高级的优先级，后面可以优化为统一到二元运算符的处理逻辑
         b_operators.push(Token::SUBSCRIPT);
         // var_name [ nested_expr ]
         //                        i
         size_t right_bracket = FindMatchedToken<Token::LEFT_BRACKETS, Token::RIGHT_BRACKETS>(tokens, tmp - 1);
         i = right_bracket;
         auto nested_expr = ParseExpression(tokens, tmp, right_bracket);
-        std::unique_ptr<IndexExpr> index_expr(new IndexExpr());
-        index_expr->SetName(var_name);
-        index_expr->SetNestedExpr(std::move(nested_expr));
-        operands.push(AttachUnaryOperators(std::move(index_expr), u_operators));
+        operands.push(AttachUnaryOperators(std::move(nested_expr), u_operators));
         continue;
       }
     }

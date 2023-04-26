@@ -45,6 +45,30 @@ class PackageUnit {
     structs_[type_name]->AddMethods(std::move(methods));
   }
   
+  const FunctionDef* FindFunction(const std::string& function_name) const {
+    auto it = funcs_.find(function_name);
+    if (it == funcs_.end()) {
+      return nullptr;
+    }
+    return it->second.get();
+  }
+
+  const MethodDef* FindTypeMethod(const std::string& type_name, const std::string& method_name) const {
+    auto it = structs_.find(type_name);
+    if (it == structs_.end()) {
+      throw WamonExecption("find type method error, type {} not exist", type_name, method_name);
+    }
+    return it->second->GetMethod(method_name);
+  }
+
+  std::unique_ptr<Type> GetDataMemberType(const std::string& type_name, const std::string& field_name) const {
+    auto it = structs_.find(type_name);
+    if (it == structs_.end()) {
+      throw WamonExecption("get data member'type error, type {} not exist", type_name);
+    }
+    return it->second->GetDataMemberType(field_name);
+  }
+
  private:
   std::string package_name_;
   std::vector<std::string> import_packages_;

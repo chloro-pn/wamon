@@ -30,6 +30,7 @@ class Type {
  public:
   virtual std::string GetTypeInfo() const = 0;
   virtual bool IsBasicType() const = 0;
+  virtual std::unique_ptr<Type> Clone() const = 0;
 };
 
 class BasicType : public Type {
@@ -39,6 +40,8 @@ class BasicType : public Type {
   std::string GetTypeInfo() const override { return type_name_; }
 
   bool IsBasicType() const override { return true; }
+
+  std::unique_ptr<Type> Clone() const override;
 
  private:
   std::string type_name_;
@@ -51,6 +54,8 @@ class CompoundType : public Type {
 
 class PointerType : public CompoundType {
  public:
+  friend std::unique_ptr<Type> CheckAndGetUnaryMultiplyResultType(std::unique_ptr<Type> operand);
+
   void SetHoldType(std::unique_ptr<Type>&& hold_type) {
     hold_type_ = std::move(hold_type);
   }
@@ -59,11 +64,13 @@ class PointerType : public CompoundType {
     return "ptr(" + hold_type_->GetTypeInfo() + ")";
   }
 
+  std::unique_ptr<Type> Clone() const override;
+
  private:
   std::unique_ptr<Type> hold_type_;
 };
 
-class Expression;
+class IntIteralExpr;
 
 class ArrayType : public CompoundType {
  public:
@@ -71,14 +78,20 @@ class ArrayType : public CompoundType {
     hold_type_ = std::move(hold_type);
   }
 
-  void SetCount(std::unique_ptr<Expression> count);
+  void SetCount(std::unique_ptr<IntIteralExpr>&& count);
 
   std::string GetTypeInfo() const override { 
     return "array(" + hold_type_->GetTypeInfo() + ")";
   }
 
+  std::unique_ptr<Type> Clone() const override;
+
+  std::unique_ptr<Type> GetHoldType() const {
+    return hold_type_->Clone();
+  }
+
  private:
-  std::unique_ptr<Expression> count_expr_;
+  std::unique_ptr<IntIteralExpr> count_expr_;
   std::unique_ptr<Type> hold_type_;
 };
 
@@ -108,9 +121,23 @@ class FuncType : public CompoundType {
     return ret;
   }
 
+  std::unique_ptr<Type> Clone() const override;
+
  private:
   std::unique_ptr<Type> return_type_;
   std::vector<std::unique_ptr<Type>> param_type_;
 };
+
+inline bool IsSameType(const std::unique_ptr<Type>& lt, const std::unique_ptr<Type>& rt) {
+  return lt->GetTypeInfo() == rt->GetTypeInfo();
+}
+
+inline bool IsPtrType(const std::unique_ptr<Type>& operand) {
+  return dynamic_cast<PointerType*>(operand.get()) != nullptr;
+}
+
+inline bool IsBasicType(const std::unique_ptr<Type>& operand) {
+  return dynamic_cast<BasicType*>(operand.get()) != nullptr;
+}
 
 }  // namespace wamon

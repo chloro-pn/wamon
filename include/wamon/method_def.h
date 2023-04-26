@@ -11,8 +11,14 @@
 
 namespace wamon {
 
+class TypeChecker;
+class FuncCallExpr;
+
 class MethodDef {
  public:
+  friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const FuncCallExpr* call_expr);
+
   MethodDef(const std::string& tname, const std::string& mname) : type_name_(tname), method_name_(mname) {
 
   }
