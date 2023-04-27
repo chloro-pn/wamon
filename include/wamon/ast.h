@@ -146,12 +146,18 @@ class BlockStmt : public Statement {
     return "block_stmt";
   }
 
+  const std::vector<std::unique_ptr<Statement>>& GetStmts() const {
+    return block_;
+  }
+
  private:
   std::vector<std::unique_ptr<Statement>> block_;
 };
 
 class ForStmt : public Statement {
  public:
+  friend class TypeChecker;
+
   void SetInit(std::unique_ptr<Expression>&& init) {
     init_ = std::move(init);
   }
@@ -181,6 +187,8 @@ class ForStmt : public Statement {
 
 class IfStmt : public Statement {
  public:
+  friend class TypeChecker;
+
   void SetCheck(std::unique_ptr<Expression>&& check) {
     check_ = std::move(check);
   }
@@ -205,6 +213,8 @@ class IfStmt : public Statement {
 
 class WhileStmt : public Statement {
  public:
+  friend class TypeChecker;
+
   void SetCheck(std::unique_ptr<Expression>&& check) {
     check_ = std::move(check);
   }
@@ -238,6 +248,8 @@ class ContinueStmt : public Statement {
 
 class ReturnStmt : public Statement {
  public:
+  friend class TypeChecker;
+
   void SetReturn(std::unique_ptr<Expression>&& ret) {
     return_ = std::move(ret);
   }
@@ -252,6 +264,8 @@ class ReturnStmt : public Statement {
 
 class ExpressionStmt : public Statement {
  public:
+  friend class TypeChecker;
+   
   void SetExpr(std::unique_ptr<Expression>&& expr) { expr_ = std::move(expr); }
   
   std::string GetStmtName() override {
@@ -262,10 +276,14 @@ class ExpressionStmt : public Statement {
   std::unique_ptr<Expression> expr_;
 };
 
+class Type;
+
 // let var_name_ = type_(constructors_)
 class VariableDefineStmt : public Statement {
  public:
-  void SetType(const std::string& type) { type_ = type; }
+  friend class TypeChecker;
+
+  void SetType(std::unique_ptr<Type>&& type) { type_ = std::move(type); }
 
   void SetVarName(const std::string& var_name) { var_name_ = var_name; }
 
@@ -273,7 +291,7 @@ class VariableDefineStmt : public Statement {
     constructors_ = std::move(cos);
   }
 
-  const std::string& GetType() const {
+  const std::unique_ptr<Type>& GetType() const {
     return type_;
   }
 
@@ -286,7 +304,7 @@ class VariableDefineStmt : public Statement {
   }
   
  private:
-  std::string type_;
+  std::unique_ptr<Type> type_;
   std::string var_name_;
   std::vector<std::unique_ptr<Expression>> constructors_;
 };

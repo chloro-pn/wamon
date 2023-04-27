@@ -80,9 +80,7 @@ class ArrayType : public CompoundType {
 
   void SetCount(std::unique_ptr<IntIteralExpr>&& count);
 
-  std::string GetTypeInfo() const override { 
-    return "array(" + hold_type_->GetTypeInfo() + ")";
-  }
+  std::string GetTypeInfo() const override;
 
   std::unique_ptr<Type> Clone() const override;
 
@@ -138,6 +136,15 @@ inline bool IsPtrType(const std::unique_ptr<Type>& operand) {
 
 inline bool IsBasicType(const std::unique_ptr<Type>& operand) {
   return dynamic_cast<BasicType*>(operand.get()) != nullptr;
+}
+
+inline bool IsBoolType(const std::unique_ptr<Type>& operand) {
+  return operand->GetTypeInfo() == "bool";
+}
+
+// todo : implement
+inline bool CheckCanConstructBy(const std::unique_ptr<Type>& var_type, const std::vector<std::unique_ptr<Type>>& param_types) {
+  return true;
 }
 
 }  // namespace wamon

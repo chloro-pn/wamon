@@ -634,7 +634,7 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vec
   begin = end + 1;
   AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
   ret.reset(new VariableDefineStmt());
-  ret->SetType(type->GetTypeInfo());
+  ret->SetType(std::move(type));
   ret->SetVarName(var_name);
   ret->SetConstructors(std::move(expr_list));
   return ret;

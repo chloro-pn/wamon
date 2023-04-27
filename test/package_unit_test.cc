@@ -48,6 +48,6 @@ TEST(package_unit, basic) {
   EXPECT_EQ(find, true);
   find = pu.structs_.count("my_struct_name") > 0;
   EXPECT_EQ(find, true);
-  find = pu.var_define_[0]->GetType() == "bool";
-  EXPECT_EQ(find, true);
+  const auto& tmp = pu.var_define_[0]->GetType();
+  EXPECT_EQ(wamon::IsBoolType(tmp), true);
 }

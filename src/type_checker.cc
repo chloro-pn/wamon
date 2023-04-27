@@ -284,4 +284,99 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   return static_analyzer_.GetTypeByName(tmp->id_name_);
 }
 
+void CheckBlockStatement(TypeChecker& tc, BlockStmt* stmt) {
+  auto context = std::make_unique<Context>(Context::ContextType::BLOCK);
+  tc.GetStaticAnalyzer().Enter(std::move(context));
+  for(auto& each : stmt->GetStmts()) {
+    tc.CheckStatement(each.get());
+  }
+  tc.GetStaticAnalyzer().Leave();
+}
+
+void TypeChecker::CheckStatement(Statement* stmt) {
+  if (auto tmp = dynamic_cast<BlockStmt*>(stmt)) {
+    CheckBlockStatement(*this, tmp);
+    return;
+  }
+  if (auto tmp = dynamic_cast<ForStmt*>(stmt)) {
+    // 调用GetExpressionType做类型检测，但是不关心其返回类型
+    GetExpressionType(tmp->init_.get());
+    auto check_type = GetExpressionType(tmp->check_.get());
+    GetExpressionType(tmp->update_.get());
+    if (!IsBoolType(check_type)) {
+      throw WamonExecption("for_stmt's check expr should return the value which has bool type, but {}", check_type->GetTypeInfo());
+    }
+    CheckBlockStatement(*this, tmp->block_.get());
+    return;
+  }
+  if (auto tmp = dynamic_cast<IfStmt*>(stmt)) {
+    auto check_type = GetExpressionType(tmp->check_.get());
+    if (!IsBoolType(check_type)) {
+      throw WamonExecption("if_stmt's check expr should return the value which has bool type, but {}", check_type->GetTypeInfo());
+    }
+    CheckBlockStatement(*this, tmp->if_block_.get());
+    if (tmp->else_block_ != nullptr) {
+      CheckBlockStatement(*this, tmp->else_block_.get());
+    }
+    return;
+  }
+  if (auto tmp = dynamic_cast<WhileStmt*>(stmt)) {
+    auto check_type = GetExpressionType(tmp->check_.get());
+    if (!IsBoolType(check_type)) {
+      throw WamonExecption("while_stmt's check expr should return the value which has bool type, but {}", check_type->GetTypeInfo());
+    }
+    CheckBlockStatement(*this, tmp->block_.get());
+    return;
+  }
+  // continue和break语句只能在for语句和while语句中出现
+  if (dynamic_cast<ContinueStmt*>(stmt) || dynamic_cast<BreakStmt*>(stmt)) {
+    auto context_type = static_analyzer_.GetCurrentContext()->GetType();
+    if (context_type != Context::ContextType::FOR_BLOCK && context_type != Context::ContextType::WHILE_BLOCK) {
+      throw WamonExecption("continue and break stmt can only appear in for_block or while_block");
+    }
+    return;
+  }
+  if (auto tmp = dynamic_cast<ReturnStmt*>(stmt)) {
+    auto context_type = static_analyzer_.GetCurrentContext()->GetType();
+    if (context_type != Context::ContextType::FUNC && context_type != Context::ContextType::METHOD) {
+      throw WamonExecption("return stmt can only appear in func or method block");
+    }
+    if (tmp->return_ != nullptr) {
+      auto return_type = GetExpressionType(tmp->return_.get());
+      if (context_type == Context::ContextType::FUNC) {
+        // 获取对应函数的返回类型，进行类型匹配
+        auto func_name = static_analyzer_.GetCurrentContext()->AssertFuncContextAndGetFuncName();
+        const auto& def_return_type = static_analyzer_.FindFunction(func_name)->GetReturnType();
+        if (!IsSameType(return_type, def_return_type)) {
+          throw WamonExecption("func {} 's return type {} is ont same as declare {}", func_name, return_type->GetTypeInfo(), def_return_type->GetTypeInfo());
+        }
+      } else {
+        // find in method
+        auto type_name = static_analyzer_.GetCurrentContext()->AssertMethodContextAndGetTypeName();
+        auto method_name = static_analyzer_.GetCurrentContext()->AssertMethodContextAndGetMethodName();
+        const auto& def_return_type = static_analyzer_.FindTypeMethod(type_name, method_name)->GetReturnType();
+        if (!IsSameType(return_type, def_return_type)) {
+          throw WamonExecption("method {} 's return type {} is ont same as declare {}", method_name, return_type->GetTypeInfo(), def_return_type->GetTypeInfo());
+        }
+      }
+    }
+    return;
+  }
+  if (auto tmp = dynamic_cast<ExpressionStmt*>(stmt)) {
+    GetExpressionType(tmp->expr_.get());
+    return;
+  }
+  if (auto tmp = dynamic_cast<VariableDefineStmt*>(stmt)) {
+    // 类型检测
+    std::vector<std::unique_ptr<Type>> params_type;
+    for(auto& each : tmp->constructors_) {
+      params_type.push_back(GetExpressionType(each.get()));
+    }
+    if(!CheckCanConstructBy(tmp->type_, params_type)) {
+      throw WamonExecption("variable define stmt error, can't construct {}", tmp->type_->GetTypeInfo());
+    }
+    // 将该语句定义的变量记录到当前Context中
+    static_analyzer_.GetCurrentContext()->RegisterVariable(tmp->var_name_, tmp->type_->Clone());
+  }
+}
 }

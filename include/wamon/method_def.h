@@ -35,6 +35,10 @@ class MethodDef {
     return type_name_;
   }
 
+  const std::unique_ptr<Type>& GetReturnType() const {
+    return return_type_;
+  }
+
   void AddParamList(std::unique_ptr<Type>&& type, const std::string& var) {
     param_list_.push_back({std::move(type), var});
   }

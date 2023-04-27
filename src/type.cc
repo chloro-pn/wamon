@@ -7,6 +7,10 @@ std::unique_ptr<Type> BasicType::Clone() const {
   return std::make_unique<BasicType>(type_name_);
 }
 
+std::string ArrayType::GetTypeInfo() const { 
+  return "array[" + std::to_string(count_expr_->num_) + "](" + hold_type_->GetTypeInfo() + ")";
+}
+
 std::unique_ptr<Type> PointerType::Clone() const {
   auto tmp = hold_type_->Clone();
   auto ret = std::make_unique<PointerType>();
