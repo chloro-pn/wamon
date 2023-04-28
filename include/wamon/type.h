@@ -80,6 +80,8 @@ class ArrayType : public CompoundType {
 
   void SetCount(std::unique_ptr<IntIteralExpr>&& count);
 
+  int64_t GetCount() const;
+
   std::string GetTypeInfo() const override;
 
   std::unique_ptr<Type> Clone() const override;
@@ -130,21 +132,41 @@ inline bool IsSameType(const std::unique_ptr<Type>& lt, const std::unique_ptr<Ty
   return lt->GetTypeInfo() == rt->GetTypeInfo();
 }
 
-inline bool IsPtrType(const std::unique_ptr<Type>& operand) {
-  return dynamic_cast<PointerType*>(operand.get()) != nullptr;
+inline bool IsPtrType(const std::unique_ptr<Type>& type) {
+  return dynamic_cast<PointerType*>(type.get()) != nullptr;
 }
 
-inline bool IsBasicType(const std::unique_ptr<Type>& operand) {
-  return dynamic_cast<BasicType*>(operand.get()) != nullptr;
+inline bool IsFuncType(const std::unique_ptr<Type>& type) {
+  return dynamic_cast<FuncType*>(type.get()) != nullptr;
 }
 
-inline bool IsBoolType(const std::unique_ptr<Type>& operand) {
-  return operand->GetTypeInfo() == "bool";
+inline bool IsArrayType(const std::unique_ptr<Type>& type) {
+  return dynamic_cast<ArrayType*>(type.get()) != nullptr;
 }
 
-// todo : implement
-inline bool CheckCanConstructBy(const std::unique_ptr<Type>& var_type, const std::vector<std::unique_ptr<Type>>& param_types) {
-  return true;
+inline bool IsBasicType(const std::unique_ptr<Type>& type) {
+  return dynamic_cast<BasicType*>(type.get()) != nullptr;
 }
+
+inline bool IsBoolType(const std::unique_ptr<Type>& type) {
+  return type->GetTypeInfo() == "bool";
+}
+
+inline bool IsVoidType(const std::unique_ptr<Type>& type) {
+  return type->GetTypeInfo() == "void";
+}
+
+inline bool IsBuiltInType(const std::unique_ptr<Type>& type) {
+  return type->GetTypeInfo() == "string" || 
+         type->GetTypeInfo() == "int" ||
+         type->GetTypeInfo() == "double" ||
+         type->GetTypeInfo() == "byte" ||
+         type->GetTypeInfo() == "bool" ||
+         type->GetTypeInfo() == "void";
+}
+
+class PackageUnit;
+
+void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var_type, const std::vector<std::unique_ptr<Type>>& param_types);
 
 }  // namespace wamon

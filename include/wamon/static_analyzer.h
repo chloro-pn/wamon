@@ -76,6 +76,18 @@ class StaticAnalyzer {
     return &global_context_;
   }
   
+  const std::vector<std::unique_ptr<VariableDefineStmt>>& GetGlobalVarDefStmt() const {
+    return pu_.GetGlobalVariDefStmt();
+  }
+
+  const std::unordered_map<std::string, std::unique_ptr<FunctionDef>>& GetFunctions() const {
+    return pu_.GetFunctions();
+  }
+
+  const PackageUnit& GetPackageUnit() const {
+    return pu_;
+  }
+
  private:
   const PackageUnit& pu_;
   Context global_context_;

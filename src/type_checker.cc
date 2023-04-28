@@ -8,7 +8,39 @@
 #include <vector>
 #include <string>
 
+#include <iostream>
+
 namespace wamon {
+
+void CheckBlockStatement(TypeChecker& tc, BlockStmt* stmt) {
+  for(auto& each : stmt->GetStmts()) {
+    tc.CheckStatement(each.get());
+  }
+}
+
+TypeChecker::TypeChecker(StaticAnalyzer& sa) : static_analyzer_(sa) {
+
+}
+
+void TypeChecker::CheckAndRegisterGlobalVariable() {
+  const auto& global_var_def_stmts = static_analyzer_.GetGlobalVarDefStmt();
+  for(const auto& each : global_var_def_stmts) {
+    CheckStatement(each.get());
+  }
+}
+
+void TypeChecker::CheckFunctions() {
+  for(auto& each : static_analyzer_.GetFunctions()) {
+    // 首先进行上下文相关的检测、表达式类型检测、语句合法性检测
+    auto func_context = std::make_unique<Context>(each.second->name_);
+    RegisterFuncParamsToContext(each.second->param_list_, func_context.get());
+    static_analyzer_.Enter(std::move(func_context));
+    CheckBlockStatement(*this, each.second->block_stmt_.get());
+    static_analyzer_.Leave();
+    // 还需要进行确定性return检测：多个分支情况下需要确保走任何一条分支都要有类型匹配的return语句
+  }
+}
+
 /* 
  * binary operator
  */
@@ -284,18 +316,13 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   return static_analyzer_.GetTypeByName(tmp->id_name_);
 }
 
-void CheckBlockStatement(TypeChecker& tc, BlockStmt* stmt) {
-  auto context = std::make_unique<Context>(Context::ContextType::BLOCK);
-  tc.GetStaticAnalyzer().Enter(std::move(context));
-  for(auto& each : stmt->GetStmts()) {
-    tc.CheckStatement(each.get());
-  }
-  tc.GetStaticAnalyzer().Leave();
-}
-
 void TypeChecker::CheckStatement(Statement* stmt) {
+  assert(stmt != nullptr);
   if (auto tmp = dynamic_cast<BlockStmt*>(stmt)) {
+    auto context = std::make_unique<Context>(Context::ContextType::BLOCK);
+    static_analyzer_.Enter(std::move(context));
     CheckBlockStatement(*this, tmp);
+    static_analyzer_.Leave();
     return;
   }
   if (auto tmp = dynamic_cast<ForStmt*>(stmt)) {
@@ -337,28 +364,10 @@ void TypeChecker::CheckStatement(Statement* stmt) {
     return;
   }
   if (auto tmp = dynamic_cast<ReturnStmt*>(stmt)) {
-    auto context_type = static_analyzer_.GetCurrentContext()->GetType();
-    if (context_type != Context::ContextType::FUNC && context_type != Context::ContextType::METHOD) {
-      throw WamonExecption("return stmt can only appear in func or method block");
-    }
     if (tmp->return_ != nullptr) {
+      // 这里仅推导返回表达式的类型，类型校验放在后续验证函数确定性返回阶段。
       auto return_type = GetExpressionType(tmp->return_.get());
-      if (context_type == Context::ContextType::FUNC) {
-        // 获取对应函数的返回类型，进行类型匹配
-        auto func_name = static_analyzer_.GetCurrentContext()->AssertFuncContextAndGetFuncName();
-        const auto& def_return_type = static_analyzer_.FindFunction(func_name)->GetReturnType();
-        if (!IsSameType(return_type, def_return_type)) {
-          throw WamonExecption("func {} 's return type {} is ont same as declare {}", func_name, return_type->GetTypeInfo(), def_return_type->GetTypeInfo());
-        }
-      } else {
-        // find in method
-        auto type_name = static_analyzer_.GetCurrentContext()->AssertMethodContextAndGetTypeName();
-        auto method_name = static_analyzer_.GetCurrentContext()->AssertMethodContextAndGetMethodName();
-        const auto& def_return_type = static_analyzer_.FindTypeMethod(type_name, method_name)->GetReturnType();
-        if (!IsSameType(return_type, def_return_type)) {
-          throw WamonExecption("method {} 's return type {} is ont same as declare {}", method_name, return_type->GetTypeInfo(), def_return_type->GetTypeInfo());
-        }
-      }
+      tmp->SetReturnType(std::move(return_type));
     }
     return;
   }
@@ -372,11 +381,11 @@ void TypeChecker::CheckStatement(Statement* stmt) {
     for(auto& each : tmp->constructors_) {
       params_type.push_back(GetExpressionType(each.get()));
     }
-    if(!CheckCanConstructBy(tmp->type_, params_type)) {
-      throw WamonExecption("variable define stmt error, can't construct {}", tmp->type_->GetTypeInfo());
-    }
+    CheckCanConstructBy(static_analyzer_.GetPackageUnit(), tmp->type_, params_type);
     // 将该语句定义的变量记录到当前Context中
     static_analyzer_.GetCurrentContext()->RegisterVariable(tmp->var_name_, tmp->type_->Clone());
+    return;
   }
+  throw WamonExecption("invalid stmt type {}, check error", stmt->GetStmtName());
 }
 }

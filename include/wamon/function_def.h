@@ -17,6 +17,7 @@ class FunctionDef {
  public:
   friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr);
   friend std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const FunctionDef* function, const FuncCallExpr* call_expr);
+  friend class TypeChecker;
 
   explicit FunctionDef(const std::string& name) : name_(name) {
 
