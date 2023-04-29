@@ -331,6 +331,8 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
   return std::move(operands.top());
 }
 
+std::unique_ptr<Statement> TryToParseBlockStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next);
+
 std::unique_ptr<Statement> TryToParseIfStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
   std::unique_ptr<IfStmt> ret = std::make_unique<IfStmt>();
   if (AssertToken(tokens, begin, Token::IF) == false) {
@@ -455,6 +457,10 @@ std::unique_ptr<ExpressionStmt> ParseExprStmt(const std::vector<WamonToken>& tok
 //  - 表达式语句
 std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
   std::unique_ptr<Statement> ret(nullptr);
+  ret = TryToParseBlockStmt(tokens, begin, next);
+  if (ret != nullptr) {
+    return ret;
+  }
   ret = TryToParseIfStmt(tokens, begin, next);
   if (ret != nullptr) {
     return ret;
@@ -492,6 +498,18 @@ std::unique_ptr<BlockStmt> ParseStmtBlock(const std::vector<WamonToken> &tokens,
   auto tmp = std::unique_ptr<BlockStmt>(new BlockStmt());
   tmp->SetBlock(std::move(ret));
   return tmp;
+}
+
+std::unique_ptr<Statement> TryToParseBlockStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
+  std::unique_ptr<BlockStmt> ret = std::make_unique<BlockStmt>();
+  size_t tmp = begin;
+  if (AssertToken(tokens, tmp, Token::LEFT_BRACE) == false) {
+    return nullptr;
+  }
+  auto end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
+  ret = ParseStmtBlock(tokens, begin, end);
+  next = end + 1;
+  return ret;
 }
 
 //   (  type id, type id, ... )

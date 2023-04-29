@@ -73,6 +73,67 @@ TEST(static_analysis, duplicate_name) {
   EXPECT_THROW(wamon::Parse(tokens), wamon::WamonExecption);
 }
 
+TEST(static_analysis, return_type) {
+  std::string str = R"(
+    package main;
+
+    func test() -> int {
+      let i : int = (0);
+      for(i = 0; i < 10; i = i + 1) {
+        if (i == 5) {
+          return;
+        }
+      }
+    }
+  )";
+  wamon::Scanner scan;
+  std::vector<std::string> strs = {
+    R"(
+        package main;
+        func test() -> int {
+          let i : int = (0);
+          if (i == 5) {
+            return;
+          }
+        }
+    )",
+    R"(
+      package main;
+      func test() -> int {
+        while(true) {
+          return "hello world";
+        }
+      }
+    )",
+    R"(
+      package main;
+      func test() -> void {
+        {
+          {
+            {
+              return 0;
+            }
+          }
+        }
+      }
+    )",
+    R"(
+      package main;
+      func test() -> void {
+        return 0;
+      }
+    )",
+  };
+  for(auto str : strs) {
+    auto tokens = scan.Scan(str);
+    wamon::PackageUnit pu = wamon::Parse(tokens);
+    wamon::StaticAnalyzer sa(pu);
+    wamon::TypeChecker tc(sa);
+    tc.CheckAndRegisterGlobalVariable();
+    EXPECT_THROW(tc.CheckFunctions(), wamon::WamonExecption);
+  }
+}
+
 TEST(static_analysis, type_dismatch) {
   wamon::Scanner scan;
   std::string str = R"(

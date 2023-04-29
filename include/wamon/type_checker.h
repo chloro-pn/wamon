@@ -36,6 +36,11 @@ class TypeChecker {
   // 定义了无返回类型（void），是否在任一分支预测上都没有return expr；
   void CheckFunctions();
 
+  // 对函数体进行确定性返回分析
+  void CheckDeterministicReturn(FunctionDef* func);
+
+  void CheckDeterministicReturn(MethodDef* method);
+
   const StaticAnalyzer& GetStaticAnalyzer() const {
     return static_analyzer_;
   }

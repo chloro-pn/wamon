@@ -37,7 +37,12 @@ void TypeChecker::CheckFunctions() {
     static_analyzer_.Leave();
     // todo:
     // 还需要进行确定性return检测：多个分支情况下需要确保走任何一条分支都要有类型匹配的return语句
+    CheckDeterministicReturn(each.second.get());
   }
+}
+
+void TypeChecker::CheckDeterministicReturn(FunctionDef* func) {
+  
 }
 
 /* 
