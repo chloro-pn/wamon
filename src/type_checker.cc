@@ -8,8 +8,6 @@
 #include <vector>
 #include <string>
 
-#include <iostream>
-
 namespace wamon {
 
 void CheckBlockStatement(TypeChecker& tc, BlockStmt* stmt) {
@@ -37,6 +35,7 @@ void TypeChecker::CheckFunctions() {
     static_analyzer_.Enter(std::move(func_context));
     CheckBlockStatement(*this, each.second->block_stmt_.get());
     static_analyzer_.Leave();
+    // todo:
     // 还需要进行确定性return检测：多个分支情况下需要确保走任何一条分支都要有类型匹配的return语句
   }
 }
@@ -301,8 +300,8 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
     return CheckAndGetUnaryOperatorResultType(tmp->op_, std::move(operand_type));
   }
   if (dynamic_cast<SelfExpr*>(expr)) {
-    // 从当前上下文中获取self的类型
-    const std::string& type_name = static_analyzer_.AssertMethodContextAndGetTypeName();
+    // 从上下文中获取self的类型
+    const std::string& type_name = static_analyzer_.CheckMethodContextAndGetTypeName();
     return std::make_unique<BasicType>(type_name);
   }
   if (auto tmp = dynamic_cast<FuncCallExpr*>(expr)) {
@@ -357,17 +356,20 @@ void TypeChecker::CheckStatement(Statement* stmt) {
   }
   // continue和break语句只能在for语句和while语句中出现
   if (dynamic_cast<ContinueStmt*>(stmt) || dynamic_cast<BreakStmt*>(stmt)) {
-    auto context_type = static_analyzer_.GetCurrentContext()->GetType();
-    if (context_type != Context::ContextType::FOR_BLOCK && context_type != Context::ContextType::WHILE_BLOCK) {
-      throw WamonExecption("continue and break stmt can only appear in for_block or while_block");
-    }
+    static_analyzer_.CheckForOrWhileContext();
     return;
   }
   if (auto tmp = dynamic_cast<ReturnStmt*>(stmt)) {
+    auto define_return_type = static_analyzer_.CheckFuncOrMethodAndGetReturnType();
     if (tmp->return_ != nullptr) {
-      // 这里仅推导返回表达式的类型，类型校验放在后续验证函数确定性返回阶段。
       auto return_type = GetExpressionType(tmp->return_.get());
-      tmp->SetReturnType(std::move(return_type));
+      if (!IsSameType(return_type, define_return_type)) {
+        throw WamonExecption("return type dismatch, {} != {}", define_return_type->GetTypeInfo(), return_type->GetTypeInfo());
+      }
+    } else {
+      if (!IsSameType(define_return_type, GetVoidType())) {
+        throw WamonExecption("defined return void, but return expr has type {}", define_return_type->GetTypeInfo());
+      }
     }
     return;
   }

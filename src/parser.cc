@@ -9,8 +9,6 @@
 #include "wamon/package_unit.h"
 #include "wamon/method_def.h"
 
-#include <iostream>
-
 namespace wamon {
 /*
  * @brief 判断tokens[begin]处的token值 == token，如果索引不合法，或者token值不相同，返回false; 否则递增索引，返回true。

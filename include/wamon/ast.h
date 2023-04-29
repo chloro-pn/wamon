@@ -246,8 +246,6 @@ class ContinueStmt : public Statement {
   }
 };
 
-class Type;
-
 class ReturnStmt : public Statement {
  public:
   friend class TypeChecker;
@@ -256,17 +254,12 @@ class ReturnStmt : public Statement {
     return_ = std::move(ret);
   }
 
-  void SetReturnType(std::unique_ptr<Type> type) {
-    type_ = std::move(type);
-  }
-
   std::string GetStmtName() override {
     return "return_stmt";
   }
   
  private:
   std::unique_ptr<Expression> return_;
-  std::unique_ptr<Type> type_;
 };
 
 class ExpressionStmt : public Statement {

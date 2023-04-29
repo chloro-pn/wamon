@@ -165,6 +165,10 @@ inline bool IsBuiltInType(const std::unique_ptr<Type>& type) {
          type->GetTypeInfo() == "void";
 }
 
+inline std::unique_ptr<Type> GetVoidType() {
+  return std::make_unique<BasicType>("void");
+}
+
 class PackageUnit;
 
 void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var_type, const std::vector<std::unique_ptr<Type>>& param_types);

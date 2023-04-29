@@ -13,7 +13,9 @@
 
 namespace wamon {
 /*
- * 全局上下文、函数上下文、块上下文
+ * 上下文类型中，我们将GLOBAL上下文称为全局上下文，全局上下文在整个项目中是唯一的，我们将其称为0级上下文
+ * FUNC和METHOD上下文为1级上下文，仅可以出现在全局上下文中。
+ * BLOCK、WHILE_BLOCK、FOR_BLOCK上下文为2级上下文，仅可以出现在1级和2级上下文中，也就是说，它们是可以相互嵌套的。
  */
 class Context {
  public:
@@ -64,6 +66,16 @@ class Context {
       throw WamonExecption("register variable error, duplicate name {}", name);
     }
     vars_[name] = std::move(type);
+  }
+
+  size_t GetLevel() const {
+    if (type_ == ContextType::GLOBAL) {
+      return 0;
+    }
+    if (type_ == ContextType::FUNC || type_ == ContextType::METHOD) {
+      return 1;
+    }
+    return 2;
   }
 
   // 在当前上下文查找变量类型

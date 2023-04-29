@@ -2,8 +2,6 @@
 #include "wamon/ast.h"
 #include "wamon/package_unit.h"
 
-#include <iostream>
-
 namespace wamon {
 
 std::unique_ptr<Type> BasicType::Clone() const {
@@ -51,8 +49,6 @@ void ArrayType::SetCount(std::unique_ptr<IntIteralExpr>&& count) {
 }
 
 void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var_type, const std::vector<std::unique_ptr<Type>>& param_types) {
-  std::cout << "var_type " << var_type->GetTypeInfo() << " " << param_types.size() << std::endl;
-  std::cout << param_types[0]->GetTypeInfo() << std::endl;
   if (IsVoidType(var_type)) {
     throw WamonExecption("var'type should not be void");
   }
