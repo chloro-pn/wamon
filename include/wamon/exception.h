@@ -23,4 +23,16 @@ class WamonExecption : public std::exception {
  private:
   std::string what_;
 };
+
+class WamonDeterministicReturn : public std::exception {
+ public:
+  explicit WamonDeterministicReturn(const std::string& func_name) : func_name_(func_name) {
+    
+  }
+
+  const char* what() const noexcept override { return func_name_.c_str(); }
+
+ private:
+  std::string func_name_;
+};
 }  // namespace bptree

@@ -41,8 +41,44 @@ void TypeChecker::CheckFunctions() {
   }
 }
 
+bool TypeChecker::IsDeterministicReturn(BlockStmt* basic_block) {
+  for(auto it = basic_block->GetStmts().rbegin(); it != basic_block->GetStmts().rend(); ++it) {
+    if (dynamic_cast<ReturnStmt*>((*it).get()) != nullptr) {
+      return true;
+    }
+    auto if_stmt = dynamic_cast<IfStmt*>((*it).get());
+    if (if_stmt != nullptr && if_stmt->else_block_ != nullptr && !if_stmt->else_block_->GetStmts().empty()) {
+      return IsDeterministicReturn(if_stmt->if_block_.get()) && IsDeterministicReturn(if_stmt->else_block_.get());
+    }
+    auto block_stmt = dynamic_cast<BlockStmt*>((*it).get());
+    if (block_stmt != nullptr) {
+      bool deterministic_return = IsDeterministicReturn(block_stmt);
+      if (deterministic_return == true) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// 定义 基本块：
+// 基本块是指没有分支结构的语句块
+// 定义 语句块：
+// BlockStmt的别称，指任何合法语句构成的代码块
+// 一个语句块是决定性返回的，如果它满足以下性质：
+//   其代码块中包含这样一条return语句：该return语句之后不存在分支结构的语句块，或者
+//   其最后一个分支语句的所有语句块都是决定性返回的
+// 注：
+//   由于循环语句可能是运行时不执行的，因此其对决定性返回这一性质没有影响（循环语句内可以包含return语句也可以不包含）
+//   对于最基本的BlockStmt，仅影响局部变量的定义域而不改变执行流，因此可以直接合并到上级BlockStmt中进行分析，当然为了实现间接也可以作为独立的基本块进行分析
+//   如果分支语句只有if分支而没有else分支，则其对决定性返回性质没有影响（因为它也可能是运行时不执行的）
 void TypeChecker::CheckDeterministicReturn(FunctionDef* func) {
-  
+  if (IsSameType(func->GetReturnType(), GetVoidType())) {
+    return;
+  }
+  if (!IsDeterministicReturn(func->block_stmt_.get())) {
+    throw WamonDeterministicReturn(func->GetFunctionName());
+  }
 }
 
 /* 

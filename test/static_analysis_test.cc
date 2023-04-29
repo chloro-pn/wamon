@@ -224,3 +224,126 @@ TEST(static_analysis, construct_check) {
     EXPECT_THROW(tc.CheckAndRegisterGlobalVariable(), wamon::WamonExecption);
   }
 }
+
+TEST(static_analysis, deterministic_return) {
+  wamon::Scanner scan;
+  std::vector<std::string> strs = {
+    R"(
+      package main;
+      func test() -> int {
+        if (true) {
+          return 0;
+        }
+      }
+    )",
+    R"(
+      package main;
+      func test() -> int {
+        while(true) {
+          return 0;
+        }
+      }
+    )",
+    R"(
+      package main;
+      func test() -> int {
+        if (true) {
+          return 0; 
+        } else {
+          let a : int = (2);
+        }
+      }
+    )",
+    R"(
+      package main;
+      func test() -> int {
+        let a : int = (2);
+        if (true) {
+          let b : int = (3);
+          if (a == 0) {
+            return b;
+          } else {
+            a = b;
+          }
+        } else {
+          return a;
+        }
+      }
+    )",
+  };
+  for(auto str : strs) {
+    auto tokens = scan.Scan(str);
+    wamon::PackageUnit pu = wamon::Parse(tokens);
+    wamon::StaticAnalyzer sa(pu);
+    wamon::TypeChecker tc(sa);
+    EXPECT_THROW(tc.CheckFunctions(), wamon::WamonDeterministicReturn);
+  }
+
+  strs = {
+    R"(
+      package main;
+      func test() -> int {
+        {
+          {
+            {
+              return 0;
+            }
+          }
+        }
+      }
+    )",
+    R"(
+      package main;
+      func test() -> int {
+        if (true) {
+          return 0;
+        }
+        return 1;
+      }
+    )",
+    R"(
+      package main;
+      func test() -> int {
+        while(true) {
+          return 0;
+        }
+        return 1;
+      }
+    )",
+    R"(
+      package main;
+      func test() -> int {
+        if (true) {
+          return 0; 
+        } else {
+          let a : int = (2);
+          return 1;
+        }
+      }
+    )",
+    R"(
+      package main;
+      func test() -> int {
+        let a : int = (2);
+        if (true) {
+          let b : int = (3);
+          if (a == 0) {
+            return b;
+          } else {
+            a = b;
+            return a;
+          }
+        } else {
+          return a;
+        }
+      }
+    )",
+  };
+  for(auto str : strs) {
+    auto tokens = scan.Scan(str);
+    wamon::PackageUnit pu = wamon::Parse(tokens);
+    wamon::StaticAnalyzer sa(pu);
+    wamon::TypeChecker tc(sa);
+    EXPECT_NO_THROW(tc.CheckFunctions());
+  }
+}

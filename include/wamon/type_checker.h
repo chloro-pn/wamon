@@ -51,6 +51,8 @@ class TypeChecker {
 
  private:
   StaticAnalyzer& static_analyzer_;
+
+  bool IsDeterministicReturn(BlockStmt* basic_block);
 };
 
 }
