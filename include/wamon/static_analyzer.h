@@ -4,7 +4,6 @@
 #include "wamon/context.h"
 #include "wamon/ast.h"
 #include "wamon/type.h"
-#include "wamon/type_checker.h"
 #include "wamon/package_unit.h"
 
 namespace wamon {

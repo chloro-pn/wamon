@@ -5,6 +5,7 @@
 #include <utility>
 #include <memory>
 #include <algorithm>
+#include <set>
 
 #include "wamon/type.h"
 #include "wamon/method_def.h"
@@ -60,6 +61,33 @@ class StructDef {
     return it->second->Clone();
   }
   
+  std::vector<std::string> GetDependent(const std::unique_ptr<Type>& type) const {
+    // 指针和函数类型直接跳过，因为其包含的类型我们都不需要依赖
+    // 目前设计中函数类型是引用语义
+    if (IsPtrType(type) || IsFuncType(type)) {
+      return {};
+    }
+    // 数组类型，我们需要获取其包含类型并继续分析
+    if (IsArrayType(type)) {
+      auto hold_type = dynamic_cast<ArrayType*>(type.get())->GetHoldType();
+      return GetDependent(hold_type);
+    }
+    return {type->GetTypeInfo()};
+  }
+
+  // 获取结构体定义所依赖的其他结构体的TypeInfo
+  // 注意，这里不应该返回所有数据成员涉及的结构体类型，例如ptr(structa)类型并不依赖于structa
+  std::set<std::string> GetDependent() const {
+    std::set<std::string> ret;
+    for(auto& each : data_members_) {
+      auto data_member_dependent = GetDependent(each.second);
+      for(auto&& tmp : data_member_dependent) {
+        ret.insert(std::move(tmp));
+      }
+    }
+    return ret;
+  }
+
  private:
   std::string name_;
   // 这里需要是有序的，并且按照定义时的顺序

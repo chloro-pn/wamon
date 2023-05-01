@@ -1,5 +1,7 @@
 #include "gtest/gtest.h"
 
+#include <set>
+
 // for test
 #define private public
 
@@ -7,6 +9,7 @@
 #include "wamon/parser.h"
 #include "wamon/exception.h"
 #include "wamon/type_checker.h"
+#include "wamon/struct_checker.h"
 #include "wamon/static_analyzer.h"
 
 TEST(static_analysis, base) {
@@ -346,4 +349,77 @@ TEST(static_analysis, deterministic_return) {
     wamon::TypeChecker tc(sa);
     EXPECT_NO_THROW(tc.CheckFunctions());
   }
+}
+
+TEST(static_analysis, struct_dependent_info) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    struct sa {
+      int a;
+      double b;
+    }
+
+    struct sb {
+      sa a;
+      ptr(double) b;
+      f((int, double) -> string) c;
+      array(byte, 3) d;
+      array(array(array(bool, 3), 3), 3) e;
+    }
+  )";
+  auto tokens = scan.Scan(str);
+  wamon::PackageUnit pu = wamon::Parse(tokens);
+  const wamon::StructDef* struct_def = pu.FindStruct("sb");
+  auto dependents = struct_def->GetDependent();
+  std::set<std::string> should_be = {
+    "sa",
+    "byte",
+    "bool",
+  };
+  EXPECT_TRUE(dependents == should_be);
+}
+
+TEST(static_analysis, struct_dependent_check) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    struct sa {
+      int a;
+      double b;
+    }
+
+    struct sb {
+      sa a;
+      double b;
+    }
+  )";
+  auto tokens = scan.Scan(str);
+  wamon::PackageUnit pu = wamon::Parse(tokens);
+  wamon::StaticAnalyzer sa(pu);
+
+  wamon::StructChecker sc(sa);
+  EXPECT_NO_THROW(sc.CheckStructs());
+
+  str = R"(
+    package main;
+
+    struct sa {
+      sb a;
+      double b;
+    }
+
+    struct sb {
+      sa a;
+      double b;
+    }
+  )";
+
+  tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+  wamon::StaticAnalyzer sa2(pu);
+  wamon::StructChecker sc2(sa2);
+  EXPECT_THROW(sc2.CheckStructs(), wamon::WamonExecption);
 }

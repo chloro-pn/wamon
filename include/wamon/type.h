@@ -165,6 +165,16 @@ inline bool IsBuiltInType(const std::unique_ptr<Type>& type) {
          type->GetTypeInfo() == "void";
 }
 
+inline std::vector<std::string> GetBuiltInTypesWithoutVoid() {
+  return std::vector<std::string> {
+    "string",
+    "int",
+    "double",
+    "byte",
+    "bool",
+  };
+}
+
 inline std::unique_ptr<Type> GetVoidType() {
   return std::make_unique<BasicType>("void");
 }

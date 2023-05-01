@@ -97,6 +97,10 @@ class PackageUnit {
     return funcs_;
   }
 
+  const std::unordered_map<std::string, std::unique_ptr<StructDef>>& GetStructs() const {
+    return structs_;
+  }
+
  private:
   std::string package_name_;
   std::vector<std::string> import_packages_;
