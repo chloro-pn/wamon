@@ -87,6 +87,19 @@ TEST(parser, function_declaration) {
   EXPECT_EQ(tokens[begin].token, wamon::Token::TEOF);
 }
 
+TEST(parser, operator_priority) {
+  wamon::Scanner scan;
+  std::string str = "a.b[2]";
+  auto tokens = scan.Scan(str);
+  auto expr = wamon::ParseExpression(tokens, 0, tokens.size() - 2);
+  auto be = dynamic_cast<wamon::BinaryExpr*>(expr.get());
+  EXPECT_NE(be, nullptr);
+  EXPECT_EQ(be->op_, wamon::Token::SUBSCRIPT);
+  auto left = dynamic_cast<wamon::BinaryExpr*>(be->left_.get());
+  EXPECT_NE(left, nullptr);
+  EXPECT_EQ(left->op_, wamon::Token::MEMBER_ACCESS);
+}
+
 TEST(parser, parse_stmt) {
   wamon::Scanner scan;
   std::string str = "if (a.b) { call myfunc(b, c, d[3]); break; } else { \"string_iter\"; }";
@@ -249,7 +262,7 @@ TEST(parse, parse_type) {
   tokens = scan.Scan(str);
   begin = 0;
   type = wamon::ParseType(tokens, begin);
-  EXPECT_EQ(type->GetTypeInfo(), "f(())");
+  EXPECT_EQ(type->GetTypeInfo(), "f(() -> void)");
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
 

@@ -48,13 +48,12 @@ void ArrayType::SetCount(std::unique_ptr<IntIteralExpr>&& count) {
   count_expr_ = std::move(count);
 }
 
+// todo : 支持重载了operator()的类型初始化callable_object
 void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var_type, const std::vector<std::unique_ptr<Type>>& param_types) {
   if (IsVoidType(var_type)) {
-    throw WamonExecption("var'type should not be void");
+    throw WamonExecption("var's type should not be void");
   }
-  if (IsFuncType(var_type)) {
-    throw WamonExecption("var's type should not be func type {}", var_type->GetTypeInfo());
-  }
+  // built-in类型、原生函数到callable_object类型
   if (param_types.size() == 1 && IsSameType(var_type, param_types[0])) {
     return;
   }
@@ -86,7 +85,11 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
     }
     return;
   }
-  throw WamonExecption("construct check error, invalid type {}", var_type->GetTypeInfo());
+  std::vector<std::string> type_infos;
+  for(auto& each : param_types) {
+    type_infos.push_back(each->GetTypeInfo());
+  }
+  throw WamonExecption("construct check error,type {} can not be constructed by {} ", var_type->GetTypeInfo(), fmt::join(type_infos, ", "));
 }
 
 }

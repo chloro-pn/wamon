@@ -39,6 +39,14 @@ class MethodDef {
     return return_type_;
   }
 
+  const std::vector<std::pair<std::unique_ptr<Type>, std::string>>& GetParamList() const {
+    return param_list_;
+  }
+
+  const std::unique_ptr<BlockStmt>& GetBlockStmt() const {
+    return block_stmt_;
+  }
+
   void AddParamList(std::unique_ptr<Type>&& type, const std::string& var) {
     param_list_.push_back({std::move(type), var});
   }

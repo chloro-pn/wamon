@@ -136,6 +136,9 @@ void ParseTypeList(const std::vector<WamonToken>& tokens, size_t begin, size_t e
   AssertTokenOrThrow(tokens, begin, Token::RIGHT_PARENTHESIS);
   if(AssertToken(tokens, begin, Token::ARROW) == true) {
     return_type = ParseType(tokens, begin);
+  } else {
+    // bug fix : 如果没有指定也要初始化为void
+    return_type = GetVoidType();
   }
   if (begin != end) {
     throw WamonExecption("parse type list error");
@@ -180,6 +183,26 @@ std::unique_ptr<Expression> AttachUnaryOperators(std::unique_ptr<Expression> ope
   return operand;
 }
 
+static void PushBoperators(std::stack<Token>& b_operators, std::stack<std::unique_ptr<Expression>>& operands, Token current_token) {
+  while (b_operators.empty() == false &&
+        Operator::Instance().GetLevel(current_token) <= Operator::Instance().GetLevel(b_operators.top())) {
+    std::unique_ptr<BinaryExpr> bin_expr(new BinaryExpr());
+    if (operands.size() < 2 || b_operators.empty() == true) {
+      throw WamonExecption("parse expression error");
+    }
+    bin_expr->SetOp(b_operators.top());
+    b_operators.pop();
+
+    bin_expr->SetRight(std::move(operands.top()));
+    operands.pop();
+
+    bin_expr->SetLeft(std::move(operands.top()));
+    operands.pop();
+    operands.push(std::move(bin_expr));
+  }
+  b_operators.push(current_token);
+}
+
 // 目前支持：
 //  - 函数调用表达式
 //  - 字面量表达式（5种基本类型）
@@ -212,23 +235,7 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
       continue;
     }
     if (canParseBinaryOperator(parse_state) && Operator::Instance().FindBinary(current_token) == true) {
-      while (b_operators.empty() == false &&
-             Operator::Instance().GetLevel(current_token) <= Operator::Instance().GetLevel(b_operators.top())) {
-        std::unique_ptr<BinaryExpr> bin_expr(new BinaryExpr());
-        if (operands.size() < 2 || b_operators.empty() == true) {
-          throw WamonExecption("parse expression error");
-        }
-        bin_expr->SetOp(b_operators.top());
-        b_operators.pop();
-
-        bin_expr->SetRight(std::move(operands.top()));
-        operands.pop();
-
-        bin_expr->SetLeft(std::move(operands.top()));
-        operands.pop();
-        operands.push(std::move(bin_expr));
-      }
-      b_operators.push(current_token);
+      PushBoperators(b_operators, operands, current_token);
       parse_state = ParseExpressionState::B_OP;
     } else {
       parse_state = ParseExpressionState::NO_OP;
@@ -286,23 +293,22 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
         operands.push(AttachUnaryOperators(std::move(self_expr), u_operators));
         continue;
       }
-
       size_t tmp = i;
       std::string var_name = ParseIdentifier(tokens, tmp);
       // id表达式
       std::unique_ptr<IdExpr> id_expr(new IdExpr());
       id_expr->SetId(var_name);
       operands.push(AttachUnaryOperators(std::move(id_expr), u_operators));
-
       if (AssertToken(tokens, tmp, Token::LEFT_BRACKETS)) {
-        // 目前的实现默认[]具有最高级的优先级，后面可以优化为统一到二元运算符的处理逻辑
-        b_operators.push(Token::SUBSCRIPT);
+        PushBoperators(b_operators, operands, Token::SUBSCRIPT);
         // var_name [ nested_expr ]
         //                        i
         size_t right_bracket = FindMatchedToken<Token::LEFT_BRACKETS, Token::RIGHT_BRACKETS>(tokens, tmp - 1);
         i = right_bracket;
         auto nested_expr = ParseExpression(tokens, tmp, right_bracket);
-        operands.push(AttachUnaryOperators(std::move(nested_expr), u_operators));
+        assert(u_operators.empty());
+        operands.push(std::move(nested_expr));
+        //operands.push(AttachUnaryOperators(std::move(nested_expr), u_operators));
         continue;
       }
     }
@@ -722,7 +728,7 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
       continue;
     }
     if (old_index == current_index) {
-      throw WamonExecption("parse error");
+      throw WamonExecption("parse error, invalid token {}", GetTokenStr(token.token));
     }
   }
   return package_unit;

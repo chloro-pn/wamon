@@ -8,6 +8,12 @@
 
 namespace wamon {
 
+enum class FindNameResult {
+  OBJECT,
+  FUNCTION,
+  NONE,
+};
+
 // 静态分析器，在词法分析和语法分析之后的第三个阶段，执行上下文相关的语义分析，包括类型诊断、定义声明规则诊断、语句合法性诊断等。
 class StaticAnalyzer {
  public:
@@ -31,6 +37,25 @@ class StaticAnalyzer {
     return pu_.GetDataMemberType(type_name, field_name);
   }
 
+  FindNameResult FindNameAndType(const std::string& name, std::unique_ptr<Type>& type) const {
+    for(auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
+      type = (*it)->GetTypeByName(name);
+      if (type != nullptr) {
+        return FindNameResult::OBJECT;
+      }
+    }
+    type = global_context_.GetTypeByName(name);
+    if (type != nullptr) {
+      return FindNameResult::OBJECT;
+    }
+    const FunctionDef* fd = pu_.FindFunction(name);
+    if (fd == nullptr) {
+      return FindNameResult::NONE;
+    }
+    type = fd->GetType();
+    return FindNameResult::FUNCTION;
+  }
+
   std::unique_ptr<Type> GetTypeByName(const std::string& name) const {
     for(auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
       auto result = (*it)->GetTypeByName(name);
@@ -38,8 +63,26 @@ class StaticAnalyzer {
         return result;
       }
     }
-    return global_context_.GetTypeByName(name);
+    auto result = global_context_.GetTypeByName(name);
+    if (result != nullptr) {
+      return result;
+    }
+    const FunctionDef* fd = pu_.FindFunction(name);
+    if (fd == nullptr) {
+      throw WamonExecption("get type by name {} error, check for functions but failed", name);
+    }
+    return fd->GetType();
   }
+
+  void RegisterFuncParamsToContext(const std::vector<std::pair<std::unique_ptr<Type>, std::string>>& params, Context* func_context) {
+    std::set<std::string> param_names;
+    for(auto& each : params) {
+      if (param_names.find(each.second) != param_names.end()) {
+        throw WamonExecption("func or method {} has duplicate param name {}", func_context->AssertFuncContextAndGetFuncName(), each.second);
+      }
+      func_context->RegisterVariable(each.second, each.first->Clone());
+    }
+}
 
   void Enter(std::unique_ptr<Context>&& c) {
     if (c->GetType() == Context::ContextType::GLOBAL) {

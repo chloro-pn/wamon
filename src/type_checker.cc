@@ -3,6 +3,9 @@
 #include "wamon/static_analyzer.h"
 #include "wamon/function_def.h"
 #include "wamon/exception.h"
+#include "wamon/topological_sort.h"
+
+#include "fmt/format.h"
 
 #include <cassert>
 #include <vector>
@@ -20,6 +23,60 @@ TypeChecker::TypeChecker(StaticAnalyzer& sa) : static_analyzer_(sa) {
 
 }
 
+void TypeChecker::CheckTypes() {
+  const auto& pu = static_analyzer_.GetPackageUnit();
+  for(auto& each : pu.GetGlobalVariDefStmt()) {
+    CheckType(each->GetType(), fmt::format("check global variable {}'s type {}", each->GetVarName(), each->GetType()->GetTypeInfo()));
+  }
+  for(auto& each : pu.GetFunctions()) {
+    for(auto& param : each.second->param_list_) {
+      CheckType(param.first, fmt::format("check function {} param {}'s type {}", each.first, param.second, param.first->GetTypeInfo()));
+    }
+    CheckType(each.second->return_type_, fmt::format("check function {} return type {}", each.first, each.second->return_type_->GetTypeInfo()));
+  }
+  for(auto& each : pu.GetStructs()) {
+    for(auto& member : each.second->GetDataMembers()) {
+      CheckType(member.second, fmt::format("check struct {} member {}'s type {}", each.first, member.first, member.second->GetTypeInfo()));
+    }
+    for(auto& member : each.second->GetMethods()) {
+      for(auto& param : member->GetParamList()) {
+        CheckType(param.first, fmt::format("check struct {} method {} param {}'s type {}", each.first, member->GetMethodName(), param.second, param.first->GetTypeInfo()));
+      }
+      CheckType(member->GetReturnType(), fmt::format("check struct {} method {} return type {}", each.first, member->GetMethodName(), member->GetReturnType()->GetTypeInfo()));
+    }
+  }
+}
+
+void TypeChecker::CheckType(const std::unique_ptr<Type>& type, const std::string& context_info, bool can_be_void) {
+  if (IsFuncType(type)) {
+    auto func_type = static_cast<FuncType*>(type.get());
+    for(auto& param : func_type->param_type_) {
+      CheckType(param, context_info, false);
+    }
+    CheckType(func_type->return_type_, context_info, true);
+    return;
+  } else if (IsPtrType(type)) {
+    auto ptr_type = static_cast<PointerType*>(type.get());
+    CheckType(ptr_type->hold_type_, context_info, false);
+    return;
+  } else if (IsArrayType(type)) {
+    auto array_type = static_cast<ArrayType*>(type.get());
+    CheckType(array_type->hold_type_, context_info, false);
+    return;
+  }
+  if (!IsBuiltInType(type)) {
+    const PackageUnit& pu = static_analyzer_.GetPackageUnit();
+    const auto& struct_def = pu.FindStruct(type->GetTypeInfo());
+    if (struct_def == nullptr) {
+      throw WamonTypeCheck(context_info, type->GetTypeInfo(), "invalid struct type");
+    }
+  } else {
+    if (can_be_void == false && IsVoidType(type)) {
+      throw WamonTypeCheck(context_info, type->GetTypeInfo(), "invalid void type");
+    }
+  }
+}
+
 void TypeChecker::CheckAndRegisterGlobalVariable() {
   const auto& global_var_def_stmts = static_analyzer_.GetGlobalVarDefStmt();
   for(const auto& each : global_var_def_stmts) {
@@ -31,13 +88,51 @@ void TypeChecker::CheckFunctions() {
   for(auto& each : static_analyzer_.GetFunctions()) {
     // 首先进行上下文相关的检测、表达式类型检测、语句合法性检测
     auto func_context = std::make_unique<Context>(each.second->name_);
-    RegisterFuncParamsToContext(each.second->param_list_, func_context.get());
+    static_analyzer_.RegisterFuncParamsToContext(each.second->param_list_, func_context.get());
     static_analyzer_.Enter(std::move(func_context));
     CheckBlockStatement(*this, each.second->block_stmt_.get());
     static_analyzer_.Leave();
-    // todo:
-    // 还需要进行确定性return检测：多个分支情况下需要确保走任何一条分支都要有类型匹配的return语句
     CheckDeterministicReturn(each.second.get());
+  }
+}
+
+void TypeChecker::CheckStructs() {
+  const PackageUnit& pu = static_analyzer_.GetPackageUnit();
+  const auto& structs = pu.GetStructs();
+  auto built_in_types = GetBuiltInTypesWithoutVoid();
+  // 保证不同类型的TypeInfo不相同，因此可以用其代表一个类型进行循环依赖分析
+  bool all_succ = true;
+  Graph<std::string> graph;
+  for(const auto& each : built_in_types) {
+    all_succ &= graph.AddNode(each);
+  }
+  for(const auto& each : structs) {
+    all_succ &= graph.AddNode(each.first);
+  }
+  // 如果类型a依赖于类型b，插入一条a->b有向边
+  for(const auto& each : structs) {
+    auto dependent = each.second->GetDependent();
+    for(auto& to : dependent) {
+      graph.AddEdge(each.first, to);
+    }
+  }
+  if (graph.TopologicalSort() == false) {
+    throw WamonExecption("struct dependent check error");
+  }
+}
+
+void TypeChecker::CheckMethods() {
+  const PackageUnit& pu = static_analyzer_.GetPackageUnit();
+  const auto& structs = pu.GetStructs();
+  for(const auto& each : structs) {
+    for (const auto& method : each.second->GetMethods()) {
+      std::unique_ptr<Context> ctx = std::make_unique<Context>(each.first, method->GetMethodName());
+      static_analyzer_.RegisterFuncParamsToContext(method->GetParamList(), ctx.get());
+      static_analyzer_.Enter(std::move(ctx));
+      CheckBlockStatement(*this, method->GetBlockStmt().get());
+      static_analyzer_.Leave();
+      CheckDeterministicReturn(method.get());
+    }
   }
 }
 
@@ -61,23 +156,21 @@ bool TypeChecker::IsDeterministicReturn(BlockStmt* basic_block) {
   return false;
 }
 
-// 定义 基本块：
-// 基本块是指没有分支结构的语句块
-// 定义 语句块：
-// BlockStmt的别称，指任何合法语句构成的代码块
-// 一个语句块是决定性返回的，如果它满足以下性质：
-//   其代码块中包含这样一条return语句：该return语句之后不存在分支结构的语句块，或者
-//   其最后一个分支语句的所有语句块都是决定性返回的
-// 注：
-//   由于循环语句可能是运行时不执行的，因此其对决定性返回这一性质没有影响（循环语句内可以包含return语句也可以不包含）
-//   对于最基本的BlockStmt，仅影响局部变量的定义域而不改变执行流，因此可以直接合并到上级BlockStmt中进行分析，当然为了实现间接也可以作为独立的基本块进行分析
-//   如果分支语句只有if分支而没有else分支，则其对决定性返回性质没有影响（因为它也可能是运行时不执行的）
 void TypeChecker::CheckDeterministicReturn(FunctionDef* func) {
   if (IsSameType(func->GetReturnType(), GetVoidType())) {
     return;
   }
   if (!IsDeterministicReturn(func->block_stmt_.get())) {
     throw WamonDeterministicReturn(func->GetFunctionName());
+  }
+}
+
+void TypeChecker::CheckDeterministicReturn(MethodDef* method) {
+  if (IsSameType(method->GetReturnType(), GetVoidType())) {
+    return;
+  }
+  if (!IsDeterministicReturn(method->GetBlockStmt().get())) {
+    throw WamonDeterministicReturn(method->GetMethodName());
   }
 }
 
@@ -158,7 +251,7 @@ std::unique_ptr<Type> CheckAndGetCompareResultType(std::unique_ptr<Type> lt, std
 
 std::unique_ptr<Type> CheckAndGetAssignResultType(std::unique_ptr<Type> lt, std::unique_ptr<Type> rt) {
   if (IsSameType(lt, rt) == false) {
-    throw WamonExecption("invalid type for comapre, {} and {}", lt->GetTypeInfo(), rt->GetTypeInfo());
+    throw WamonExecption("invalid type for assign, {} and {}", lt->GetTypeInfo(), rt->GetTypeInfo());
   }
   return lt->Clone();
 }
@@ -207,13 +300,10 @@ std::unique_ptr<Type> CheckAndGetUnaryMultiplyResultType(std::unique_ptr<Type> o
 }
 
 std::unique_ptr<Type> CheckAndGetUnaryAddrOfResultType(std::unique_ptr<Type> operand) {
-  // 数组和函数类型不允许取地址操作
-  if(IsPtrType(operand) || IsBasicType(operand)) {
-    auto ret = std::make_unique<PointerType>();
-    ret->SetHoldType(std::move(operand));
-    return ret;
-  }
-  throw WamonExecption("invalid operand type for address_of, {}", operand->GetTypeInfo());
+  // 目前的类型系统中只要输入类型是合法的，就可以取地址
+  auto ret = std::make_unique<PointerType>();
+  ret->SetHoldType(std::move(operand));
+  return ret;
 }
 
 std::unique_ptr<Type> CheckAndGetUnaryNotResultType(std::unique_ptr<Type> operand) {
@@ -238,6 +328,29 @@ std::unique_ptr<Type> CheckAndGetUnaryOperatorResultType(Token op, std::unique_p
     return CheckAndGetUnaryNotResultType(std::move(operand_type));
   }
   throw WamonExecption("operator {} is not support now", GetTokenStr(op));
+}
+
+std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr) {
+  auto type = dynamic_cast<FuncType*>(ctype.get());
+  assert(type != nullptr);
+  if (type->param_type_.size() != call_expr->parameters_.size()) {
+    throw WamonExecption("callable_object_call {} error, The number of parameters does not match : {} != {}",
+      call_expr->func_name_,
+      type->param_type_.size(),
+      call_expr->parameters_.size());
+  }
+  for (size_t arg_i = 0; arg_i < type->param_type_.size(); ++arg_i) {
+    auto arg_i_type = tc.GetExpressionType(call_expr->parameters_[arg_i].get());
+    if (!IsSameType(type->param_type_[arg_i], arg_i_type)) {
+      throw WamonExecption("callable_object_call {} error, arg_{}'s type dismatch {} != {}", 
+        call_expr->func_name_, 
+        arg_i,
+        type->param_type_[arg_i]->GetTypeInfo(),
+        arg_i_type->GetTypeInfo());
+    }
+  }
+  // 类型检测成功
+  return type->return_type_->Clone();
 }
 
 std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const FuncCallExpr* call_expr) {
@@ -283,24 +396,32 @@ std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const Fun
   return function->return_type_->Clone();
 }
 
-// 举例 : call get_name(a, b, c); // a的类型为A.
-// 首先查找类型A是否有方法 get_name(b, c)，如果有则进行类型检测，否则：
-// 在全局函数表中查找名称为get_name的函数并进行类型检测
+// 新的设计：
+// 首先在符号表中查找call_expr->func_name_，分两种情况：1. 找到了一个object 2.找到了原生函数或者没找到
+// 当是情况1时，检查该object的类型，如果是函数类型，说明它是一个callable object，callable object可以由原生函数构造，也可以由lambda表达式构造，也可以由重载了()运算符的类型的变量构造，如果是结构体类型，则由重载了()运算符的类型的变量构造
+// 当是情况2时，如果参数列表非空，则首先在第一个参数对应的结构体中查找同名方法，如果没找到则在原生函数中查找；如果参数列表为空则直接在原生函数中查找
+// todo: 支持新的关键字 callm、callc、callf，callm强制调用方法，callc强制调用callable object，callf强制调用原生函数
 std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr) {
-  // 首先查找第一个参数的类型是否有同名的方法，如果有则调用这个方法
-  // 如果没有则查找全局函数表
-  if (call_expr->parameters_.empty() == false) {
-    auto first_expr = call_expr->parameters_[0].get();
-    auto type = tc.GetExpressionType(first_expr);
-    auto method = tc.GetStaticAnalyzer().FindTypeMethod(type->GetTypeInfo(), call_expr->func_name_);
-    if (method != nullptr) {
-      // 参数类型检测并返回返回值类型
-      return CheckAndGetMethodReturnType(tc, method, call_expr);
+  std::unique_ptr<Type> find_type;
+  auto find_result = tc.GetStaticAnalyzer().FindNameAndType(call_expr->func_name_, find_type);
+  if (find_result == FindNameResult::OBJECT) {
+    if (!IsFuncType(find_type)) {
+      throw WamonExecption("don't support override operator() for struct now");
     }
+    return CheckAndGetCallableReturnType(tc, find_type, call_expr);
+  } else {
+    if (call_expr->parameters_.empty() == false) {
+      auto first_expr = call_expr->parameters_[0].get();
+      auto type = tc.GetExpressionType(first_expr);
+      auto method = tc.GetStaticAnalyzer().FindTypeMethod(type->GetTypeInfo(), call_expr->func_name_);
+      if (method != nullptr) {
+        // 参数类型检测并返回返回值类型
+        return CheckAndGetMethodReturnType(tc, method, call_expr);
+      }
+    }
+    auto func = tc.GetStaticAnalyzer().FindFunction(call_expr->func_name_);
+    return CheckAndGetFuncReturnType(tc, func ,call_expr);
   }
-  auto func = tc.GetStaticAnalyzer().FindFunction(call_expr->func_name_);
-  // 参数类型检测并返回返回值类型
-  return CheckAndGetFuncReturnType(tc, func, call_expr);
 }
 
 
@@ -421,6 +542,7 @@ void TypeChecker::CheckStatement(Statement* stmt) {
   if (auto tmp = dynamic_cast<VariableDefineStmt*>(stmt)) {
     // 类型检测
     std::vector<std::unique_ptr<Type>> params_type;
+    CheckType(tmp->type_, fmt::format("check variable {} 's type {}", tmp->GetVarName(), tmp->GetType()->GetTypeInfo()));
     for(auto& each : tmp->constructors_) {
       params_type.push_back(GetExpressionType(each.get()));
     }

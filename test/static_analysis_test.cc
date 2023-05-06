@@ -9,7 +9,6 @@
 #include "wamon/parser.h"
 #include "wamon/exception.h"
 #include "wamon/type_checker.h"
-#include "wamon/struct_checker.h"
 #include "wamon/static_analyzer.h"
 
 TEST(static_analysis, base) {
@@ -26,6 +25,8 @@ TEST(static_analysis, base) {
         return a + b;
       }
     }
+
+    let callable_obj : f((int, int, string) -> int) = (calculate);
   )";
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
@@ -34,6 +35,23 @@ TEST(static_analysis, base) {
   wamon::TypeChecker tc(sa);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
   EXPECT_NO_THROW(tc.CheckFunctions());
+}
+
+TEST(static_analysis, globalvar_dependent) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    let global_var : int = (vv);
+
+    let vv : int = (0);
+  )";
+  auto tokens = scan.Scan(str);
+  wamon::PackageUnit pu = wamon::Parse(tokens);
+  wamon::StaticAnalyzer sa(pu);
+
+  wamon::TypeChecker tc(sa);
+  EXPECT_THROW(tc.CheckAndRegisterGlobalVariable(), wamon::WamonExecption);
 }
 
 TEST(static_analysis, duplicate_name) {
@@ -400,8 +418,8 @@ TEST(static_analysis, struct_dependent_check) {
   wamon::PackageUnit pu = wamon::Parse(tokens);
   wamon::StaticAnalyzer sa(pu);
 
-  wamon::StructChecker sc(sa);
-  EXPECT_NO_THROW(sc.CheckStructs());
+  wamon::TypeChecker tc(sa);
+  EXPECT_NO_THROW(tc.CheckStructs());
 
   str = R"(
     package main;
@@ -420,6 +438,6 @@ TEST(static_analysis, struct_dependent_check) {
   tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
   wamon::StaticAnalyzer sa2(pu);
-  wamon::StructChecker sc2(sa2);
-  EXPECT_THROW(sc2.CheckStructs(), wamon::WamonExecption);
+  wamon::TypeChecker tc2(sa2);
+  EXPECT_THROW(tc2.CheckStructs(), wamon::WamonExecption);
 }

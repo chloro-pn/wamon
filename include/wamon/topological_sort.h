@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <queue>
+#include <cassert>
 
 namespace wamon {
 
@@ -46,6 +47,7 @@ class Graph {
       NodeType node = queue.front();
       queue.pop();
       for(auto& to : graph_[node].edges_) {
+        assert(graph_[to].in_degree_ > 0);
         graph_[to].in_degree_ -= 1;
         if (graph_[to].in_degree_ == 0) {
           queue.push(to);

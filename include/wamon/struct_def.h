@@ -51,6 +51,10 @@ class StructDef {
     return nullptr;
   }
 
+  const methods_def& GetMethods() {
+    return methods_;
+  }
+
   std::unique_ptr<Type> GetDataMemberType(const std::string& field_name) {
     auto it = std::find_if(data_members_.begin(), data_members_.end(), [&field_name](const auto& member) -> bool {
       return field_name == member.first;
@@ -63,7 +67,6 @@ class StructDef {
   
   std::vector<std::string> GetDependent(const std::unique_ptr<Type>& type) const {
     // 指针和函数类型直接跳过，因为其包含的类型我们都不需要依赖
-    // 目前设计中函数类型是引用语义
     if (IsPtrType(type) || IsFuncType(type)) {
       return {};
     }

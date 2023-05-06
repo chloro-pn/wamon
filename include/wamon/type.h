@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <cassert>
 
 #include "wamon/token.h"
 
@@ -54,6 +55,7 @@ class CompoundType : public Type {
 
 class PointerType : public CompoundType {
  public:
+  friend class TypeChecker;
   friend std::unique_ptr<Type> CheckAndGetUnaryMultiplyResultType(std::unique_ptr<Type> operand);
 
   void SetHoldType(std::unique_ptr<Type>&& hold_type) {
@@ -74,6 +76,7 @@ class IntIteralExpr;
 
 class ArrayType : public CompoundType {
  public:
+  friend class TypeChecker;
   void SetHoldType(std::unique_ptr<Type>&& hold_type) {
     hold_type_ = std::move(hold_type);
   }
@@ -95,8 +98,14 @@ class ArrayType : public CompoundType {
   std::unique_ptr<Type> hold_type_;
 };
 
+class TypeChecker;
+class FuncCallExpr;
+
 class FuncType : public CompoundType {
  public:
+  friend class TypeChecker;
+  friend std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr);
+
   void SetParamTypeAndReturnType(std::vector<std::unique_ptr<Type>>&& param_type, std::unique_ptr<Type>&& return_type) {
     param_type_ = std::move(param_type);
     return_type_ = std::move(return_type);
@@ -113,10 +122,9 @@ class FuncType : public CompoundType {
       ret.pop_back();
     }
     ret.push_back(')');
-    if (return_type_ != nullptr) {
-      ret += " -> ";
-      ret += return_type_->GetTypeInfo();
-    }
+    assert(return_type_ != nullptr);
+    ret += " -> ";
+    ret += return_type_->GetTypeInfo();
     ret.push_back(')');
     return ret;
   }
