@@ -614,6 +614,7 @@ std::unique_ptr<OperatorDef> TryToParseOperatorOverride(const std::vector<WamonT
     }
     token = op;
     ret.reset(new OperatorDef(op));
+    begin += 1;
   }
   size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
   auto param_list = ParseParameterList(tokens, begin, end);
@@ -647,6 +648,15 @@ std::unique_ptr<OperatorDef> TryToParseOperatorOverride(const std::vector<WamonT
 std::unique_ptr<MethodDef> OperatorOverrideToMethod(const std::string& type_name, std::unique_ptr<OperatorDef>&& op) {
   std::string method_name = OperatorDef::CreateName(op);
   std::unique_ptr<MethodDef> ret = std::make_unique<MethodDef>(type_name, method_name);
+  ret->param_list_ = std::move(op->param_list_);
+  ret->block_stmt_ = std::move(op->block_stmt_);
+  ret->return_type_ = std::move(op->return_type_);
+  return ret;
+}
+
+std::unique_ptr<FunctionDef> OperatorOverrideToFunc(std::unique_ptr<OperatorDef>&& op) {
+  std::string func_name = OperatorDef::CreateName(op);
+  std::unique_ptr<FunctionDef> ret = std::make_unique<FunctionDef>(func_name);
   ret->param_list_ = std::move(op->param_list_);
   ret->block_stmt_ = std::move(op->block_stmt_);
   ret->return_type_ = std::move(op->return_type_);
@@ -799,7 +809,7 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
     Token op_token;
     auto operator_override = TryToParseOperatorOverride(tokens, current_index, op_token);
     if (operator_override != nullptr) {
-      package_unit.AddOperatorOverride(op_token, std::move(operator_override));
+      package_unit.AddFuncDef(OperatorOverrideToFunc(std::move(operator_override)));
       continue;
     }
     if (old_index == current_index) {

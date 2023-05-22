@@ -190,7 +190,7 @@ std::unique_ptr<Type> CheckAndGetPlusResultType(std::unique_ptr<Type> lt, std::u
       return lt->Clone();
     }
   }
-  throw WamonExecption("invalid operand type for + : {} and {}", lt->GetTypeInfo(), rt->GetTypeInfo());
+  return nullptr;
 }
 
 // - * /
@@ -204,7 +204,7 @@ std::unique_ptr<Type> CheckAndGetMMDResultType(Token op, std::unique_ptr<Type> l
       return lt->Clone();
     }
   }
-  throw WamonExecption("invalid operand type for {} : {} and {}", GetTokenStr(op), lt->GetTypeInfo(), rt->GetTypeInfo());
+  return nullptr;
 }
 
 // && ||
@@ -212,7 +212,7 @@ std::unique_ptr<Type> CheckAndGetLogicalResultType(Token op, std::unique_ptr<Typ
   if (lt->GetTypeInfo() == "bool" && rt->GetTypeInfo() == "bool") {
     return std::make_unique<BasicType>("bool");
   }
-  throw WamonExecption("invalid operand type for {} : {} and {}", GetTokenStr(op), lt->GetTypeInfo(), rt->GetTypeInfo());
+  return nullptr;
 }
 
 std::unique_ptr<Type> CheckAndGetSSResultType(const TypeChecker& tc, BinaryExpr* binary_expr) {
@@ -244,35 +244,51 @@ std::unique_ptr<Type> CheckAndGetMemberAccessResultType(const TypeChecker& tc, B
 // 任何类型相同的变量都可以比较
 std::unique_ptr<Type> CheckAndGetCompareResultType(std::unique_ptr<Type> lt, std::unique_ptr<Type> rt) {
   if (IsSameType(lt, rt) == false) {
-    throw WamonExecption("invalid type for comapre, {} and {}", lt->GetTypeInfo(), rt->GetTypeInfo());
+    return nullptr;
   }
   return std::make_unique<BasicType>("bool");
 }
 
 std::unique_ptr<Type> CheckAndGetAssignResultType(std::unique_ptr<Type> lt, std::unique_ptr<Type> rt) {
   if (IsSameType(lt, rt) == false) {
-    throw WamonExecption("invalid type for assign, {} and {}", lt->GetTypeInfo(), rt->GetTypeInfo());
+    return nullptr;
   }
   return lt->Clone();
 }
 
-std::unique_ptr<Type> CheckAndGetBinaryOperatorResultType(Token op, std::unique_ptr<Type> lt, std::unique_ptr<Type> rt) {
+// 首先尝试内置支持的运算符类型，如果失败则尝试自定义运算符重载
+std::unique_ptr<Type> CheckAndGetBinaryOperatorResultType(Token op, std::unique_ptr<Type> lt, std::unique_ptr<Type> rt, const PackageUnit& pu) {
+  auto lt_copy = lt->Clone();
+  auto rt_copy = rt->Clone();
+  std::unique_ptr<Type> ret = nullptr;
   if (op == Token::PLUS) {
-    return CheckAndGetPlusResultType(std::move(lt), std::move(rt));
+    ret = CheckAndGetPlusResultType(std::move(lt), std::move(rt));
   }
   if (op == Token::MINUS || op == Token::MULTIPLY || op == Token::DIVIDE) {
-    return CheckAndGetMMDResultType(op, std::move(lt), std::move(rt));
+    ret = CheckAndGetMMDResultType(op, std::move(lt), std::move(rt));
   }
   if (op == Token::AND || op == Token::OR) {
-    return CheckAndGetLogicalResultType(op, std::move(lt), std::move(rt));
+    ret = CheckAndGetLogicalResultType(op, std::move(lt), std::move(rt));
   }
   if (op == Token::COMPARE) {
-    return CheckAndGetCompareResultType(std::move(lt), std::move(rt));
+    ret = CheckAndGetCompareResultType(std::move(lt), std::move(rt));
   }
   if (op == Token::ASSIGN) {
-    return CheckAndGetAssignResultType(std::move(lt), std::move(rt));
+    ret = CheckAndGetAssignResultType(std::move(lt), std::move(rt));
   }
-  throw WamonExecption("operator {} is not support now", GetTokenStr(op));
+  if (ret == nullptr) {
+    std::vector<std::unique_ptr<Type>*> tmp = {&lt_copy, &rt_copy};
+    std::string op_func_name = OperatorDef::CreateName(op, std::move(tmp));
+    auto func = pu.FindFunction(op_func_name);
+    if (func != nullptr) {
+      return func->GetReturnType()->Clone();
+    }
+  }
+  if (ret != nullptr) {
+    return ret;
+  } else {
+    throw WamonExecption("invalid operand type for {} : {} and {}", GetTokenStr(op), lt_copy->GetTypeInfo(), rt_copy->GetTypeInfo());
+  }
 }
 
 /*
@@ -474,7 +490,7 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
     }
     auto left_type = GetExpressionType(tmp->left_.get());
     auto right_type = GetExpressionType(tmp->right_.get());
-    return CheckAndGetBinaryOperatorResultType(tmp->op_, std::move(left_type), std::move(right_type));
+    return CheckAndGetBinaryOperatorResultType(tmp->op_, std::move(left_type), std::move(right_type), GetStaticAnalyzer().GetPackageUnit());
   }
   if (auto tmp = dynamic_cast<UnaryExpr*>(expr)) {
     auto operand_type = GetExpressionType(tmp->operand_.get());

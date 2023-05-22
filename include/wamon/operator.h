@@ -23,8 +23,10 @@ class Operator {
 
   // 查询运算符是否允许被重载
   bool CanBeOverride(Token token) const {
-    // todo implement
-    return true;
+    if (token == Token::COMPARE || token == Token::PLUS || token == Token::MINUS || token == Token::MULTIPLY || token == Token::DIVIDE || token == Token::AND || token == Token::OR || token == Token::PIPE) {
+      return true;
+    }
+    return false;
   }
 
  private:

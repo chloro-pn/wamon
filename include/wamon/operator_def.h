@@ -11,6 +11,7 @@ namespace wamon {
 
 class OperatorDef {
   friend std::unique_ptr<MethodDef> OperatorOverrideToMethod(const std::string& type_name, std::unique_ptr<OperatorDef>&& op);
+  friend std::unique_ptr<FunctionDef> OperatorOverrideToFunc(std::unique_ptr<OperatorDef>&& op);
 
  public:
   explicit OperatorDef(Token op) : op_(op) {
@@ -52,6 +53,17 @@ class OperatorDef {
     type_list_id.reserve(16);
     for(auto& each : param_list) {
       type_list_id += each->GetTypeInfo();
+      type_list_id += "-";
+    }
+    return std::string("__op_") + (token == Token::LEFT_PARENTHESIS ? "call" : GetTokenStr(token)) + type_list_id;
+  }
+
+  // 避免不必要的临时对象生成
+  static std::string CreateName(Token token, std::vector<std::unique_ptr<Type>*>&& param_list) {
+    std::string type_list_id;
+    type_list_id.reserve(16);
+    for(auto& each : param_list) {
+      type_list_id += (*each)->GetTypeInfo();
       type_list_id += "-";
     }
     return std::string("__op_") + (token == Token::LEFT_PARENTHESIS ? "call" : GetTokenStr(token)) + type_list_id;

@@ -175,10 +175,14 @@ TEST(static_analysis, call_op_override) {
       }
     }
 
+    operator + (m_test m, int a) -> int {
+      return m.a + a;
+    }
+
     func main() -> int {
       let m : m_test = (2, 3.4, "bob");
       let result : string = (call m(2, 3.4));
-      return 0;
+      return m + 2;
     }
   )";
 

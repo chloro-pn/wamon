@@ -108,8 +108,10 @@ TEST(parser, operator_override) {
       }
     }
 
-    operator () (my_struct_name myself, int a) -> int {
-      return myself.a + a;
+    func main() -> int {
+      let m : my_struct_name = (2, 3.0, "bob");
+      let tmp : int = (m + 1);
+      return 0;
     }
   )";
 
