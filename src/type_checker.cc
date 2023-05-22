@@ -353,6 +353,23 @@ std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const
   return type->return_type_->Clone();
 }
 
+std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr) {
+  auto struct_type = dynamic_cast<BasicType*>(ctype.get());
+  if (struct_type == nullptr) {
+    throw WamonExecption("invalid type {} for call op", ctype->GetTypeInfo());
+  }
+  std::vector<std::unique_ptr<Type>> param_types;
+  for(auto& each: call_expr->parameters_) {
+    param_types.emplace_back(tc.GetExpressionType(each.get()));
+  }
+  std::string op_func_name = OperatorDef::CreateName(Token::LEFT_PARENTHESIS, param_types);
+  auto method_def = tc.GetStaticAnalyzer().FindTypeMethod(struct_type->GetTypeInfo(), op_func_name);
+  if (method_def == nullptr) {
+    throw WamonExecption("invalid type {} for call op", ctype->GetTypeInfo());
+  }
+  return method_def->GetReturnType()->Clone();
+}
+
 std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const FuncCallExpr* call_expr) {
   if (method->param_list_.size() + 1 != call_expr->parameters_.size()) {
     throw WamonExecption("method_call {} error, The number of parameters does not match : {} != {}", 
@@ -406,9 +423,11 @@ std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecke
   auto find_result = tc.GetStaticAnalyzer().FindNameAndType(call_expr->func_name_, find_type);
   if (find_result == FindNameResult::OBJECT) {
     if (!IsFuncType(find_type)) {
-      throw WamonExecption("don't support override operator() for struct now");
+      // 尝试重载的()运算符
+      return CheckAndGetOperatorOverrideReturnType(tc, find_type, call_expr);
+    } else {
+      return CheckAndGetCallableReturnType(tc, find_type, call_expr);
     }
-    return CheckAndGetCallableReturnType(tc, find_type, call_expr);
   } else {
     if (call_expr->parameters_.empty() == false) {
       auto first_expr = call_expr->parameters_[0].get();

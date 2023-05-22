@@ -155,6 +155,42 @@ TEST(static_analysis, return_type) {
   }
 }
 
+TEST(static_analysis, call_op_override) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    struct m_test {
+      int a;
+      double b;
+      string c;
+    }
+
+    method m_test {
+      operator () (int x, double y) -> string {
+        if (x == self.a && y == self.b) {
+          return self.c;
+        }
+        return "empty";
+      }
+    }
+
+    func main() -> int {
+      let m : m_test = (2, 3.4, "bob");
+      let result : string = (call m(2, 3.4));
+      return 0;
+    }
+  )";
+
+  auto tokens = scan.Scan(str);
+  wamon::PackageUnit pu = wamon::Parse(tokens);
+  wamon::StaticAnalyzer sa(pu);
+  
+  wamon::TypeChecker tc(sa);
+  EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
+  EXPECT_NO_THROW(tc.CheckFunctions());
+}
+
 TEST(static_analysis, type_dismatch) {
   wamon::Scanner scan;
   std::string str = R"(

@@ -9,6 +9,7 @@
 
 #include "wamon/type.h"
 #include "wamon/method_def.h"
+#include "wamon/operator_def.h"
 #include "wamon/exception.h"
 
 namespace wamon {
@@ -96,5 +97,6 @@ class StructDef {
   // 这里需要是有序的，并且按照定义时的顺序
   std::vector<std::pair<std::string, std::unique_ptr<Type>>> data_members_;
   methods_def methods_;
+  std::unique_ptr<OperatorDef> call_operator_;
 };
 }

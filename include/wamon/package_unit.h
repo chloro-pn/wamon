@@ -11,6 +11,7 @@
 #include "wamon/function_def.h"
 #include "wamon/struct_def.h"
 #include "wamon/method_def.h"
+#include "wamon/operator_def.h"
 #include "wamon/exception.h"
 
 namespace wamon {
@@ -57,6 +58,14 @@ class PackageUnit {
     structs_[type_name]->AddMethods(std::move(methods));
   }
   
+  void AddOperatorOverride(Token token, std::unique_ptr<OperatorDef>&& op) {
+    std::string type_list_id = op->GetTypeListId();
+    if (operators_[token].find(type_list_id) != operators_[token].end()) {
+      throw WamonExecption("duplicate operator override : {}, {}", GetTokenStr(token), type_list_id);
+    }
+    operators_[token].insert({type_list_id, std::move(op)});
+  }
+
   const StructDef* FindStruct(const std::string& struct_name) const {
     auto it = structs_.find(struct_name);
     if (it == structs_.end()) {
@@ -108,6 +117,7 @@ class PackageUnit {
   std::vector<std::unique_ptr<VariableDefineStmt>> var_define_;
   std::unordered_map<std::string, std::unique_ptr<FunctionDef>> funcs_;
   std::unordered_map<std::string, std::unique_ptr<StructDef>> structs_;
+  std::unordered_map<Token, std::unordered_map<std::string, std::unique_ptr<OperatorDef>>> operators_;
 };
 
 }

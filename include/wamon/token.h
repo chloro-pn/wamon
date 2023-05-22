@@ -76,6 +76,8 @@ enum class Token {
 
   // 函数定义
   FUNC,
+  // 运算符重载
+  OPERATOR,
   // 结构体定义
   STRUCT,
   // 变量定义
@@ -202,6 +204,8 @@ inline const char *GetTokenStr(Token token) {
       return "byte_iteral";
     case Token::FUNC:
       return "func";
+    case Token::OPERATOR:
+      return "operator";
     case Token::STRUCT:
       return "struct";
     case Token::LET:

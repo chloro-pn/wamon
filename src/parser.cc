@@ -588,11 +588,70 @@ std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(const std::vector<Wam
   return ret;
 }
 
+// 运算符重载定义在包作用域中，并且只能重载本包内的类型, like : 
+// operator +/-/*/()/... (Type id, int a, string b) -> int {
+//  ...
+// }
+// call id(a, b);
+std::unique_ptr<OperatorDef> TryToParseOperatorOverride(const std::vector<WamonToken> &tokens, size_t &begin, Token& token) {
+  std::unique_ptr<OperatorDef> ret;
+  bool succ = AssertToken(tokens, begin, Token::OPERATOR);
+  if (!succ) {
+    return ret;
+  }
+  if (AssertToken(tokens, begin, Token::LEFT_PARENTHESIS)) {
+    token = Token::LEFT_PARENTHESIS;
+    AssertTokenOrThrow(tokens, begin, Token::RIGHT_PARENTHESIS);
+    ret.reset(new OperatorDef(Token::LEFT_PARENTHESIS));
+  } else {
+    if (begin >= tokens.size()) {
+      throw WamonExecption("parse operator override error");
+    }
+    Token op = tokens[begin].token;
+    bool succ = Operator::Instance().CanBeOverride(op);
+    if (succ == false) {
+      throw WamonExecption("operator {} can't be override", GetTokenStr(op));
+    }
+    token = op;
+    ret.reset(new OperatorDef(op));
+  }
+  size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
+  auto param_list = ParseParameterList(tokens, begin, end);
+  for(auto& each : param_list) {
+    //
+    ret->AddParamList(std::move(each.second), each.first);
+  }
+  begin = end + 1;
+  AssertTokenOrThrow(tokens, begin, Token::ARROW);
+  auto return_type = ParseType(tokens, begin);
+  //
+  ret->SetReturnType(std::move(return_type));
+  end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
+  auto stmt_block = ParseStmtBlock(tokens, begin, end);
+
+  //
+  ret->SetBlockStmt(std::move(stmt_block));
+
+  begin = end + 1;
+  return ret;
+}
+
 // method type_name {
 //   func method_name(param_list) -> return_type {
 //     ...
 //   }
 // }
+
+// 转换逻辑
+// 将运算符token的字符串形式+参数列表类型的type_info编码到一起，作为方法名字，这样可以支持重载
+std::unique_ptr<MethodDef> OperatorOverrideToMethod(const std::string& type_name, std::unique_ptr<OperatorDef>&& op) {
+  std::string method_name = OperatorDef::CreateName(op);
+  std::unique_ptr<MethodDef> ret = std::make_unique<MethodDef>(type_name, method_name);
+  ret->param_list_ = std::move(op->param_list_);
+  ret->block_stmt_ = std::move(op->block_stmt_);
+  ret->return_type_ = std::move(op->return_type_);
+  return ret;
+}
 
 std::unique_ptr<methods_def> TryToParseMethodDeclaration(const std::vector<WamonToken>& tokens, size_t& begin, std::string& type_name) {
   std::unique_ptr<methods_def> ret;
@@ -606,15 +665,25 @@ std::unique_ptr<methods_def> TryToParseMethodDeclaration(const std::vector<Wamon
   size_t end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
   begin += 1;
   while(begin < end) {
-    std::unique_ptr<MethodDef> md;
     // 在 method块中依次解析方法
     auto method = TryToParseFunctionDeclaration(tokens, begin);
-    // 之后可以支持运算符重载等更多功能，目前如果不是方法声明则抛出异常。
-    if (method == nullptr) {
-      throw WamonExecption("parse method error");
+    if (method != nullptr) {
+      std::unique_ptr<MethodDef> md;
+      md.reset(new MethodDef(type_name, std::move(method)));
+      ret->emplace_back(std::move(md));
+    } else {
+      Token op_token;
+      auto call_op = TryToParseOperatorOverride(tokens, begin, op_token);
+      if (call_op == nullptr) {
+        throw WamonExecption("parse method error, invalid operator override and method {}", method->GetFunctionName());
+      }
+      // 目前仅支持()运算符重载
+      if (op_token != Token::LEFT_PARENTHESIS) {
+        throw WamonExecption("only support override () operator as struct's method, error_info : {}, {}", GetTokenStr(op_token), method->GetFunctionName());
+      }
+      // 对于成员函数的运算符重载，我们总是将其转换为方法
+      ret->emplace_back(OperatorOverrideToMethod(type_name, std::move(call_op)));
     }
-    md.reset(new MethodDef(type_name, std::move(method)));
-    ret->emplace_back(std::move(md));
   }
   assert(begin == end);
   AssertTokenOrThrow(tokens, begin, Token::RIGHT_BRACE);
@@ -725,6 +794,12 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
     auto methods_declaration = TryToParseMethodDeclaration(tokens, current_index, type_name);
     if (methods_declaration != nullptr) {
       package_unit.AddMethod(type_name, std::move(methods_declaration));
+      continue;
+    }
+    Token op_token;
+    auto operator_override = TryToParseOperatorOverride(tokens, current_index, op_token);
+    if (operator_override != nullptr) {
+      package_unit.AddOperatorOverride(op_token, std::move(operator_override));
       continue;
     }
     if (old_index == current_index) {

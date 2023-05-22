@@ -19,6 +19,7 @@ class TypeChecker {
   friend std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const FunctionDef* function, const FuncCallExpr* call_expr);
   friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr);
   friend std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr);
 
   explicit TypeChecker(StaticAnalyzer& sa);
 
@@ -51,6 +52,15 @@ class TypeChecker {
   //   可以给某个数据成员修饰no_addr属性，使得不允许对该数据成员进行取地址操作，以保证不会有垂悬指针的问题；
   // 基于以上原因，将方法检测与函数检测分开实现，尽管目前它们并无太大区别
   void CheckMethods();
+
+  // 检测运算符重载是否合法，包括参数和返回值类型是否合法，块内每条语句是否合法，以及确定性返回的检测
+  // 此外还有运算符重载相关的特别规定，比如：
+  //    重载函数的参数不应该都是内置类型；
+  //    目前仅支持为基本类型提供运算符重载（函数类型、数组类型和指针类型均不支持重载）；
+  //    除了调用运算符之外的重载，最多只应该有两个参数（二元运算符）,并且不能没有参数；
+  //    某些运算符不支持重载（例如赋值运算符，我们总是希望它按照内置逻辑进行不应该由用户重载）；
+  // 这应该是类型检测的第四个阶段
+  void CheckOperatorOverride();
 
   const StaticAnalyzer& GetStaticAnalyzer() const {
     return static_analyzer_;

@@ -21,6 +21,12 @@ class Operator {
 
   int GetLevel(Token token) const { return operators_.at(token); }
 
+  // 查询运算符是否允许被重载
+  bool CanBeOverride(Token token) const {
+    // todo implement
+    return true;
+  }
+
  private:
   // 双元运算符 -> 优先级
   std::unordered_map<Token, int> operators_;

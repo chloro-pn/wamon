@@ -187,6 +187,15 @@ inline std::unique_ptr<Type> GetVoidType() {
   return std::make_unique<BasicType>("void");
 }
 
+inline std::string GetTypeListId(const std::vector<std::unique_ptr<Type>>& type_list) {
+  std::string result;
+  for(auto& each : type_list) {
+    result += each->GetTypeInfo();
+    result += "-";
+  }
+  return result;
+}
+
 class PackageUnit;
 
 void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var_type, const std::vector<std::unique_ptr<Type>>& param_types);

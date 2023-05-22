@@ -87,6 +87,36 @@ TEST(parser, function_declaration) {
   EXPECT_EQ(tokens[begin].token, wamon::Token::TEOF);
 }
 
+TEST(parser, operator_override) {
+  wamon::Scanner scan;
+
+  std::string str = R"(
+    package main;
+
+    struct my_struct_name {
+      int a;
+      double b;
+      string c;
+    }
+
+    method my_struct_name {
+      operator () (string x, double xx) -> int {
+        if (x == self.c && xx == self.b) {
+          return self.a;
+        }
+        return 0;
+      }
+    }
+
+    operator () (my_struct_name myself, int a) -> int {
+      return myself.a + a;
+    }
+  )";
+
+  auto tokens = scan.Scan(str);
+  EXPECT_NO_THROW(wamon::Parse(tokens));
+}
+
 TEST(parser, operator_priority) {
   wamon::Scanner scan;
   std::string str = "a.b[2]";
