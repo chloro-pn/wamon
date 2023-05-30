@@ -237,6 +237,17 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
     if (canParseBinaryOperator(parse_state) && Operator::Instance().FindBinary(current_token) == true) {
       PushBoperators(b_operators, operands, current_token);
       parse_state = ParseExpressionState::B_OP;
+    } else if (canParseBinaryOperator(parse_state) && current_token == Token::LEFT_BRACKETS) {
+      // var_name [ nested_expr ]
+      //                        i
+      // 将其等价为 var_name [] nested_expr
+      // 像普通二元运算符一样处理，根据优先级
+      PushBoperators(b_operators, operands, Token::SUBSCRIPT);
+      size_t right_bracket = FindMatchedToken<Token::LEFT_BRACKETS, Token::RIGHT_BRACKETS>(tokens, i);
+      auto nested_expr = ParseExpression(tokens, i + 1, right_bracket);
+      i = right_bracket;
+      operands.push(std::move(nested_expr));
+      parse_state = ParseExpressionState::NO_OP;
     } else {
       parse_state = ParseExpressionState::NO_OP;
       // 函数调用表达式
@@ -299,18 +310,6 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
       std::unique_ptr<IdExpr> id_expr(new IdExpr());
       id_expr->SetId(var_name);
       operands.push(AttachUnaryOperators(std::move(id_expr), u_operators));
-      if (AssertToken(tokens, tmp, Token::LEFT_BRACKETS)) {
-        PushBoperators(b_operators, operands, Token::SUBSCRIPT);
-        // var_name [ nested_expr ]
-        //                        i
-        size_t right_bracket = FindMatchedToken<Token::LEFT_BRACKETS, Token::RIGHT_BRACKETS>(tokens, tmp - 1);
-        i = right_bracket;
-        auto nested_expr = ParseExpression(tokens, tmp, right_bracket);
-        assert(u_operators.empty());
-        operands.push(std::move(nested_expr));
-        //operands.push(AttachUnaryOperators(std::move(nested_expr), u_operators));
-        continue;
-      }
     }
   }
   while (b_operators.empty() == false) {

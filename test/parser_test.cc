@@ -130,6 +130,10 @@ TEST(parser, operator_priority) {
   auto left = dynamic_cast<wamon::BinaryExpr*>(be->left_.get());
   EXPECT_NE(left, nullptr);
   EXPECT_EQ(left->op_, wamon::Token::MEMBER_ACCESS);
+
+  str = "call mf(a, b)[4]";
+  tokens = scan.Scan(str);
+  EXPECT_NO_THROW(wamon::ParseExpression(tokens, 0, tokens.size() - 2));
 }
 
 TEST(parser, parse_stmt) {
