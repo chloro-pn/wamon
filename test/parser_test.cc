@@ -167,7 +167,7 @@ TEST(parser, parse_stmt) {
   EXPECT_EQ(next, tokens.size() - 1);
   EXPECT_EQ(stmt->GetStmtName(), "var_def_stmt");
 
-  str = "let var : array(ptr(string), 3) = (\"hello world\");";
+  str = "let var : list(ptr(string)) = (\"hello world\");";
   tokens = scan.Scan(str);
   next = 0;
   stmt = wamon::ParseStatement(tokens, 0, next);
@@ -262,19 +262,19 @@ TEST(parse, parse_type) {
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
 
-  str = "array(int, 3)";
+  str = "list(int)";
   tokens = scan.Scan(str);
   begin = 0;
   type = wamon::ParseType(tokens, begin);
-  EXPECT_EQ(type->GetTypeInfo(), "array[3](int)");
+  EXPECT_EQ(type->GetTypeInfo(), "list(int)");
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
 
-  str = "array(ptr(int), 3)";
+  str = "list(ptr(int))";
   tokens = scan.Scan(str);
   begin = 0;
   type = wamon::ParseType(tokens, begin);
-  EXPECT_EQ(type->GetTypeInfo(), "array[3](ptr(int))");
+  EXPECT_EQ(type->GetTypeInfo(), "list(ptr(int))");
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
 
@@ -302,11 +302,11 @@ TEST(parse, parse_type) {
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
 
-  str = "f((int, mystruct, ptr(int), array(ptr(double), 3)) -> void)";
+  str = "f((int, mystruct, ptr(int), list(ptr(double))) -> void)";
   tokens = scan.Scan(str);
   begin = 0;
   type = wamon::ParseType(tokens, begin);
-  EXPECT_EQ(type->GetTypeInfo(), "f((int, mystruct, ptr(int), array[3](ptr(double))) -> void)");
+  EXPECT_EQ(type->GetTypeInfo(), "f((int, mystruct, ptr(int), list(ptr(double))) -> void)");
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
 }

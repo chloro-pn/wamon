@@ -72,8 +72,8 @@ class StructDef {
       return {};
     }
     // 数组类型，我们需要获取其包含类型并继续分析
-    if (IsArrayType(type)) {
-      auto hold_type = dynamic_cast<ArrayType*>(type.get())->GetHoldType();
+    if (IsListType(type)) {
+      auto hold_type = dynamic_cast<ListType*>(type.get())->GetHoldType();
       return GetDependent(hold_type);
     }
     return {type->GetTypeInfo()};

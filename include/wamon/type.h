@@ -74,16 +74,13 @@ class PointerType : public CompoundType {
 
 class IntIteralExpr;
 
-class ArrayType : public CompoundType {
+class ListType : public CompoundType {
  public:
   friend class TypeChecker;
+
   void SetHoldType(std::unique_ptr<Type>&& hold_type) {
     hold_type_ = std::move(hold_type);
   }
-
-  void SetCount(std::unique_ptr<IntIteralExpr>&& count);
-
-  int64_t GetCount() const;
 
   std::string GetTypeInfo() const override;
 
@@ -94,7 +91,6 @@ class ArrayType : public CompoundType {
   }
 
  private:
-  std::unique_ptr<IntIteralExpr> count_expr_;
   std::unique_ptr<Type> hold_type_;
 };
 
@@ -148,8 +144,8 @@ inline bool IsFuncType(const std::unique_ptr<Type>& type) {
   return dynamic_cast<FuncType*>(type.get()) != nullptr;
 }
 
-inline bool IsArrayType(const std::unique_ptr<Type>& type) {
-  return dynamic_cast<ArrayType*>(type.get()) != nullptr;
+inline bool IsListType(const std::unique_ptr<Type>& type) {
+  return dynamic_cast<ListType*>(type.get()) != nullptr;
 }
 
 inline bool IsBasicType(const std::unique_ptr<Type>& type) {
@@ -186,6 +182,25 @@ inline std::vector<std::string> GetBuiltInTypesWithoutVoid() {
 inline std::unique_ptr<Type> GetVoidType() {
   return std::make_unique<BasicType>("void");
 }
+
+template <typename T>
+struct TypeFactory;
+
+template <>
+struct TypeFactory<std::string> {
+  static std::unique_ptr<Type> Get() {
+    return std::make_unique<BasicType>("string");
+  }
+};
+
+template <typename T>
+struct TypeFactory<std::vector<T>> {
+  static std::unique_ptr<Type> Get() {
+    auto tmp = std::make_unique<ListType>();
+    tmp->SetHoldType(TypeFactory<T>::Get());
+    return tmp;
+  }
+};
 
 inline std::string GetTypeListId(const std::vector<std::unique_ptr<Type>>& type_list) {
   std::string result;

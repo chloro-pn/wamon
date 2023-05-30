@@ -93,7 +93,6 @@ class StringIteralExpr : public Expression {
 
 class IntIteralExpr : public Expression {
  public:
-  friend class ArrayType;
 
   void SetIntIter(const int64_t& n) { num_ = n; }
 

@@ -88,7 +88,7 @@ enum class Token {
 
   // 复合类型声明
   PTR,
-  ARRAY,
+  LIST,
   F,
 
   // 包管理
@@ -216,8 +216,8 @@ inline const char *GetTokenStr(Token token) {
       return "self";
     case Token::PTR:
       return "ptr";
-    case Token::ARRAY:
-      return "array";
+    case Token::LIST:
+      return "list";
     case Token::F:
       return "f";
     case Token::PACKAGE:

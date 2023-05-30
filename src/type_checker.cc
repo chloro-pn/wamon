@@ -59,9 +59,9 @@ void TypeChecker::CheckType(const std::unique_ptr<Type>& type, const std::string
     auto ptr_type = static_cast<PointerType*>(type.get());
     CheckType(ptr_type->hold_type_, context_info, false);
     return;
-  } else if (IsArrayType(type)) {
-    auto array_type = static_cast<ArrayType*>(type.get());
-    CheckType(array_type->hold_type_, context_info, false);
+  } else if (IsListType(type)) {
+    auto list_type = static_cast<ListType*>(type.get());
+    CheckType(list_type->hold_type_, context_info, false);
     return;
   }
   if (!IsBuiltInType(type)) {
@@ -220,14 +220,14 @@ std::unique_ptr<Type> CheckAndGetSSResultType(const TypeChecker& tc, BinaryExpr*
   auto right_type = tc.GetExpressionType(binary_expr->right_.get());
   // 且不考虑编译期常量的支持
   if (right_type->GetTypeInfo() != "int") {
-    throw WamonExecption("the array's index type should be int, but {}", right_type->GetTypeInfo());
+    throw WamonExecption("the list's index type should be int, but {}", right_type->GetTypeInfo());
   }
   auto left_type = tc.GetExpressionType(binary_expr->left_.get());
-  auto array_type = dynamic_cast<ArrayType*>(left_type.get());
-  if (array_type == nullptr) {
-    throw WamonExecption("the object call operator[] should have array type, but {}", left_type->GetTypeInfo());
+  auto list_type = dynamic_cast<ListType*>(left_type.get());
+  if (list_type == nullptr) {
+    throw WamonExecption("the object call operator[] should have list type, but {}", left_type->GetTypeInfo());
   }
-  return array_type->GetHoldType();
+  return list_type->GetHoldType();
 }
 
 std::unique_ptr<Type> CheckAndGetMemberAccessResultType(const TypeChecker& tc, BinaryExpr* binary_expr) {

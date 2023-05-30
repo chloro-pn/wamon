@@ -84,20 +84,12 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
     }
     begin += 1;
     return tmp;
-  } else if (AssertToken(tokens, begin, Token::ARRAY)) {
+  } else if (AssertToken(tokens, begin, Token::LIST)) {
     size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
     begin += 1;
-    std::unique_ptr<ArrayType> tmp(new ArrayType);
+    std::unique_ptr<ListType> tmp(new ListType);
     auto nested_type = ParseType(tokens, begin);
     tmp->SetHoldType(std::move(nested_type));
-    AssertTokenOrThrow(tokens, begin, Token::COMMA);
-    auto count_expr = ParseExpression(tokens, begin, right_parent);
-    if (dynamic_cast<IntIteralExpr*>(count_expr.get()) == nullptr) {
-      throw WamonExecption("array type's count can only be intiteralexpr now");
-    }
-    auto int_count_expr = std::unique_ptr<IntIteralExpr>(static_cast<IntIteralExpr*>(count_expr.release()));
-    tmp->SetCount(std::move(int_count_expr));
-
     begin = right_parent + 1;
     return tmp;
   } else if (AssertToken(tokens, begin, Token::F)) {
@@ -587,7 +579,6 @@ std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(const std::vector<Wam
   return ret;
 }
 
-// 运算符重载定义在包作用域中，并且只能重载本包内的类型, like : 
 // operator +/-/*/()/... (Type id, int a, string b) -> int {
 //  ...
 // }
@@ -681,6 +672,7 @@ std::unique_ptr<methods_def> TryToParseMethodDeclaration(const std::vector<Wamon
       md.reset(new MethodDef(type_name, std::move(method)));
       ret->emplace_back(std::move(md));
     } else {
+      // 如果解析方法失败尝试解析运算符重载
       Token op_token;
       auto call_op = TryToParseOperatorOverride(tokens, begin, op_token);
       if (call_op == nullptr) {
@@ -688,7 +680,7 @@ std::unique_ptr<methods_def> TryToParseMethodDeclaration(const std::vector<Wamon
       }
       // 目前仅支持()运算符重载
       if (op_token != Token::LEFT_PARENTHESIS) {
-        throw WamonExecption("only support override () operator as struct's method, error_info : {}, {}", GetTokenStr(op_token), method->GetFunctionName());
+        throw WamonExecption("only support override () operator as struct's method from now on, error_info : {}, {}", GetTokenStr(op_token), method->GetFunctionName());
       }
       // 对于成员函数的运算符重载，我们总是将其转换为方法
       ret->emplace_back(OperatorOverrideToMethod(type_name, std::move(call_op)));
@@ -805,6 +797,7 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
       package_unit.AddMethod(type_name, std::move(methods_declaration));
       continue;
     }
+    // 运算符重载函数会被编码为一个特殊的函数名字，该名字由运算符和参数类型唯一确定
     Token op_token;
     auto operator_override = TryToParseOperatorOverride(tokens, current_index, op_token);
     if (operator_override != nullptr) {

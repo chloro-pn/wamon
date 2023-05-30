@@ -239,7 +239,7 @@ TEST(static_analysis, construct_check) {
       bool c;
     }
 
-    let global_var : array(int, 3) = (2, 3, 4);
+    let global_var : list(int) = (2, 3, 4);
     let int_var : int = (2);
     let ptr_var : ptr(int) = (&int_var);
     let struct_var : mclass = (&int_var, "hello world", false);
@@ -253,11 +253,7 @@ TEST(static_analysis, construct_check) {
   std::vector<std::string> strs = {
     R"(
       package main;
-      let array_var : array(int, 3) = (2, 3);
-    )",
-    R"(
-      package main;
-      let array_var : array(int , 3) = ("hello world", 2, 3);
+      let list_var : list(int) = ("hello world", 2, 3);
     )",
     R"(
       package main;
@@ -423,8 +419,8 @@ TEST(static_analysis, struct_dependent_info) {
       sa a;
       ptr(double) b;
       f((int, double) -> string) c;
-      array(byte, 3) d;
-      array(array(array(bool, 3), 3), 3) e;
+      list(byte) d;
+      list(list(list(bool))) e;
     }
   )";
   auto tokens = scan.Scan(str);
