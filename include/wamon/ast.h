@@ -5,8 +5,11 @@
 #include <vector>
 
 #include "wamon/token.h"
+#include "wamon/variable.h"
 
 namespace wamon {
+
+class Interpreter;
 
 class AstNode {
  public:
@@ -15,6 +18,7 @@ class AstNode {
 
 class Expression : public AstNode {
  public:
+  virtual std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) = 0;
 };
 
 class TypeChecker;
@@ -132,9 +136,47 @@ class SelfExpr : public Expression {
 
 };
 
+enum class ExecuteState {
+  Next,
+  Continue,
+  Break,
+  Return,
+};
+
+struct ExecuteResult {
+  ExecuteState state_;
+  std::shared_ptr<Variable> result_;
+
+  static ExecuteResult Next() { 
+    ExecuteResult obj;
+    obj.state_ = ExecuteState::Next;
+    return obj;
+  }
+
+  static ExecuteResult Continue() {
+    ExecuteResult obj;
+    obj.state_ = ExecuteState::Continue;
+    return obj;
+  }
+
+  static ExecuteResult Break() {
+    ExecuteResult obj;
+    obj.state_ = ExecuteState::Break;
+    return obj;
+  }
+
+  static ExecuteResult Return(std::shared_ptr<Variable>&& return_value) {
+    ExecuteResult obj;
+    obj.state_ = ExecuteState::Return;
+    obj.result_ = std::move(return_value);
+    return obj;
+  }
+};
+
 class Statement : public AstNode {
  public:
   virtual std::string GetStmtName() = 0;
+  virtual ExecuteResult Execute(Interpreter&) = 0;
 };
 
 class BlockStmt : public Statement {
@@ -150,6 +192,8 @@ class BlockStmt : public Statement {
   const std::vector<std::unique_ptr<Statement>>& GetStmts() const {
     return block_;
   }
+
+  ExecuteResult Execute(Interpreter&) override;
 
  private:
   std::vector<std::unique_ptr<Statement>> block_;
@@ -238,12 +282,20 @@ class BreakStmt : public Statement {
   std::string GetStmtName() override {
     return "break_stmt";
   }
+
+  ExecuteResult Execute(Interpreter&) override {
+    return ExecuteResult::Break();
+  }
 };
 
 class ContinueStmt : public Statement {
  public:
   std::string GetStmtName() override {
     return "continue_stmt";
+  }
+
+  ExecuteResult Execute(Interpreter&) override {
+    return ExecuteResult::Continue();
   }
 };
 
@@ -258,6 +310,8 @@ class ReturnStmt : public Statement {
   std::string GetStmtName() override {
     return "return_stmt";
   }
+
+  ExecuteResult Execute(Interpreter&) override;
   
  private:
   std::unique_ptr<Expression> return_;
@@ -269,12 +323,25 @@ class ExpressionStmt : public Statement {
    
   void SetExpr(std::unique_ptr<Expression>&& expr) { expr_ = std::move(expr); }
   
+  // 由语义分析阶段完成
+  void SetExprType(std::unique_ptr<Type>&& type) {
+    expr_type_ = std::move(type);
+  }
+
   std::string GetStmtName() override {
     return "expr_stmt";
   }
 
+  const std::unique_ptr<Type>& GetType() const {
+    assert(expr_type_ != nullptr);
+    return expr_type_;
+  }
+
+  ExecuteResult Execute(Interpreter&) override;
+
  private:
   std::unique_ptr<Expression> expr_;
+  std::unique_ptr<Type> expr_type_;
 };
 
 class Type;
@@ -303,6 +370,8 @@ class VariableDefineStmt : public Statement {
   std::string GetStmtName() override {
     return "var_def_stmt";
   }
+
+  ExecuteResult Execute(Interpreter&) override;
   
  private:
   std::unique_ptr<Type> type_;

@@ -16,15 +16,38 @@ class Variable {
 
   }
 
-  virtual void ConstructByFields(std::vector<std::unique_ptr<Variable>>&& fields) = 0;
+  virtual void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) = 0;
 
   virtual void DefaultConstruct() = 0;
 
   virtual std::unique_ptr<Variable> Clone() = 0;
 
+  std::string GetTypeInfo() const {
+    return type_->GetTypeInfo();
+  }
+
+  const std::string& GetName() const {
+    return name_;
+  }
+
  private:
   std::unique_ptr<Type> type_;
   std::string name_;
+};
+
+class VoidVariable : public Variable {
+ public:
+  VoidVariable() : Variable(TypeFactory<void>::Get()) {}
+
+  void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
+    throw WamonExecption("VoidVariable should not call ConstructByFields method");
+  }
+
+  void DefaultConstruct() override {}
+
+  std::unique_ptr<Variable> Clone() override {
+    return std::make_unique<VoidVariable>();
+  }
 };
 
 class StringVariable : public Variable {
@@ -33,8 +56,32 @@ class StringVariable : public Variable {
 
   }
 
+  const std::string& GetValue() const { return value_; }
+
+  void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
+    if (fields.size() != 1) {
+      throw WamonExecption("StringVariable's ConstructByFields method error : fields.size() == {}", fields.size());
+    }
+    if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
+      throw WamonExecption("StringVariable's ConstructByFields method error, type dismatch : {} != {}", fields[0]->GetTypeInfo(), GetTypeInfo());
+    }
+    StringVariable* ptr = static_cast<StringVariable*>(fields[0].get());
+    value_ = ptr->GetValue();
+  }
+
+  void DefaultConstruct() override {
+    value_.clear();
+  }
+
+  std::unique_ptr<Variable> Clone() override {
+    return std::make_unique<StringVariable>(GetValue(), "__clone__");
+  }
  private:
   std::string value_;
 };
 
+
+std::unique_ptr<Variable> VariableFactory(const Type* type, const std::string& name) {
+
+}
 }

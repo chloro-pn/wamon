@@ -571,7 +571,8 @@ void TypeChecker::CheckStatement(Statement* stmt) {
     return;
   }
   if (auto tmp = dynamic_cast<ExpressionStmt*>(stmt)) {
-    GetExpressionType(tmp->expr_.get());
+    auto type = GetExpressionType(tmp->expr_.get());
+    tmp->SetExprType(std::move(type));
     return;
   }
   if (auto tmp = dynamic_cast<VariableDefineStmt*>(stmt)) {

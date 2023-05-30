@@ -72,8 +72,6 @@ class PointerType : public CompoundType {
   std::unique_ptr<Type> hold_type_;
 };
 
-class IntIteralExpr;
-
 class ListType : public CompoundType {
  public:
   friend class TypeChecker;
@@ -187,9 +185,44 @@ template <typename T>
 struct TypeFactory;
 
 template <>
+struct TypeFactory<void> {
+  static std::unique_ptr<Type> Get() {
+    return std::make_unique<BasicType>("void");
+  }
+};
+
+template <>
 struct TypeFactory<std::string> {
   static std::unique_ptr<Type> Get() {
     return std::make_unique<BasicType>("string");
+  }
+};
+
+template <>
+struct TypeFactory<int> {
+  static std::unique_ptr<Type> Get() {
+    return std::make_unique<BasicType>("int");
+  }
+};
+
+template <>
+struct TypeFactory<double> {
+  static std::unique_ptr<Type> Get() {
+    return std::make_unique<BasicType>("double");
+  }
+};
+
+template <>
+struct TypeFactory<bool> {
+  static std::unique_ptr<Type> Get() {
+    return std::make_unique<BasicType>("bool");
+  }
+};
+
+template <>
+struct TypeFactory<char> {
+  static std::unique_ptr<Type> Get() {
+    return std::make_unique<BasicType>("byte");
   }
 };
 
@@ -197,6 +230,15 @@ template <typename T>
 struct TypeFactory<std::vector<T>> {
   static std::unique_ptr<Type> Get() {
     auto tmp = std::make_unique<ListType>();
+    tmp->SetHoldType(TypeFactory<T>::Get());
+    return tmp;
+  }
+};
+
+template <typename T>
+struct TypeFactory<T*> {
+  static std::unique_ptr<Type> Get() {
+    auto tmp = std::make_unique<PointerType>();
     tmp->SetHoldType(TypeFactory<T>::Get());
     return tmp;
   }
