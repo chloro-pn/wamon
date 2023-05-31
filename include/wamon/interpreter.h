@@ -49,6 +49,12 @@ class Interpreter {
     return runtime_stack_.back();
   }
 
+  std::shared_ptr<Variable> CallFunction(FunctionDef* function_def, std::vector<std::shared_ptr<Variable>>&& params);
+
+  std::shared_ptr<Variable> CallCallable(std::shared_ptr<Variable> callable, std::vector<std::shared_ptr<Variable>>&& params);
+
+  std::shared_ptr<Variable> CallMethod(std::shared_ptr<Variable> obj, MethodDef* method_def, std::vector<std::shared_ptr<Variable>>&& params);
+
  private:
   // 这里使用vector模拟栈，因为需要对其进行遍历
   std::vector<RuntimeContext> runtime_stack_;

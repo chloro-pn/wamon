@@ -22,6 +22,8 @@ class Variable {
 
   virtual std::unique_ptr<Variable> Clone() = 0;
 
+  virtual ~Variable() = default;
+
   std::string GetTypeInfo() const {
     return type_->GetTypeInfo();
   }
@@ -76,10 +78,46 @@ class StringVariable : public Variable {
   std::unique_ptr<Variable> Clone() override {
     return std::make_unique<StringVariable>(GetValue(), "__clone__");
   }
+
  private:
   std::string value_;
 };
 
+class BoolVariable : public Variable {
+ public:
+  BoolVariable(bool v, const std::string& name) : Variable(TypeFactory<bool>::Get(), name), value_(v) {
+
+  }
+
+  bool GetValue() const { return value_; }
+
+  void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
+    if (fields.size() != 1) {
+      throw WamonExecption("BoolVariable's ConstructByFields method error : fields.size() == {}", fields.size());
+    }
+    if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
+      throw WamonExecption("BoolVariable's ConstructByFields method error, type dismatch : {} != {}", fields[0]->GetTypeInfo(), GetTypeInfo());
+    }
+    BoolVariable* ptr = static_cast<BoolVariable*>(fields[0].get());
+    value_ = ptr->GetValue();
+  }
+
+  void DefaultConstruct() override {
+    value_ = true;
+  }
+
+  std::unique_ptr<Variable> Clone() override {
+    return std::make_unique<BoolVariable>(GetValue(), "__clone__");
+  }
+
+ private:
+  bool value_;
+};
+
+// 不提供运行时检测，应该在静态分析阶段确定
+BoolVariable* AsBoolVariable(std::shared_ptr<Variable>& v) {
+  return static_cast<BoolVariable*>(v.get());
+}
 
 std::unique_ptr<Variable> VariableFactory(const Type* type, const std::string& name) {
 

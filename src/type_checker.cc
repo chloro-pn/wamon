@@ -430,10 +430,13 @@ std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const Fun
 }
 
 // 新的设计：
-// 首先在符号表中查找call_expr->func_name_，分两种情况：1. 找到了一个object 2.找到了原生函数或者没找到
+// 首先在符号表中查找call_expr->func_name_，分两种情况：
+//   1. 找到了一个object 
+//   2. 找到了原生函数或者没找到
 // 当是情况1时，检查该object的类型，如果是函数类型，说明它是一个callable object，callable object可以由原生函数构造，也可以由lambda表达式构造，也可以由重载了()运算符的类型的变量构造，如果是结构体类型，则由重载了()运算符的类型的变量构造
 // 当是情况2时，如果参数列表非空，则首先在第一个参数对应的结构体中查找同名方法，如果没找到则在原生函数中查找；如果参数列表为空则直接在原生函数中查找
 // todo: 支持新的关键字 callm、callc、callf，callm强制调用方法，callc强制调用callable object，callf强制调用原生函数
+// todo: 记录一些必要信息供运行时调用
 std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr) {
   std::unique_ptr<Type> find_type;
   auto find_result = tc.GetStaticAnalyzer().FindNameAndType(call_expr->func_name_, find_type);

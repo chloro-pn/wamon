@@ -38,6 +38,8 @@ class FuncCallExpr : public Expression {
 
   void SetParameters(std::vector<std::unique_ptr<Expression>>&& param) { parameters_ = std::move(param); }
 
+  std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) override;
+
  private:
   std::string func_name_;
   std::vector<std::unique_ptr<Expression>> parameters_;
@@ -223,6 +225,8 @@ class ForStmt : public Statement {
     return "for_stmt";
   }
 
+  ExecuteResult Execute(Interpreter&) override;
+
  private:
   std::unique_ptr<Expression> init_;
   std::unique_ptr<Expression> check_;
@@ -249,6 +253,8 @@ class IfStmt : public Statement {
   std::string GetStmtName() override {
     return "if_stmt";
   }
+
+  ExecuteResult Execute(Interpreter&) override;
   
  private:
   std::unique_ptr<Expression> check_;
@@ -271,6 +277,8 @@ class WhileStmt : public Statement {
   std::string GetStmtName() override {
     return "while_stmt";
   }
+
+  ExecuteResult Execute(Interpreter&) override;
 
  private:
   std::unique_ptr<Expression> check_;
