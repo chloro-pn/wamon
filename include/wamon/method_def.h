@@ -19,7 +19,7 @@ class OperatorDef;
 class MethodDef {
  public:
   friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr);
-  friend std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const MethodCallExpr* call_expr);
   friend std::unique_ptr<MethodDef> OperatorOverrideToMethod(const std::string& type_name, std::unique_ptr<OperatorDef>&& op);
 
   MethodDef(const std::string& tname, const std::string& mname) : type_name_(tname), method_name_(mname) {

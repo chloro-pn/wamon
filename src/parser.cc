@@ -166,7 +166,7 @@ bool canParseBinaryOperator(const ParseExpressionState& ps) {
  */
 std::unique_ptr<Expression> AttachUnaryOperators(std::unique_ptr<Expression> operand, std::stack<Token>& u_opers) {
   while(u_opers.empty() == false) {
-    std::unique_ptr<UnaryExpr> tmp(new UnaryExpr);
+    std::unique_ptr<UnaryExpr> tmp(new UnaryExpr());
     tmp->SetOp(u_opers.top());
     u_opers.pop();
     tmp->SetOperand(std::move(operand));
@@ -244,16 +244,28 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
       parse_state = ParseExpressionState::NO_OP;
       // 函数调用表达式
       if (current_token == Token::CALL) {
-        std::unique_ptr<FuncCallExpr> func_call_expr(new FuncCallExpr());
         size_t tmp = i + 1;
-        std::string func_name = ParseIdentifier(tokens, tmp);
-        func_call_expr->SetFuncName(func_name);
-
-        size_t tmp_end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp);
-        auto expr_list = ParseExprList(tokens, tmp, tmp_end);
-        func_call_expr->SetParameters(std::move(expr_list));
-        operands.push(AttachUnaryOperators(std::move(func_call_expr), u_operators));
-        i = tmp_end;
+        std::string ident = ParseIdentifier(tokens, tmp);
+        if (AssertToken(tokens, tmp, Token::MEMBER_ACCESS) == false) {
+          std::unique_ptr<FuncCallExpr> func_call_expr(new FuncCallExpr());
+          func_call_expr->SetFuncName(ident);
+          size_t tmp_end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp);
+          auto expr_list = ParseExprList(tokens, tmp, tmp_end);
+          func_call_expr->SetParameters(std::move(expr_list));
+          operands.push(AttachUnaryOperators(std::move(func_call_expr), u_operators));
+          i = tmp_end;
+        } else {
+          // call ident.method_name(params...)
+          std::unique_ptr<MethodCallExpr> method_call_expr(new MethodCallExpr());
+          method_call_expr->SetIdName(ident);
+          std::string method_name = ParseIdentifier(tokens, tmp);
+          method_call_expr->SetMethodName(method_name);
+          size_t tmp_end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp);
+          auto expr_list = ParseExprList(tokens, tmp, tmp_end);
+          method_call_expr->SetParameters(std::move(expr_list));
+          operands.push(AttachUnaryOperators(std::move(method_call_expr), u_operators));
+          i = tmp_end;
+        }
         continue;
       }
       // 字面量表达式

@@ -1,8 +1,10 @@
 #pragma once
 
 #include <unordered_map>
+#include <functional>
 
 #include "wamon/token.h"
+#include "wamon/variable.h"
 
 namespace wamon {
 
@@ -34,6 +36,10 @@ class Operator {
   std::unordered_map<Token, int> operators_;
   // 单元运算符具有最高优先级，并且是左结合的，并且单元运算符的优先级一致
   std::unordered_map<Token, int> uoperators_;
+
+  using BinaryOperatorType = std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>, std::shared_ptr<Variable>)>;
+
+  using UnaryOperatorType = std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>)>;
 };
 
 }  // namespace wamon

@@ -1,0 +1,41 @@
+#include "wamon/interpreter.h"
+
+namespace wamon {
+
+std::shared_ptr<Variable> Interpreter::CalculateOperator(Token op, const std::shared_ptr<Variable>& left, const std::shared_ptr<Variable>& right) {
+  return nullptr;
+}
+
+std::shared_ptr<Variable> Interpreter::CalculateOperator(Token op, const std::shared_ptr<Variable>& operand) {
+  return nullptr;
+}
+
+std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_def, std::vector<std::shared_ptr<Variable>>&& params) {
+  for(auto param : params) {
+    GetCurrentContext().RegisterVariable(param->Clone());
+  }
+  auto result = function_def->block_stmt_->Execute(*this);
+  if (result.state_ != ExecuteState::Return) {
+    throw WamonExecption("interpreter call function {} error, diden't end by return stmt", function_def->GetFunctionName());
+  }
+  return result.result_;
+}
+
+std::shared_ptr<Variable> Interpreter::CallCallable(std::shared_ptr<Variable> callable, std::vector<std::shared_ptr<Variable>>&& params) {
+  return nullptr;
+}
+
+std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj, const MethodDef* method_def, std::vector<std::shared_ptr<Variable>>&& params) {
+  for(auto param : params) {
+    GetCurrentContext().RegisterVariable(param->Clone());
+  }
+  GetCurrentContext().RegisterVariable(obj, "__self__");
+  auto result = method_def->GetBlockStmt()->Execute(*this);
+  if (result.state_ != ExecuteState::Return) {
+    throw WamonExecption("interpreter call method {}.{} error, diden't end by return stmt", obj->GetName(), method_def->GetMethodName());
+  }
+  return result.result_;
+}
+
+
+}

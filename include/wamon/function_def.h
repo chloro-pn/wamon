@@ -20,6 +20,7 @@ class FunctionDef {
   friend std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const FunctionDef* function, const FuncCallExpr* call_expr);
   friend std::unique_ptr<FunctionDef> OperatorOverrideToFunc(std::unique_ptr<OperatorDef>&& op);
   friend class TypeChecker;
+  friend class Interpreter;
 
   explicit FunctionDef(const std::string& name) : name_(name) {
 

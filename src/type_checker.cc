@@ -386,19 +386,18 @@ std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& t
   return method_def->GetReturnType()->Clone();
 }
 
-std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const FuncCallExpr* call_expr) {
-  if (method->param_list_.size() + 1 != call_expr->parameters_.size()) {
+std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const MethodCallExpr* call_expr) {
+  if (method->param_list_.size() != call_expr->parameters_.size()) {
     throw WamonExecption("method_call {} error, The number of parameters does not match : {} != {}", 
-      call_expr->func_name_,
-      method->param_list_.size() + 1,
+      call_expr->method_name_,
+      method->param_list_.size(),
       call_expr->parameters_.size());
   }
   for (size_t arg_i = 0; arg_i < method->param_list_.size(); ++arg_i) {
-    // 第一个参数是调用方
-    auto arg_i_type = tc.GetExpressionType(call_expr->parameters_[arg_i + 1].get());
+    auto arg_i_type = tc.GetExpressionType(call_expr->parameters_[arg_i].get());
     if (!IsSameType(method->param_list_[arg_i].first, arg_i_type)) {
       throw WamonExecption("method_call {} error, arg_{}'s type dismatch {} != {}", 
-        call_expr->func_name_, 
+        call_expr->method_name_, 
         arg_i,
         method->param_list_[arg_i].first->GetTypeInfo(),
         arg_i_type->GetTypeInfo());
@@ -434,8 +433,7 @@ std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const Fun
 //   1. 找到了一个object 
 //   2. 找到了原生函数或者没找到
 // 当是情况1时，检查该object的类型，如果是函数类型，说明它是一个callable object，callable object可以由原生函数构造，也可以由lambda表达式构造，也可以由重载了()运算符的类型的变量构造，如果是结构体类型，则由重载了()运算符的类型的变量构造
-// 当是情况2时，如果参数列表非空，则首先在第一个参数对应的结构体中查找同名方法，如果没找到则在原生函数中查找；如果参数列表为空则直接在原生函数中查找
-// todo: 支持新的关键字 callm、callc、callf，callm强制调用方法，callc强制调用callable object，callf强制调用原生函数
+// 当是情况2时，则直接在原生函数中查找
 // todo: 记录一些必要信息供运行时调用
 std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr) {
   std::unique_ptr<Type> find_type;
@@ -448,20 +446,24 @@ std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecke
       return CheckAndGetCallableReturnType(tc, find_type, call_expr);
     }
   } else {
-    if (call_expr->parameters_.empty() == false) {
-      auto first_expr = call_expr->parameters_[0].get();
-      auto type = tc.GetExpressionType(first_expr);
-      auto method = tc.GetStaticAnalyzer().FindTypeMethod(type->GetTypeInfo(), call_expr->func_name_);
-      if (method != nullptr) {
-        // 参数类型检测并返回返回值类型
-        return CheckAndGetMethodReturnType(tc, method, call_expr);
-      }
-    }
     auto func = tc.GetStaticAnalyzer().FindFunction(call_expr->func_name_);
     return CheckAndGetFuncReturnType(tc, func ,call_expr);
   }
 }
 
+std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker& tc, MethodCallExpr* method_call_expr) {
+  std::unique_ptr<Type> find_type;
+  auto find_result = tc.GetStaticAnalyzer().FindNameAndType(method_call_expr->id_name_, find_type);
+  if (find_result != FindNameResult::OBJECT) {
+    throw WamonExecption("CheckParamTypeAndGetResultTypeForMethod error, not find ident's type");
+  }
+  if (!IsBasicType(find_type) || IsBuiltInType(find_type)) {
+    throw WamonExecption("CheckParamTypeAndGetResultTypeForMethod error, ident's type is not struct");
+  }
+  // if not find, throw exception
+  auto methoddef = tc.GetStaticAnalyzer().GetPackageUnit().FindTypeMethod(find_type->GetTypeInfo(), method_call_expr->method_name_);
+  return CheckAndGetMethodReturnType(tc, methoddef, method_call_expr);
+}
 
 std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   assert(expr != nullptr);
@@ -506,6 +508,9 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   }
   if (auto tmp = dynamic_cast<FuncCallExpr*>(expr)) {
     return CheckParamTypeAndGetResultTypeForFunction(*this, tmp);
+  }
+  if (auto tmp = dynamic_cast<MethodCallExpr*>(expr)) {
+    return CheckParamTypeAndGetResultTypeForMethod(*this, tmp);
   }
   auto tmp = dynamic_cast<IdExpr*>(expr);
   if (tmp == nullptr) {
