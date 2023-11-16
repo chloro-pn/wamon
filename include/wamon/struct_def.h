@@ -43,7 +43,7 @@ class StructDef {
     return data_members_;
   }
 
-  const MethodDef* GetMethod(const std::string& method_name) {
+  const MethodDef* GetMethod(const std::string& method_name) const {
     for (auto& each : methods_) {
       if (each->GetMethodName() == method_name) {
         return each.get();

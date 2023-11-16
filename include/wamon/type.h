@@ -58,8 +58,16 @@ class PointerType : public CompoundType {
   friend class TypeChecker;
   friend std::unique_ptr<Type> CheckAndGetUnaryMultiplyResultType(std::unique_ptr<Type> operand);
 
+  PointerType(std::unique_ptr<Type>&& hold_type) : hold_type_(std::move(hold_type)) {
+    
+  }
+
   void SetHoldType(std::unique_ptr<Type>&& hold_type) {
     hold_type_ = std::move(hold_type);
+  }
+
+  std::unique_ptr<Type> GetHoldType() const {
+    return hold_type_->Clone();
   }
 
   std::string GetTypeInfo() const override { 
@@ -75,6 +83,10 @@ class PointerType : public CompoundType {
 class ListType : public CompoundType {
  public:
   friend class TypeChecker;
+
+  ListType(std::unique_ptr<Type>&& hold_type) : hold_type_(std::move(hold_type)) {
+    
+  }
 
   void SetHoldType(std::unique_ptr<Type>&& hold_type) {
     hold_type_ = std::move(hold_type);
@@ -150,6 +162,10 @@ inline bool IsBasicType(const std::unique_ptr<Type>& type) {
   return dynamic_cast<BasicType*>(type.get()) != nullptr;
 }
 
+inline bool IsStringType(const std::unique_ptr<Type>& type) {
+  return type->GetTypeInfo() == "string";
+}
+
 inline bool IsBoolType(const std::unique_ptr<Type>& type) {
   return type->GetTypeInfo() == "bool";
 }
@@ -179,6 +195,11 @@ inline std::vector<std::string> GetBuiltInTypesWithoutVoid() {
 
 inline std::unique_ptr<Type> GetVoidType() {
   return std::make_unique<BasicType>("void");
+}
+
+inline std::unique_ptr<Type> GetHoldType(const std::unique_ptr<Type>& ptrtype) {
+  assert(IsPtrType(ptrtype));
+  return dynamic_cast<PointerType*>(ptrtype.get())->GetHoldType();
 }
 
 template <typename T>
@@ -229,8 +250,7 @@ struct TypeFactory<char> {
 template <typename T>
 struct TypeFactory<std::vector<T>> {
   static std::unique_ptr<Type> Get() {
-    auto tmp = std::make_unique<ListType>();
-    tmp->SetHoldType(TypeFactory<T>::Get());
+    auto tmp = std::make_unique<ListType>(TypeFactory<T>::Get());
     return tmp;
   }
 };
@@ -238,8 +258,7 @@ struct TypeFactory<std::vector<T>> {
 template <typename T>
 struct TypeFactory<T*> {
   static std::unique_ptr<Type> Get() {
-    auto tmp = std::make_unique<PointerType>();
-    tmp->SetHoldType(TypeFactory<T>::Get());
+    auto tmp = std::make_unique<PointerType>(TypeFactory<T>::Get());
     return tmp;
   }
 };

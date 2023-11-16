@@ -3,32 +3,39 @@
 
 namespace wamon {
 
-std::shared_ptr<Variable> FuncCallExpr::Calcualte(Interpreter& interpreter) {
+std::shared_ptr<Variable> FuncCallExpr::Calculate(Interpreter& interpreter) {
   // callable or function
   std::vector<std::shared_ptr<Variable>> params;
   for(auto& each : parameters_) {
-    auto v = each->Calcualte(interpreter);
+    auto v = each->Calculate(interpreter);
     params.push_back(std::move(v));
   }
-  auto obj = interpreter.FindVariableById<false>(func_name_);
-  if (obj == nullptr) {
+  if (type == FuncCallType::FUNC) {
     auto funcdef = interpreter.GetPackageUnit().FindFunction(func_name_);
     interpreter.EnterContext<RuntimeContextType::Function>();
     auto result = interpreter.CallFunction(funcdef, std::move(params));
     interpreter.LeaveContext();
     return result;
-  } else {
+  } else if (type == FuncCallType::CALLABLE) {
+    auto obj = interpreter.FindVariableById<false>(func_name_);
+    assert(obj != nullptr);
     interpreter.EnterContext<RuntimeContextType::Callable>();
     auto result = interpreter.CallCallable(obj, std::move(params));
     interpreter.LeaveContext();
     return result;
+  } else if (type == FuncCallType::BUILT_IN_FUNC) {
+    interpreter.EnterContext<RuntimeContextType::Function>();
+    auto result = interpreter.CallFunction(func_name_, std::move(params));
+    interpreter.LeaveContext();
+    return result;
   }
+  throw WamonExecption("FuncCallExpr calculate error, invalid type");
 }
 
-std::shared_ptr<Variable> MethodCallExpr::Calcualte(Interpreter& interpreter) {
+std::shared_ptr<Variable> MethodCallExpr::Calculate(Interpreter& interpreter) {
   std::vector<std::shared_ptr<Variable>> params;
   for(auto& each : parameters_) {
-    auto v = each->Calcualte(interpreter);
+    auto v = each->Calculate(interpreter);
     params.push_back(std::move(v));
   }
   auto v = interpreter.FindVariableById(id_name_);
@@ -39,22 +46,29 @@ std::shared_ptr<Variable> MethodCallExpr::Calcualte(Interpreter& interpreter) {
   return result;
 }
 
-std::shared_ptr<Variable> BinaryExpr::Calcualte(Interpreter& interpreter) {
-  auto leftop = left_->Calcualte(interpreter);
-  auto rightop = right_->Calcualte(interpreter);
+std::shared_ptr<Variable> BinaryExpr::Calculate(Interpreter& interpreter) {
+  auto leftop = left_->Calculate(interpreter);
+  std::shared_ptr<Variable> rightop;
+  // 数据成员访问运算符特殊处理，因为第二个操作数的计算完全依赖于第一个操作数的计算，因此这里我们仅仅将其转换为string的Variable
+  // right_的动态类型为IdExpr指针需要类型检测阶段保证
+  if (op_ == Token::MEMBER_ACCESS) {
+    rightop = std::make_shared<StringVariable>(dynamic_cast<IdExpr*>(right_.get())->GetId(), "");
+  } else {
+    rightop = right_->Calculate(interpreter);
+  }
   return interpreter.CalculateOperator(op_, leftop, rightop);
 }
 
-std::shared_ptr<Variable> UnaryExpr::Calcualte(Interpreter& interpreter) {
-  auto childop = operand_->Calcualte(interpreter);
+std::shared_ptr<Variable> UnaryExpr::Calculate(Interpreter& interpreter) {
+  auto childop = operand_->Calculate(interpreter);
   return interpreter.CalculateOperator(op_, childop);
 }
 
-std::shared_ptr<Variable> IdExpr::Calcualte(Interpreter& interpreter) {
+std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
   return interpreter.FindVariableById(id_name_);
 }
 
-std::shared_ptr<Variable> SelfExpr::Calcualte(Interpreter& interpreter) {
+std::shared_ptr<Variable> SelfExpr::Calculate(Interpreter& interpreter) {
   return interpreter.GetSelfObject();
 }
 
@@ -73,16 +87,16 @@ ExecuteResult BlockStmt::Execute(Interpreter& interpreter) {
 
 ExecuteResult ForStmt::Execute(Interpreter& interpreter) {
   interpreter.EnterContext<RuntimeContextType::FOR>();
-  init_->Calcualte(interpreter);
+  init_->Calculate(interpreter);
   while (true) {
-    auto v = check_->Calcualte(interpreter);
+    auto v = check_->Calculate(interpreter);
     bool check = AsBoolVariable(v)->GetValue();
     if (check == false) {
       break;
     }
     ExecuteResult er = block_->Execute(interpreter);
     if (er.state_ == ExecuteState::Continue || er.state_ == ExecuteState::Next) {
-      update_->Calcualte(interpreter);
+      update_->Calculate(interpreter);
       continue;
     } else if (er.state_ == ExecuteState::Break) {
       interpreter.LeaveContext();
@@ -97,7 +111,7 @@ ExecuteResult ForStmt::Execute(Interpreter& interpreter) {
 }
 
 ExecuteResult IfStmt::Execute(Interpreter& interpreter) {
-  auto v = check_->Calcualte(interpreter);
+  auto v = check_->Calculate(interpreter);
   bool check = AsBoolVariable(v)->GetValue();
   ExecuteResult er = ExecuteResult::Next();
   if (check == true) {
@@ -122,7 +136,7 @@ ExecuteResult IfStmt::Execute(Interpreter& interpreter) {
 ExecuteResult WhileStmt::Execute(Interpreter& interpreter) {
   interpreter.EnterContext<RuntimeContextType::WHILE>();
   while(true) {
-    auto v = check_->Calcualte(interpreter);
+    auto v = check_->Calculate(interpreter);
     bool check = AsBoolVariable(v)->GetValue();
     if (check == false) {
       interpreter.LeaveContext();
@@ -144,7 +158,7 @@ ExecuteResult WhileStmt::Execute(Interpreter& interpreter) {
 
 ExecuteResult ReturnStmt::Execute(Interpreter& interpreter) {
   if (return_ != nullptr) {
-    auto v = return_->Calcualte(interpreter);
+    auto v = return_->Calculate(interpreter);
     return ExecuteResult::Return(std::move(v));
   }
   // 如果是return;语句则填充一个void类型返回，简化后续处理
@@ -154,7 +168,7 @@ ExecuteResult ReturnStmt::Execute(Interpreter& interpreter) {
 // 对于表达式语句而言，我们只是计算其临时变量，在下一个语句开始执行前就会销毁该变量
 // 计算可能有副作用，因此不能优化掉这里
 ExecuteResult ExpressionStmt::Execute(Interpreter& interpreter) {
-  auto v = expr_->Calcualte(interpreter);
+  auto v = expr_->Calculate(interpreter);
   return ExecuteResult::Next();
 }
 
@@ -163,7 +177,7 @@ ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   auto v = VariableFactory(type_->Clone(), var_name_, interpreter);
   std::vector<std::shared_ptr<Variable>> fields;
   for(auto& each : constructors_) {
-    fields.push_back(each->Calcualte(interpreter));
+    fields.push_back(each->Calculate(interpreter));
   }
   v->ConstructByFields(fields);
   context.RegisterVariable(std::move(v));

@@ -21,6 +21,7 @@ class FunctionDef {
   friend std::unique_ptr<FunctionDef> OperatorOverrideToFunc(std::unique_ptr<OperatorDef>&& op);
   friend class TypeChecker;
   friend class Interpreter;
+  friend class MethodDef;
 
   explicit FunctionDef(const std::string& name) : name_(name) {
 

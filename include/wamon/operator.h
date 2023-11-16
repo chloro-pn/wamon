@@ -5,6 +5,7 @@
 
 #include "wamon/token.h"
 #include "wamon/variable.h"
+#include "wamon/operator_def.h"
 
 namespace wamon {
 
@@ -31,15 +32,53 @@ class Operator {
     return false;
   }
 
+  std::shared_ptr<Variable> Calculate(Token op, std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) {
+    std::string tmp;
+    std::vector<std::unique_ptr<Type>> opernads;
+    opernads.push_back(v1->GetType());
+    opernads.push_back(v2->GetType());
+    if (op == Token::MEMBER_ACCESS) {
+      tmp = GetTokenStr(Token::MEMBER_ACCESS);
+    } else {
+      tmp = OperatorDef::CreateName(op, opernads);
+    }
+    auto handle = operator_handles_.find(tmp);
+    if (handle == operator_handles_.end()) {
+      throw WamonExecption("operator {} calculate error, handle not exist", GetTokenStr(op));
+    }
+    return (*handle).second(v1, v2);
+  }
+
+  std::shared_ptr<Variable> Calculate(Token op, std::shared_ptr<Variable> v) {
+    std::string handle_name;
+    // &和*对所有类型适用，因此特殊处理
+    if (op == Token::ADDRESS_OF || op == Token::MULTIPLY) {
+      handle_name = GetTokenStr(op);
+    } else {
+      std::vector<std::unique_ptr<Type>> operands;
+      operands.push_back(v->GetType());
+      handle_name = OperatorDef::CreateName(op, operands);
+    }
+    auto handle = uoperator_handles_.find(handle_name);
+    if (handle == uoperator_handles_.end()) {
+      throw WamonExecption("operator {} calculate error, handle not exist", GetTokenStr(op));
+    }
+    return (*handle).second(v);
+  }
+
+  using BinaryOperatorType = std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>, std::shared_ptr<Variable>)>;
+
+  using UnaryOperatorType = std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>)>;
+
  private:
   // 双元运算符 -> 优先级
   std::unordered_map<Token, int> operators_;
   // 单元运算符具有最高优先级，并且是左结合的，并且单元运算符的优先级一致
   std::unordered_map<Token, int> uoperators_;
 
-  using BinaryOperatorType = std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>, std::shared_ptr<Variable>)>;
+  std::unordered_map<std::string, BinaryOperatorType> operator_handles_;
 
-  using UnaryOperatorType = std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>)>;
+  std::unordered_map<std::string, UnaryOperatorType> uoperator_handles_;
 };
 
 }  // namespace wamon

@@ -14,15 +14,13 @@ std::string ListType::GetTypeInfo() const {
 
 std::unique_ptr<Type> PointerType::Clone() const {
   auto tmp = hold_type_->Clone();
-  auto ret = std::make_unique<PointerType>();
-  ret->SetHoldType(std::move(tmp));
-  return tmp;
+  auto ret = std::make_unique<PointerType>(std::move(tmp));
+  return ret;
 }
 
 std::unique_ptr<Type> ListType::Clone() const {
   auto tmp = hold_type_->Clone();
-  auto tmp2 = std::make_unique<ListType>();
-  tmp2->SetHoldType(std::move(tmp));
+  auto tmp2 = std::make_unique<ListType>(std::move(tmp));
   return tmp2;
 }
 
@@ -40,7 +38,7 @@ std::unique_ptr<Type> FuncType::Clone() const {
 // todo : 支持重载了operator()的类型初始化callable_object
 void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var_type, const std::vector<std::unique_ptr<Type>>& param_types) {
   if (IsVoidType(var_type)) {
-    throw WamonExecption("var's type should not be void");
+    throw WamonExecption("CheckCanConstructBy check error, var's type should not be void");
   }
   // built-in类型、原生函数到callable_object类型
   if (param_types.size() == 1 && IsSameType(var_type, param_types[0])) {

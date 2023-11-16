@@ -31,6 +31,10 @@ class Variable {
     return type_->GetTypeInfo();
   }
 
+  std::unique_ptr<Type> GetType() const {
+    return type_->Clone();
+  }
+
   const std::string& GetName() const {
     return name_;
   }
@@ -88,6 +92,10 @@ class StringVariable : public Variable {
  private:
   std::string value_;
 };
+
+inline StringVariable* AsStringVariable(std::shared_ptr<Variable>& v) {
+  return static_cast<StringVariable*>(v.get());
+}
 
 class BoolVariable : public Variable {
  public:
@@ -156,7 +164,7 @@ class IntVariable : public Variable {
   int value_;
 };
 
-inline IntVariable* AsIntVariable(std::shared_ptr<Variable>& v) {
+inline IntVariable* AsIntVariable(const std::shared_ptr<Variable>& v) {
   return static_cast<IntVariable*>(v.get());
 }
 
@@ -194,6 +202,10 @@ class DoubleVariable : public Variable {
   double value_;
 };
 
+inline DoubleVariable* AsDoubleVariable(std::shared_ptr<Variable>& v) {
+  return static_cast<DoubleVariable*>(v.get());
+}
+
 class ByteVariable : public Variable {
  public:
   ByteVariable(int v, const std::string& name) : Variable(TypeFactory<char>::Get(), name), value_(v) {
@@ -229,13 +241,51 @@ class StructVariable : public Variable {
  public:
   StructVariable(const StructDef* sd, Interpreter& i, const std::string& name);
 
-  Variable* GetDataMemberByName(const std::string& name) {
-    for(auto& each : data_members_) {
-      if (each.name == name) {
-        return each.data.get();
-      }
-    }
-    return nullptr;
+  std::shared_ptr<Variable> GetDataMemberByName(const std::string& name);
+
+  void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
+
+  void DefaultConstruct() override;
+
+  std::unique_ptr<Variable> Clone() override;
+
+ private:
+  const StructDef* def_;
+  Interpreter& interpreter_;
+  struct member {
+    std::string name;
+    std::shared_ptr<Variable> data;
+  };
+  std::vector<member> data_members_;
+};
+
+inline StructVariable* AsStructVariable(std::shared_ptr<Variable>& v) {
+  return static_cast<StructVariable*>(v.get());
+}
+
+class CompoundVariable : public Variable {
+ public:
+  CompoundVariable(std::unique_ptr<Type>&& t, const std::string& name) : Variable(std::move(t), name) {
+
+  }
+};
+
+class PointerVariable : public CompoundVariable {
+ public:
+  PointerVariable(std::unique_ptr<Type>&& hold_type, const std::string& name) : CompoundVariable(std::make_unique<PointerType>(std::move(hold_type)), name) {
+
+  }
+
+  std::shared_ptr<Variable> GetHoldVariable() {
+    return obj_.lock();
+  }
+
+  std::unique_ptr<Type> GetHoldType() {
+    return obj_.lock()->GetType();
+  }
+
+  void SetHoldVariable(std::shared_ptr<Variable> v) {
+    obj_ = v;
   }
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
@@ -243,14 +293,35 @@ class StructVariable : public Variable {
   void DefaultConstruct() override;
 
   std::unique_ptr<Variable> Clone() override;
+
  private:
-  const StructDef* def_;
-  Interpreter& interpreter_;
-  struct member {
-    std::string name;
-    std::unique_ptr<Variable> data;
-  };
-  std::vector<member> data_members_;
+  std::weak_ptr<Variable> obj_;
+};
+
+inline PointerVariable* AsPointerVariable(const std::shared_ptr<Variable>& v) {
+  return static_cast<PointerVariable*>(v.get());
+}
+
+class ListVariable : public CompoundVariable {
+ public:
+  ListVariable(std::unique_ptr<Type>&& element_type, const std::string& name) : CompoundVariable(std::make_unique<ListType>(element_type->Clone()), name),
+                                                                                element_type_(std::move(element_type)) {
+
+  }
+
+  void PushBack(std::shared_ptr<Variable> element);
+
+  void PopBack();
+
+  void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
+
+  void DefaultConstruct() override;
+
+  std::unique_ptr<Variable> Clone() override;
+
+ private:
+  std::unique_ptr<Type> element_type_;
+  std::vector<std::shared_ptr<Variable>> elements_;
 };
 
 }

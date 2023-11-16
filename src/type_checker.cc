@@ -4,6 +4,7 @@
 #include "wamon/function_def.h"
 #include "wamon/exception.h"
 #include "wamon/topological_sort.h"
+#include "wamon/builtin_functions.h"
 
 #include "fmt/format.h"
 
@@ -233,6 +234,7 @@ std::unique_ptr<Type> CheckAndGetSSResultType(const TypeChecker& tc, BinaryExpr*
 std::unique_ptr<Type> CheckAndGetMemberAccessResultType(const TypeChecker& tc, BinaryExpr* binary_expr) {
   assert(binary_expr->op_ == Token::MEMBER_ACCESS);
   auto left_type = tc.GetExpressionType(binary_expr->left_.get());
+  // 这里保证数据成员访问运算符第二个操作数一定是IdExpr类型
   auto right_expr = dynamic_cast<IdExpr*>(binary_expr->right_.get());
   if (right_expr == nullptr) {
     throw WamonExecption("member access's right operand should be id expr");
@@ -317,8 +319,7 @@ std::unique_ptr<Type> CheckAndGetUnaryMultiplyResultType(std::unique_ptr<Type> o
 
 std::unique_ptr<Type> CheckAndGetUnaryAddrOfResultType(std::unique_ptr<Type> operand) {
   // 目前的类型系统中只要输入类型是合法的，就可以取地址
-  auto ret = std::make_unique<PointerType>();
-  ret->SetHoldType(std::move(operand));
+  auto ret = std::make_unique<PointerType>(std::move(operand));
   return ret;
 }
 
@@ -433,7 +434,7 @@ std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const Fun
 //   1. 找到了一个object 
 //   2. 找到了原生函数或者没找到
 // 当是情况1时，检查该object的类型，如果是函数类型，说明它是一个callable object，callable object可以由原生函数构造，也可以由lambda表达式构造，也可以由重载了()运算符的类型的变量构造，如果是结构体类型，则由重载了()运算符的类型的变量构造
-// 当是情况2时，则直接在原生函数中查找
+// 当是情况2时，则首先查内建函数，如果没找到则查用户定义函数
 // todo: 记录一些必要信息供运行时调用
 std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr) {
   std::unique_ptr<Type> find_type;
@@ -441,13 +442,21 @@ std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecke
   if (find_result == FindNameResult::OBJECT) {
     if (!IsFuncType(find_type)) {
       // 尝试重载的()运算符
+      call_expr->type = FuncCallExpr::FuncCallType::OPERATOR_OVERRIDE;
       return CheckAndGetOperatorOverrideReturnType(tc, find_type, call_expr);
     } else {
+      call_expr->type = FuncCallExpr::FuncCallType::CALLABLE;
       return CheckAndGetCallableReturnType(tc, find_type, call_expr);
     }
   } else {
-    auto func = tc.GetStaticAnalyzer().FindFunction(call_expr->func_name_);
-    return CheckAndGetFuncReturnType(tc, func ,call_expr);
+    if (BuiltinFunctions::Instance().Find(call_expr->func_name_)) {
+      call_expr->type = FuncCallExpr::FuncCallType::BUILT_IN_FUNC;
+      return BuiltinFunctions::Instance().TypeCheck(call_expr->func_name_, tc, call_expr);
+    } else {
+      call_expr->type = FuncCallExpr::FuncCallType::FUNC;
+      auto func = tc.GetStaticAnalyzer().FindFunction(call_expr->func_name_);
+      return CheckAndGetFuncReturnType(tc, func ,call_expr);
+    }
   }
 }
 

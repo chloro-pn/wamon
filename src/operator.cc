@@ -1,4 +1,5 @@
 #include "wamon/operator.h"
+#include "wamon/operator_def.h"
 
 namespace wamon {
 
@@ -27,8 +28,51 @@ static void register_buildin_u_operators(std::unordered_map<Token, int>& ops) {
   ops[Token::NOT] = 0;
 }
 
+static void register_buildin_operator_handles(std::unordered_map<std::string, Operator::BinaryOperatorType>& handles) {
+  // operator +
+  std::vector<std::unique_ptr<Type>> operands;
+  operands.push_back(TypeFactory<int>::Get());
+  operands.push_back(TypeFactory<int>::Get());
+  std::string tmp = OperatorDef::CreateName(Token::PLUS, operands);
+  handles[tmp] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+    int v = AsIntVariable(v1)->GetValue() + AsIntVariable(v2)->GetValue();
+    return std::make_shared<IntVariable>(v, "");
+  };
+
+  operands.clear();
+  operands.push_back(TypeFactory<double>::Get());
+  operands.push_back(TypeFactory<double>::Get());
+  tmp = OperatorDef::CreateName(Token::PLUS, operands);
+  handles[tmp] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+    double v = AsDoubleVariable(v1)->GetValue() + AsDoubleVariable(v2)->GetValue();
+    return std::make_shared<DoubleVariable>(v, "");
+  };
+
+  // operator .
+  operands.clear();
+  handles[GetTokenStr(Token::MEMBER_ACCESS)] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+    const std::string& data_member_name = AsStringVariable(v2)->GetValue();
+    auto data = AsStructVariable(v1);
+    return data->GetDataMemberByName(data_member_name);
+  };
+}
+
+static void register_buildin_uoperator_handles(std::unordered_map<std::string, Operator::UnaryOperatorType>& handles) {
+  std::vector<std::unique_ptr<Type>> operands;
+  handles[GetTokenStr(Token::DIVIDE)] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
+    return AsPointerVariable(v)->GetHoldVariable();
+  };
+  handles[GetTokenStr(Token::ADDRESS_OF)] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
+    auto ret = std::make_shared<PointerVariable>(v->GetType(), "");
+    ret->SetHoldVariable(v);
+    return ret;
+  };
+}
+
 Operator::Operator() { 
   register_buildin_operators(operators_); 
-  register_buildin_u_operators(uoperators_); 
+  register_buildin_u_operators(uoperators_);
+  register_buildin_operator_handles(operator_handles_);
+  register_buildin_uoperator_handles(uoperator_handles_);
 }
 }  // namespace wamon

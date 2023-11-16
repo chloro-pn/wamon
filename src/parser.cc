@@ -76,9 +76,8 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
   if (AssertToken(tokens, begin, Token::PTR)) {
     size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
     begin += 1;
-    std::unique_ptr<PointerType> tmp(new PointerType);
     auto nested_type = ParseType(tokens, begin);
-    tmp->SetHoldType(std::move(nested_type));
+    auto tmp = std::make_unique<PointerType>(std::move(nested_type));
     if (right_parent != begin) {
       throw WamonExecption("parse ptr type error");
     }
@@ -87,9 +86,8 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
   } else if (AssertToken(tokens, begin, Token::LIST)) {
     size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
     begin += 1;
-    std::unique_ptr<ListType> tmp(new ListType);
     auto nested_type = ParseType(tokens, begin);
-    tmp->SetHoldType(std::move(nested_type));
+    std::unique_ptr<ListType> tmp(new ListType(std::move(nested_type)));
     begin = right_parent + 1;
     return tmp;
   } else if (AssertToken(tokens, begin, Token::F)) {

@@ -228,6 +228,25 @@ TEST(static_analysis, type_dismatch) {
   EXPECT_THROW(tc2.CheckAndRegisterGlobalVariable(), wamon::WamonExecption);
 }
 
+TEST(static_analysis, builtin_func_check) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+    
+    func mylen(string a) -> int {
+      let tmp : int = (call len(a));
+      return tmp;
+    }
+  )";
+  auto tokens = scan.Scan(str);
+  wamon::PackageUnit pu = wamon::Parse(tokens);
+  wamon::StaticAnalyzer sa(pu);
+
+  wamon::TypeChecker tc(sa);
+  EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
+  EXPECT_NO_THROW(tc.CheckTypes());  
+}
+
 TEST(static_analysis, construct_check) {
   wamon::Scanner scan;
   std::string str = R"(

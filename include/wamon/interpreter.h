@@ -4,9 +4,11 @@
 #include "wamon/package_unit.h"
 #include "wamon/exception.h"
 #include "wamon/ast.h"
+#include "wamon/builtin_functions.h"
 
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 namespace wamon {
 
@@ -61,14 +63,7 @@ struct RuntimeContext {
 // 解释器，负责执行ast，维护运行时栈，运算符执行
 class Interpreter {
  public:
-  explicit Interpreter(const PackageUnit& pu) : pu_(pu) {
-    package_context_.type_ = RuntimeContextType::Global;
-    // 将packge unit中的包变量进行求解并插入包符号表中
-    const auto& vars = pu_.GetGlobalVariDefStmt();
-    for(const auto& each : vars) {
-      each->Execute(*this);
-    }
-  }
+  explicit Interpreter(const PackageUnit& pu);
 
   template <RuntimeContextType type>
   void EnterContext() {
@@ -115,13 +110,30 @@ class Interpreter {
 
   std::shared_ptr<Variable> CallFunction(const FunctionDef* function_def, std::vector<std::shared_ptr<Variable>>&& params);
 
+  // call builtin funcs
+  std::shared_ptr<Variable> CallFunction(const std::string& builtin_name, std::vector<std::shared_ptr<Variable>>&& params) {
+    auto func = BuiltinFunctions::Instance().Get(builtin_name);
+    return func(std::move(params));
+  }
+
+  // todo : builtin funcs need type check
   std::shared_ptr<Variable> CallFunctionByName(const std::string& func_name, std::vector<std::shared_ptr<Variable>>&& params) {
+    if (BuiltinFunctions::Instance().Find(func_name)) {
+      auto func = BuiltinFunctions::Instance().Get(func_name);
+      return func(std::move(params));
+    }
     return CallFunction(pu_.FindFunction(func_name), std::move(params));
   }
 
   std::shared_ptr<Variable> CallCallable(std::shared_ptr<Variable> callable, std::vector<std::shared_ptr<Variable>>&& params);
 
   std::shared_ptr<Variable> CallMethod(std::shared_ptr<Variable> obj, const MethodDef* method_def, std::vector<std::shared_ptr<Variable>>&& params);
+
+  std::shared_ptr<Variable> CallMethodByName(std::shared_ptr<Variable> obj, const std::string& method_name, std::vector<std::shared_ptr<Variable>>&& params) {
+    auto type = obj->GetTypeInfo();
+    auto method_def = pu_.FindStruct(type)->GetMethod(method_name);
+    return CallMethod(obj, method_def, std::move(params));
+  }
 
   const PackageUnit& GetPackageUnit() const {
     return pu_;

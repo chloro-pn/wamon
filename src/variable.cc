@@ -31,6 +31,9 @@ std::unique_ptr<Variable> VariableFactory(std::unique_ptr<Type> type, const std:
     assert(struct_def != nullptr);
     return std::make_unique<StructVariable>(struct_def, interpreter, name);
   }
+  if (IsPtrType(type)) {
+    return std::make_unique<PointerVariable>(GetHoldType(type), name);
+  }
   throw WamonExecption("VariableFactory error, not implement now.");
 }
 
@@ -40,6 +43,15 @@ StructVariable::StructVariable(const StructDef* sd, Interpreter& i, const std::s
     interpreter_(i) {
 
   }
+
+std::shared_ptr<Variable> StructVariable::GetDataMemberByName(const std::string& name) {
+  for(auto& each : data_members_) {
+    if (each.name == name) {
+      return each.data;
+    }
+  }
+  return nullptr;
+}
 
 void StructVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
   auto& members = def_->GetDataMembers();
@@ -68,6 +80,26 @@ std::unique_ptr<Variable> StructVariable::Clone() {
   }
   auto ret = std::make_unique<StructVariable>(def_, interpreter_, GetName());
   ret->ConstructByFields(variables);
+  return ret;
+}
+
+void PointerVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
+  if (fields.size() != 1) {
+    throw WamonExecption("PointerVariable's ConstructByFields method error : fields.size() == {}", fields.size());
+  }
+  if (GetTypeInfo() != fields[0]->GetTypeInfo()) {
+    throw WamonExecption("PointerVariable's ConstructByFields method error, type dismatch : {} != {}", fields[0]->GetTypeInfo(), GetTypeInfo());
+  }
+  obj_ = AsPointerVariable(fields[0])->GetHoldVariable();
+}
+
+void PointerVariable::DefaultConstruct() {
+  obj_.reset();
+}
+
+std::unique_ptr<Variable> PointerVariable::Clone() {
+  auto ret = std::make_unique<PointerVariable>(obj_.lock()->GetType(), "");
+  ret->SetHoldVariable(obj_.lock());
   return ret;
 }
 

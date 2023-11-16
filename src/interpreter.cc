@@ -1,13 +1,23 @@
 #include "wamon/interpreter.h"
+#include "wamon/operator.h"
 
 namespace wamon {
 
+Interpreter::Interpreter(const PackageUnit& pu) : pu_(pu) {
+  package_context_.type_ = RuntimeContextType::Global;
+  // 将packge unit中的包变量进行求解并插入包符号表中
+  const auto& vars = pu_.GetGlobalVariDefStmt();
+  for(const auto& each : vars) {
+    each->Execute(*this);
+  }
+}
+
 std::shared_ptr<Variable> Interpreter::CalculateOperator(Token op, const std::shared_ptr<Variable>& left, const std::shared_ptr<Variable>& right) {
-  return nullptr;
+  return Operator::Instance().Calculate(op, left, right);
 }
 
 std::shared_ptr<Variable> Interpreter::CalculateOperator(Token op, const std::shared_ptr<Variable>& operand) {
-  return nullptr;
+  return Operator::Instance().Calculate(op, operand);
 }
 
 std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_def, std::vector<std::shared_ptr<Variable>>&& params) {

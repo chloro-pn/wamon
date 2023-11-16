@@ -20,7 +20,7 @@ class Variable;
 
 class Expression : public AstNode {
  public:
-  virtual std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) = 0;
+  virtual std::shared_ptr<Variable> Calculate(Interpreter& interpreter) = 0;
 };
 
 class TypeChecker;
@@ -40,7 +40,19 @@ class FuncCallExpr : public Expression {
 
   void SetParameters(std::vector<std::unique_ptr<Expression>>&& param) { parameters_ = std::move(param); }
 
-  std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) override;
+  std::vector<std::unique_ptr<Expression>>& GetParameters() { return parameters_; }
+
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
+
+  enum class FuncCallType {
+    FUNC,
+    BUILT_IN_FUNC,
+    CALLABLE,
+    OPERATOR_OVERRIDE,
+    INVALID,
+  };
+  
+  FuncCallType type = FuncCallType::INVALID;
 
  private:
   std::string func_name_;
@@ -60,7 +72,7 @@ class MethodCallExpr : public Expression {
 
    void SetParameters(std::vector<std::unique_ptr<Expression>>&& param) { parameters_ = std::move(param); }
 
-   std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) override;
+   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
  private:
   std::string id_name_;
   std::string method_name_;
@@ -79,7 +91,7 @@ class BinaryExpr : public Expression {
 
   void SetOp(Token op) { op_ = op; }
 
-  std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) override;
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
 
  private:
   std::unique_ptr<Expression> left_;
@@ -95,7 +107,7 @@ class UnaryExpr : public Expression {
 
   void SetOperand(std::unique_ptr<Expression>&& operand) { operand_ = std::move(operand); }
   
-  std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) override;
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
 
  private:
   std::unique_ptr<Expression> operand_;
@@ -111,7 +123,7 @@ class IdExpr : public Expression {
     return id_name_;
   }
 
-  std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) override;
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
 
  private:
   std::string id_name_;
@@ -121,7 +133,7 @@ class StringIteralExpr : public Expression {
  public:
   void SetStringIter(const std::string& str) { str_ = str; }
 
-  std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) override {
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
     return std::make_shared<StringVariable>(str_, "");
   }
 
@@ -134,7 +146,7 @@ class IntIteralExpr : public Expression {
 
   void SetIntIter(const int64_t& n) { num_ = n; }
 
-  std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) override {
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
     return std::make_shared<IntVariable>(num_, "");
   }
 
@@ -146,7 +158,7 @@ class DoubleIteralExpr : public Expression {
  public:
   void SetDoubleIter(const double& d) { d_ = d; }
 
-  std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) override {
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
     // not implemented now
     return std::make_shared<DoubleVariable>(d_, "");
   }
@@ -159,7 +171,7 @@ class BoolIteralExpr : public Expression {
  public:
   void SetBoolIter(bool b) { b_ = b; }
 
-  std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) override {
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
     return std::make_shared<BoolVariable>(b_, "");
   }
 
@@ -171,7 +183,7 @@ class ByteIteralExpr : public Expression {
  public:
   void SetByteIter(uint8_t byte) { byte_ = byte; }
 
-  std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) override {
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
     // not implemented now
     return std::make_shared<ByteVariable>(byte_, "");
   }
@@ -182,14 +194,14 @@ class ByteIteralExpr : public Expression {
 
 class VoidIteralExpr : public Expression {
  public:
- std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) override {
+ std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
     return std::make_shared<VoidVariable>();
  }
 };
 
 class SelfExpr : public Expression {
  public:
-  std::shared_ptr<Variable> Calcualte(Interpreter& interpreter) override;
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
 };
 
 enum class ExecuteState {

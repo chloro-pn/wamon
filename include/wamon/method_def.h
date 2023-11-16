@@ -27,7 +27,9 @@ class MethodDef {
   }
 
   MethodDef(const std::string& tname, std::unique_ptr<FunctionDef>&& fd) : type_name_(tname), method_name_(fd->GetFunctionName()) {
-
+    param_list_ = std::move(fd->param_list_);
+    return_type_ = std::move(fd->return_type_);
+    block_stmt_ = std::move(fd->block_stmt_);
   }
 
   const std::string& GetMethodName() const {
