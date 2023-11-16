@@ -202,6 +202,11 @@ inline std::unique_ptr<Type> GetHoldType(const std::unique_ptr<Type>& ptrtype) {
   return dynamic_cast<PointerType*>(ptrtype.get())->GetHoldType();
 }
 
+inline std::unique_ptr<Type> GetElementType(const std::unique_ptr<Type>& type) {
+  assert(IsListType(type));
+  return dynamic_cast<ListType*>(type.get())->GetHoldType();
+}
+
 template <typename T>
 struct TypeFactory;
 

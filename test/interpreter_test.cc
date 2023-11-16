@@ -41,6 +41,7 @@ TEST(interpreter, variable) {
     let mydata : my_struct_name = (2, 3.5, "hello");
     let myptr : ptr(my_struct_name) = (&mydata);
     let mylen : int = (call len("hello"));
+    let mylist : list(int) = (2, 3, 4);
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -71,6 +72,12 @@ TEST(interpreter, variable) {
   EXPECT_EQ(v->GetTypeInfo(), "int");
   auto v4 = dynamic_cast<wamon::IntVariable*>(v.get());
   EXPECT_EQ(v4->GetValue(), 5);
+
+  v = interpreter.FindVariableById("mylist");
+  EXPECT_EQ(v->GetTypeInfo(), "list(int)");
+  auto v5 = dynamic_cast<wamon::ListVariable*>(v.get());
+  EXPECT_EQ(v5->Size(), 3);
+  EXPECT_EQ(wamon::AsIntVariable(v5->at(0))->GetValue(), 2);
 }
 
 TEST(interpreter, callmethod) {
@@ -109,4 +116,34 @@ TEST(interpreter, callmethod) {
   auto ret = interpreter.CallMethodByName(v, "get_age", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 25);
+}
+
+TEST(interpreter, operator) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    func stradd(string a, string b) -> string {
+      return a + b;
+    }
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+
+  wamon::StaticAnalyzer sa(pu);
+  wamon::TypeChecker tc(sa);
+  tc.CheckTypes();
+  tc.CheckAndRegisterGlobalVariable();
+  tc.CheckStructs();
+  tc.CheckFunctions();
+  tc.CheckMethods();
+
+  wamon::Interpreter interpreter(pu);
+  std::vector<std::shared_ptr<wamon::Variable>> params;
+  params.push_back(std::shared_ptr<wamon::Variable>(new wamon::StringVariable("hello ", "")));
+  params.push_back(std::shared_ptr<wamon::Variable>(new wamon::StringVariable("world", "")));
+  auto ret = interpreter.CallFunctionByName("stradd", std::move(params));
+  EXPECT_EQ(ret->GetTypeInfo(), "string");
+  EXPECT_EQ(wamon::AsStringVariable(ret)->GetValue(), "hello world");
 }

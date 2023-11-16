@@ -49,6 +49,10 @@ class FunctionDef {
     param_list_.push_back({std::move(type), var});
   }
 
+  const std::vector<std::pair<std::unique_ptr<Type>, std::string>>& GetParamList() const {
+    return param_list_;
+  }
+
   void SetReturnType(std::unique_ptr<Type>&& type) {
     return_type_ = std::move(type);
   }

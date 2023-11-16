@@ -34,6 +34,9 @@ std::unique_ptr<Variable> VariableFactory(std::unique_ptr<Type> type, const std:
   if (IsPtrType(type)) {
     return std::make_unique<PointerVariable>(GetHoldType(type), name);
   }
+  if (IsListType(type)) {
+    return std::make_unique<ListVariable>(GetElementType(type), name);
+  }
   throw WamonExecption("VariableFactory error, not implement now.");
 }
 
@@ -100,6 +103,40 @@ void PointerVariable::DefaultConstruct() {
 std::unique_ptr<Variable> PointerVariable::Clone() {
   auto ret = std::make_unique<PointerVariable>(obj_.lock()->GetType(), "");
   ret->SetHoldVariable(obj_.lock());
+  return ret;
+}
+
+void ListVariable::PushBack(std::shared_ptr<Variable> element) {
+  elements_.push_back(std::move(element));
+}
+
+void ListVariable::PopBack() {
+  if (elements_.empty()) {
+    throw WamonExecption("List pop back error, empty list");
+  }
+  elements_.pop_back();
+}
+
+void ListVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
+  for(auto& each : fields) {
+    if (each->GetTypeInfo() != element_type_->GetTypeInfo()) {
+      throw WamonExecption("ListVariable::ConstructByFields error, type dismatch : {} != {}", each->GetTypeInfo(), element_type_->GetTypeInfo());
+    }
+  }
+  elements_ = std::move(fields);
+}
+
+void ListVariable::DefaultConstruct() {
+  
+}
+
+std::unique_ptr<Variable> ListVariable::Clone() {
+  std::vector<std::shared_ptr<Variable>> elements;
+  for(auto& each : elements_) {
+    elements.push_back(each->Clone());
+  }
+  auto ret = std::make_unique<ListVariable>(element_type_->Clone(), "");
+  ret->elements_ = std::move(elements);
   return ret;
 }
 

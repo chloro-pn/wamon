@@ -48,6 +48,14 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
     return std::make_shared<DoubleVariable>(v, "");
   };
 
+  operands.clear();
+  operands.push_back(TypeFactory<std::string>::Get());
+  operands.push_back(TypeFactory<std::string>::Get());
+  tmp = OperatorDef::CreateName(Token::PLUS, operands);
+  handles[tmp] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+    std::string v = AsStringVariable(v1)->GetValue() + AsStringVariable(v2)->GetValue();
+    return std::make_shared<StringVariable>(v, "");
+  };
   // operator .
   operands.clear();
   handles[GetTokenStr(Token::MEMBER_ACCESS)] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {

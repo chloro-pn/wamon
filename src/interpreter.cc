@@ -21,8 +21,11 @@ std::shared_ptr<Variable> Interpreter::CalculateOperator(Token op, const std::sh
 }
 
 std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_def, std::vector<std::shared_ptr<Variable>>&& params) {
+  auto param_name = function_def->GetParamList().begin();
   for(auto param : params) {
-    GetCurrentContext().RegisterVariable(param->Clone());
+    assert(param_name != function_def->GetParamList().end());
+    GetCurrentContext().RegisterVariable(param->Clone(), param_name->second);
+    ++param_name;
   }
   auto result = function_def->block_stmt_->Execute(*this);
   if (result.state_ != ExecuteState::Return) {
@@ -36,8 +39,11 @@ std::shared_ptr<Variable> Interpreter::CallCallable(std::shared_ptr<Variable> ca
 }
 
 std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj, const MethodDef* method_def, std::vector<std::shared_ptr<Variable>>&& params) {
+  auto param_name = method_def->GetParamList().begin();
   for(auto param : params) {
-    GetCurrentContext().RegisterVariable(param->Clone());
+    assert(param_name != method_def->GetParamList().end());
+    GetCurrentContext().RegisterVariable(param->Clone(), param_name->second);
+    ++param_name;
   }
   GetCurrentContext().RegisterVariable(obj, "__self__");
   auto result = method_def->GetBlockStmt()->Execute(*this);

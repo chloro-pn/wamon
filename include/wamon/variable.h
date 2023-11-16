@@ -313,6 +313,17 @@ class ListVariable : public CompoundVariable {
 
   void PopBack();
 
+  size_t Size() const {
+    return elements_.size();
+  }
+
+  std::shared_ptr<Variable> at(size_t i) {
+    if (i >= Size()) {
+      throw WamonExecption("ListVariable.at error, index {} out of range", i);
+    }
+    return elements_[i];
+  }
+
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
 
   void DefaultConstruct() override;
