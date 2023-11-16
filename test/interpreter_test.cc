@@ -126,6 +126,18 @@ TEST(interpreter, operator) {
     func stradd(string a, string b) -> string {
       return a + b;
     }
+
+    func intminus(int a, int b) -> int {
+      return a - b;
+    }
+
+    func intmulti(int a, int b) -> int {
+      return a * b;
+    }
+
+    func intdivide(int a, int b) -> int {
+      return a / b;
+    }
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -143,7 +155,33 @@ TEST(interpreter, operator) {
   std::vector<std::shared_ptr<wamon::Variable>> params;
   params.push_back(std::shared_ptr<wamon::Variable>(new wamon::StringVariable("hello ", "")));
   params.push_back(std::shared_ptr<wamon::Variable>(new wamon::StringVariable("world", "")));
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   auto ret = interpreter.CallFunctionByName("stradd", std::move(params));
+  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "string");
   EXPECT_EQ(wamon::AsStringVariable(ret)->GetValue(), "hello world");
+  
+  params.clear();
+  params.push_back(std::shared_ptr<wamon::Variable>(new wamon::IntVariable(10, "")));
+  params.push_back(std::shared_ptr<wamon::Variable>(new wamon::IntVariable(5, "")));
+  auto tmp_params = params;
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  ret = interpreter.CallFunctionByName("intminus", std::move(tmp_params));
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
+
+  tmp_params = params;
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  ret = interpreter.CallFunctionByName("intmulti", std::move(tmp_params));
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 50);
+
+  tmp_params = params;
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  ret = interpreter.CallFunctionByName("intdivide", std::move(tmp_params));
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 2);
 }

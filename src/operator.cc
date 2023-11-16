@@ -56,6 +56,59 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
     std::string v = AsStringVariable(v1)->GetValue() + AsStringVariable(v2)->GetValue();
     return std::make_shared<StringVariable>(v, "");
   };
+
+  // operator -、*、/ for type int and double
+  static Token ops[3] = {
+    Token::MINUS,
+    Token::MULTIPLY,
+    Token::DIVIDE,
+  };
+
+  static std::unique_ptr<Type> types[2] = {
+    TypeFactory<int>::Get(),
+    TypeFactory<double>::Get(),
+  };
+
+  static Operator::BinaryOperatorType dhandles[6] = {
+    [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+      int v = AsIntVariable(v1)->GetValue() - AsIntVariable(v2)->GetValue();
+      return std::make_shared<IntVariable>(v, "");
+    },
+    [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+      double v = AsDoubleVariable(v1)->GetValue() - AsDoubleVariable(v2)->GetValue();
+      return std::make_shared<DoubleVariable>(v, "");
+    },
+    [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+      int v = AsIntVariable(v1)->GetValue() * AsIntVariable(v2)->GetValue();
+      return std::make_shared<IntVariable>(v, "");
+    },
+    [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+      double v = AsDoubleVariable(v1)->GetValue() * AsDoubleVariable(v2)->GetValue();
+      return std::make_shared<DoubleVariable>(v, "");
+    },
+    [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+      int v = AsIntVariable(v1)->GetValue() / AsIntVariable(v2)->GetValue();
+      return std::make_shared<IntVariable>(v, "");
+    },
+    [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+      double v = AsDoubleVariable(v1)->GetValue() / AsDoubleVariable(v2)->GetValue();
+      return std::make_shared<DoubleVariable>(v, "");
+    },
+  };
+
+  size_t handle_index = 0;
+
+  for(auto& op : ops) {
+    for(auto& type : types) {
+      operands.clear();
+      operands.push_back(type->Clone());
+      operands.push_back(type->Clone());
+      tmp = OperatorDef::CreateName(op, operands);
+      handles[tmp] = dhandles[handle_index];
+      handle_index += 1;
+    }
+  }
+
   // operator .
   operands.clear();
   handles[GetTokenStr(Token::MEMBER_ACCESS)] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
