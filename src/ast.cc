@@ -65,7 +65,15 @@ std::shared_ptr<Variable> UnaryExpr::Calculate(Interpreter& interpreter) {
 }
 
 std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
-  return interpreter.FindVariableById(id_name_);
+  if (type_ == Type::Variable) {
+    return interpreter.FindVariableById(id_name_);
+  } else {
+    auto func_def = interpreter.GetPackageUnit().FindFunction(id_name_);
+    auto type = func_def->GetType();
+    auto ret = std::make_shared<FunctionVariable>(GetParamType(type), GetReturnType(type), "");
+    ret->SetFuncName(id_name_);
+    return ret;
+  }
 }
 
 std::shared_ptr<Variable> SelfExpr::Calculate(Interpreter& interpreter) {
@@ -179,7 +187,11 @@ ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   for(auto& each : constructors_) {
     fields.push_back(each->Calculate(interpreter));
   }
-  v->ConstructByFields(fields);
+  if (fields.empty() == true) {
+    v->DefaultConstruct();
+  } else {
+    v->ConstructByFields(fields);
+  }
   context.RegisterVariable(std::move(v));
   return ExecuteResult::Next();
 }

@@ -526,7 +526,10 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
     throw WamonExecption("type check error, invalid expression type.");
   }
   // 在上下文栈上向上查找这个id对应的类型并返回
-  return static_analyzer_.GetTypeByName(tmp->id_name_);
+  IdExpr::Type type = IdExpr::Type::Invalid;
+  auto ret = static_analyzer_.GetTypeByName(tmp->id_name_, type);
+  tmp->type_ = type;
+  return ret;
 }
 
 void TypeChecker::CheckStatement(Statement* stmt) {

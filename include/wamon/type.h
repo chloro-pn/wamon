@@ -112,9 +112,21 @@ class FuncType : public CompoundType {
   friend class TypeChecker;
   friend std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr);
 
+  FuncType(std::vector<std::unique_ptr<Type>>&& param_type, std::unique_ptr<Type>&& return_type) : param_type_(std::move(param_type)), return_type_(std::move(return_type)) {
+    
+  }
+
   void SetParamTypeAndReturnType(std::vector<std::unique_ptr<Type>>&& param_type, std::unique_ptr<Type>&& return_type) {
     param_type_ = std::move(param_type);
     return_type_ = std::move(return_type);
+  }
+
+  const std::vector<std::unique_ptr<Type>>& GetParamType() {
+    return param_type_;
+  }
+
+  const std::unique_ptr<Type>& GetReturnType() {
+    return return_type_;
   }
 
   std::string GetTypeInfo() const override {
@@ -205,6 +217,21 @@ inline std::unique_ptr<Type> GetHoldType(const std::unique_ptr<Type>& ptrtype) {
 inline std::unique_ptr<Type> GetElementType(const std::unique_ptr<Type>& type) {
   assert(IsListType(type));
   return dynamic_cast<ListType*>(type.get())->GetHoldType();
+}
+
+inline std::vector<std::unique_ptr<Type>> GetParamType(const std::unique_ptr<Type>& type) {
+  assert(IsFuncType(type));
+  auto& param_type = dynamic_cast<FuncType*>(type.get())->GetParamType();
+  std::vector<std::unique_ptr<Type>> ret;
+  for(auto& each :param_type) {
+    ret.push_back(each->Clone());
+  }
+  return ret;
+}
+
+inline std::unique_ptr<Type> GetReturnType(const std::unique_ptr<Type>& type) {
+  assert(IsFuncType(type));
+  return dynamic_cast<FuncType*>(type.get())->GetReturnType()->Clone();
 }
 
 template <typename T>

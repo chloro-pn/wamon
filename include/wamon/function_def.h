@@ -36,13 +36,11 @@ class FunctionDef {
   }
 
   std::unique_ptr<Type> GetType() const {
-    auto ret = std::make_unique<FuncType>();
     std::vector<std::unique_ptr<Type>> param_types;
     for(auto& each : param_list_) {
       param_types.push_back(each.first->Clone());
     }
-    ret->SetParamTypeAndReturnType(std::move(param_types), return_type_->Clone());
-    return ret;
+    return std::make_unique<FuncType>(std::move(param_types), return_type_->Clone());
   }
 
   void AddParamList(std::unique_ptr<Type>&& type, const std::string& var) {

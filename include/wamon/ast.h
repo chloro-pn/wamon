@@ -123,6 +123,15 @@ class IdExpr : public Expression {
     return id_name_;
   }
 
+  enum class Type {
+    Variable,
+    Function,
+    BUiltinFunc,
+    Invalid,
+  };
+
+  Type type_ = Type::Invalid;
+
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
 
  private:

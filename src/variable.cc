@@ -37,6 +37,9 @@ std::unique_ptr<Variable> VariableFactory(std::unique_ptr<Type> type, const std:
   if (IsListType(type)) {
     return std::make_unique<ListVariable>(GetElementType(type), name);
   }
+  if (IsFuncType(type)) {
+    return std::make_unique<FunctionVariable>(GetParamType(type), GetReturnType(type), name);
+  }
   throw WamonExecption("VariableFactory error, not implement now.");
 }
 
@@ -138,6 +141,32 @@ std::unique_ptr<Variable> ListVariable::Clone() {
   auto ret = std::make_unique<ListVariable>(element_type_->Clone(), "");
   ret->elements_ = std::move(elements);
   return ret;
+}
+
+void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
+  if (fields.size() != 1) {
+    throw WamonExecption("FunctionVariable's ConstructByFields method error : fields.size() == {}", fields.size());
+  }
+  if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
+    throw WamonExecption("FunctionVariable's ConstructByFields method error, type dismatch : {} != {}", fields[0]->GetTypeInfo(), GetTypeInfo());
+  }
+  func_name_ = AsStringVariable(fields[0])->GetValue();
+}
+
+void FunctionVariable::DefaultConstruct() {
+  
+}
+
+std::unique_ptr<Variable> FunctionVariable::Clone() {
+  std::vector<std::unique_ptr<Type>> param_type;
+  auto type = GetType();
+  auto fun_type = dynamic_cast<FuncType*>(type.get());
+  for(auto&& each : fun_type->GetParamType()) {
+    param_type.push_back(each->Clone());
+  }
+  auto obj = std::make_unique<FunctionVariable>(std::move(param_type), fun_type->GetReturnType()->Clone(), "");
+  obj->SetFuncName(func_name_);
+  return obj;
 }
 
 }

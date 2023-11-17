@@ -21,6 +21,14 @@ TEST(interpreter, callfunction) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  
+  wamon::StaticAnalyzer sa(pu);
+  wamon::TypeChecker tc(sa);
+  tc.CheckTypes();
+  tc.CheckAndRegisterGlobalVariable();
+  tc.CheckStructs();
+  tc.CheckFunctions();
+  tc.CheckMethods();
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.CallFunctionByName("my_func", {});
   EXPECT_EQ(v->GetTypeInfo(), "int");
@@ -38,10 +46,18 @@ TEST(interpreter, variable) {
       string c;
     }
 
+    func add(int a, int b) -> int {
+      return a + b;
+    }
+
     let mydata : my_struct_name = (2, 3.5, "hello");
     let myptr : ptr(my_struct_name) = (&mydata);
     let mylen : int = (call len("hello"));
     let mylist : list(int) = (2, 3, 4);
+    let myfunc : f((int, int) -> int) = (add);
+
+    let myfunc2 : f((int, int) -> int) = (myfunc);
+    let call_ret : int = (call myfunc2(2, 3));
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -78,6 +94,118 @@ TEST(interpreter, variable) {
   auto v5 = dynamic_cast<wamon::ListVariable*>(v.get());
   EXPECT_EQ(v5->Size(), 3);
   EXPECT_EQ(wamon::AsIntVariable(v5->at(0))->GetValue(), 2);
+
+  v = interpreter.FindVariableById("myfunc");
+  EXPECT_EQ(v->GetTypeInfo(), "f((int, int) -> int)");
+  v = interpreter.FindVariableById("myfunc2");
+  EXPECT_EQ(v->GetTypeInfo(), "f((int, int) -> int)");
+
+  v = interpreter.FindVariableById("call_ret");
+  EXPECT_EQ(v->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 5);
+}
+
+TEST(interpreter, variable_compare) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    struct mstruct {
+      int a;
+      bool b;
+    }
+
+    let a : int = (2);
+    let b : string = ("bob");
+    let c : int = (3);
+    let d : string = ("bob");
+    let e : mstruct = (a, true);
+    let g : mstruct = (c, true);
+    let h : list(int) = (2, 3, 4);
+    let i : list(int) = (2, 3, 4);
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+  
+  wamon::StaticAnalyzer sa(pu);
+  wamon::TypeChecker tc(sa);
+  tc.CheckTypes();
+  tc.CheckAndRegisterGlobalVariable();
+  tc.CheckStructs();
+  tc.CheckFunctions();
+  tc.CheckMethods();
+  wamon::Interpreter interpreter(pu);
+  auto v = interpreter.FindVariableById("a");
+  auto v2 = interpreter.FindVariableById("c");
+  EXPECT_EQ(v->Compare(v2), false);
+
+  v = interpreter.FindVariableById("b");
+  v2 = interpreter.FindVariableById("d");
+  EXPECT_EQ(v->Compare(v2), true);
+
+  v = interpreter.FindVariableById("e");
+  v2 = interpreter.FindVariableById("g");
+  EXPECT_EQ(v->Compare(v2), false);
+
+  v = interpreter.FindVariableById("h");
+  v2 = interpreter.FindVariableById("i");
+  EXPECT_EQ(v->Compare(v2), true);
+}
+
+TEST(interpreter, variable_assign) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    struct mstruct {
+      int a;
+      bool b;
+    }
+
+    let a : int = (2);
+    let b : string = ("bob");
+    let c : int = (3);
+    let d : string = ("bob");
+    let e : mstruct = (a, true);
+    let g : mstruct = (c, true);
+    let h : list(int) = (2, 3, 4);
+    let i : list(int) = (2, 3, 4);
+    let j : list(int) = (0);
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+  
+  wamon::StaticAnalyzer sa(pu);
+  wamon::TypeChecker tc(sa);
+  tc.CheckTypes();
+  tc.CheckAndRegisterGlobalVariable();
+  tc.CheckStructs();
+  tc.CheckFunctions();
+  tc.CheckMethods();
+  wamon::Interpreter interpreter(pu);
+  auto v = interpreter.FindVariableById("a");
+  auto v2 = interpreter.FindVariableById("c");
+  v->Assign(v2);
+  EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 3);
+
+  v = interpreter.FindVariableById("b");
+  v2 = interpreter.FindVariableById("d");
+  v->Assign(v2);
+  EXPECT_EQ(wamon::AsStringVariable(v)->GetValue(), "bob");
+
+  v = interpreter.FindVariableById("e");
+  v2 = interpreter.FindVariableById("g");
+  v->Assign(v2);
+  EXPECT_EQ(wamon::AsBoolVariable(wamon::AsStructVariable(v)->GetDataMemberByName("b"))->GetValue(), true);
+
+  v = interpreter.FindVariableById("h");
+  v2 = interpreter.FindVariableById("j");
+  auto list_v2 = wamon::AsListVariable(v2);
+  v->Assign(v2);
+  EXPECT_EQ(list_v2->Size(), 1);
+  EXPECT_EQ(wamon::AsIntVariable(list_v2->at(0))->GetValue(), 0);
 }
 
 TEST(interpreter, callmethod) {

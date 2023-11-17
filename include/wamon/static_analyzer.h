@@ -56,22 +56,27 @@ class StaticAnalyzer {
     return FindNameResult::FUNCTION;
   }
 
-  std::unique_ptr<Type> GetTypeByName(const std::string& name) const {
+  std::unique_ptr<Type> GetTypeByName(const std::string& name, IdExpr::Type& type) const {
     for(auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
       auto result = (*it)->GetTypeByName(name);
       if (result != nullptr) {
+        type = IdExpr::Type::Variable;
         return result;
       }
     }
     auto result = global_context_.GetTypeByName(name);
     if (result != nullptr) {
+      type = IdExpr::Type::Variable;
       return result;
     }
     const FunctionDef* fd = pu_.FindFunction(name);
-    if (fd == nullptr) {
-      throw WamonExecption("get type by name {} error, check for functions but failed", name);
+    if (fd != nullptr) {
+      type = IdExpr::Type::Function;
+      return fd->GetType();
     }
-    return fd->GetType();
+    // 内置函数是多态的，因此无法在类型检测阶段确定具体类型，因此不能作为变量赋值给callable对象
+    // todo ： any type绕过类型检测，运行时错误
+    throw WamonExecption("GetTypeByName error, can't find id's name {} , maybe builtin func name or invalid", name);
   }
 
   void RegisterFuncParamsToContext(const std::vector<std::pair<std::unique_ptr<Type>, std::string>>& params, Context* func_context) {

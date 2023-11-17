@@ -116,6 +116,38 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
     auto data = AsStructVariable(v1);
     return data->GetDataMemberByName(data_member_name);
   };
+
+  // operator && ||
+  operands.clear();
+  operands.push_back(TypeFactory<bool>::Get());
+  operands.push_back(TypeFactory<bool>::Get());
+  tmp = OperatorDef::CreateName(Token::AND, operands);
+  handles[tmp] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+    double v = AsBoolVariable(v1)->GetValue() && AsBoolVariable(v2)->GetValue();
+    return std::make_shared<BoolVariable>(v, "");
+  };
+
+  operands.clear();
+  operands.push_back(TypeFactory<bool>::Get());
+  operands.push_back(TypeFactory<bool>::Get());
+  tmp = OperatorDef::CreateName(Token::OR, operands);
+  handles[tmp] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+    double v = AsBoolVariable(v1)->GetValue() || AsBoolVariable(v2)->GetValue();
+    return std::make_shared<BoolVariable>(v, "");
+  };
+
+  // operator ==、=
+  operands.clear();
+  handles[GetTokenStr(Token::COMPARE)] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+    bool ret = v1->Compare(v2);
+    return std::make_shared<BoolVariable>(ret, "");
+  };
+
+  operands.clear();
+  handles[GetTokenStr(Token::ASSIGN)] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+    v1->Assign(v2);
+    return std::make_shared<VoidVariable>();
+  };
 }
 
 static void register_buildin_uoperator_handles(std::unordered_map<std::string, Operator::UnaryOperatorType>& handles) {

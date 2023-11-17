@@ -25,6 +25,10 @@ class Variable {
 
   virtual std::unique_ptr<Variable> Clone() = 0;
 
+  virtual bool Compare(const std::shared_ptr<Variable>& other) = 0;
+
+  virtual void Assign(const std::shared_ptr<Variable>& other) = 0;
+
   virtual ~Variable() = default;
 
   std::string GetTypeInfo() const {
@@ -37,6 +41,14 @@ class Variable {
 
   const std::string& GetName() const {
     return name_;
+  }
+
+ protected:
+  void check_compare_type_match(const std::shared_ptr<Variable>& other) {
+    if (GetTypeInfo() == other->GetTypeInfo()) {
+      return;
+    }
+    throw WamonCompareTypeDismatch(GetTypeInfo(), other->GetTypeInfo());
   }
 
  private:
@@ -56,6 +68,15 @@ class VoidVariable : public Variable {
   }
 
   void DefaultConstruct() override {}
+
+  bool Compare(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    return true;
+  }
+
+  void Assign(const std::shared_ptr<Variable>& other) override {
+    throw WamonExecption("VoidVariable.Assign should not be called");
+  }
 
   std::unique_ptr<Variable> Clone() override {
     return std::make_unique<VoidVariable>();
@@ -89,11 +110,21 @@ class StringVariable : public Variable {
     return std::make_unique<StringVariable>(GetValue(), "");
   }
 
+  bool Compare(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    return value_ == static_cast<StringVariable*>(other.get())->value_;
+  }
+
+  void Assign(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    value_ = static_cast<StringVariable*>(other.get())->value_;
+  }
+
  private:
   std::string value_;
 };
 
-inline StringVariable* AsStringVariable(std::shared_ptr<Variable>& v) {
+inline StringVariable* AsStringVariable(const std::shared_ptr<Variable>& v) {
   return static_cast<StringVariable*>(v.get());
 }
 
@@ -124,12 +155,22 @@ class BoolVariable : public Variable {
     return std::make_unique<BoolVariable>(GetValue(), "");
   }
 
+  bool Compare(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    return value_ == static_cast<BoolVariable*>(other.get())->value_;
+  }
+
+  void Assign(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    value_ = static_cast<BoolVariable*>(other.get())->value_;
+  }
+
  private:
   bool value_;
 };
 
 // 不提供运行时检测，应该在静态分析阶段确定
-inline BoolVariable* AsBoolVariable(std::shared_ptr<Variable>& v) {
+inline BoolVariable* AsBoolVariable(const std::shared_ptr<Variable>& v) {
   return static_cast<BoolVariable*>(v.get());
 }
 
@@ -158,6 +199,16 @@ class IntVariable : public Variable {
 
   std::unique_ptr<Variable> Clone() override {
     return std::make_unique<IntVariable>(GetValue(), "");
+  }
+
+  bool Compare(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    return value_ == static_cast<IntVariable*>(other.get())->value_;
+  }
+
+  void Assign(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    value_ = static_cast<IntVariable*>(other.get())->value_;
   }
 
  private:
@@ -198,11 +249,22 @@ class DoubleVariable : public Variable {
   std::unique_ptr<Variable> Clone() override {
     return std::make_unique<DoubleVariable>(GetValue(), "");
   }
+
+  bool Compare(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    return value_ == static_cast<DoubleVariable*>(other.get())->value_;
+  }
+
+  void Assign(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    value_ = static_cast<DoubleVariable*>(other.get())->value_;
+  }
+
  private:
   double value_;
 };
 
-inline DoubleVariable* AsDoubleVariable(std::shared_ptr<Variable>& v) {
+inline DoubleVariable* AsDoubleVariable(const std::shared_ptr<Variable>& v) {
   return static_cast<DoubleVariable*>(v.get());
 }
 
@@ -233,6 +295,16 @@ class ByteVariable : public Variable {
     return std::make_unique<ByteVariable>(GetValue(), "");
   }
 
+  bool Compare(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    return value_ == static_cast<ByteVariable*>(other.get())->value_;
+  }
+
+  void Assign(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    value_ = static_cast<ByteVariable*>(other.get())->value_;
+  }
+
  private:
   char value_;
 };
@@ -249,6 +321,25 @@ class StructVariable : public Variable {
 
   std::unique_ptr<Variable> Clone() override;
 
+  bool Compare(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    StructVariable* other_struct = static_cast<StructVariable*>(other.get());
+    for(size_t index = 0; index < data_members_.size(); ++index) {
+      if (data_members_[index].data->Compare(other_struct->data_members_[index].data) == false) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void Assign(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    StructVariable* other_struct = static_cast<StructVariable*>(other.get());
+    for(size_t index = 0; index < data_members_.size(); ++index) {
+      data_members_[index].data->Assign(other_struct->data_members_[index].data);
+    }
+  }
+
  private:
   const StructDef* def_;
   Interpreter& interpreter_;
@@ -259,7 +350,7 @@ class StructVariable : public Variable {
   std::vector<member> data_members_;
 };
 
-inline StructVariable* AsStructVariable(std::shared_ptr<Variable>& v) {
+inline StructVariable* AsStructVariable(const std::shared_ptr<Variable>& v) {
   return static_cast<StructVariable*>(v.get());
 }
 
@@ -293,6 +384,16 @@ class PointerVariable : public CompoundVariable {
   void DefaultConstruct() override;
 
   std::unique_ptr<Variable> Clone() override;
+
+  bool Compare(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    return obj_.lock() == static_cast<PointerVariable*>(other.get())->obj_.lock();
+  }
+
+  void Assign(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    obj_ = static_cast<PointerVariable*>(other.get())->obj_;
+  }
 
  private:
   std::weak_ptr<Variable> obj_;
@@ -330,9 +431,74 @@ class ListVariable : public CompoundVariable {
 
   std::unique_ptr<Variable> Clone() override;
 
+  bool Compare(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    ListVariable* list_v = static_cast<ListVariable*>(other.get());
+    if (elements_.size() != list_v->elements_.size()) {
+      return false;
+    }
+    for(size_t i = 0; i < elements_.size(); ++i) {
+      if (elements_[i]->Compare((list_v->elements_)[i]) == false) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void Assign(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    ListVariable* list_v = static_cast<ListVariable*>(other.get());
+    elements_.clear();
+    for(size_t i = 0; i < list_v->elements_.size(); ++i) {
+      PushBack(list_v->elements_[i]->Clone());
+    }
+  }
+
  private:
   std::unique_ptr<Type> element_type_;
   std::vector<std::shared_ptr<Variable>> elements_;
 };
+
+inline ListVariable* AsListVariable(const std::shared_ptr<Variable>& v) {
+  return static_cast<ListVariable*>(v.get());
+}
+
+class FunctionVariable : public CompoundVariable {
+ public:
+  FunctionVariable(std::vector<std::unique_ptr<Type>>&& param, std::unique_ptr<Type>&& ret, const std::string& name) : CompoundVariable(std::make_unique<FuncType>(std::move(param), std::move(ret)), name) {
+    
+  }
+
+  void SetFuncName(const std::string& func_name) {
+    func_name_ = func_name;
+  }
+
+  const std::string& GetFuncName() const {
+    return func_name_;
+  }
+
+  void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
+
+  void DefaultConstruct() override;
+
+  std::unique_ptr<Variable> Clone() override;
+
+  bool Compare(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    return func_name_ == static_cast<FunctionVariable*>(other.get())->GetFuncName();
+  }
+
+  void Assign(const std::shared_ptr<Variable>& other) override {
+    check_compare_type_match(other);
+    func_name_ = static_cast<FunctionVariable*>(other.get())->GetFuncName();
+  }
+
+ private:
+  std::string func_name_;
+};
+
+inline FunctionVariable* AsFunctionVariable(const std::shared_ptr<Variable>& v) {
+  return static_cast<FunctionVariable*>(v.get());
+}
 
 }

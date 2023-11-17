@@ -93,12 +93,11 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
   } else if (AssertToken(tokens, begin, Token::F)) {
     size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
     begin += 1;
-    std::unique_ptr<FuncType> tmp(new FuncType);
     std::vector<std::unique_ptr<Type>> param_list;
     std::unique_ptr<Type> return_type;
     ParseTypeList(tokens, begin, right_parent, param_list, return_type);
 
-    tmp->SetParamTypeAndReturnType(std::move(param_list), std::move(return_type));
+    std::unique_ptr<FuncType> tmp(new FuncType(std::move(param_list), std::move(return_type)));
     begin = right_parent + 1;
     return tmp;
   }

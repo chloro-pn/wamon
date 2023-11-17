@@ -40,4 +40,12 @@ class WamonTypeCheck : public WamonExecption {
 
   }
 };
+
+class WamonCompareTypeDismatch : public WamonExecption {
+ public:
+  explicit WamonCompareTypeDismatch(const std::string& t1, const std::string& t2) : 
+      WamonExecption("wamon compare type dismatch : {} != {}", t1, t2) {
+
+  }
+};
 }  // namespace bptree

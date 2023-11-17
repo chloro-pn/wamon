@@ -35,7 +35,8 @@ std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_
 }
 
 std::shared_ptr<Variable> Interpreter::CallCallable(std::shared_ptr<Variable> callable, std::vector<std::shared_ptr<Variable>>&& params) {
-  return nullptr;
+  auto& func_name = AsFunctionVariable(callable)->GetFuncName();
+  return CallFunctionByName(func_name, std::move(params));
 }
 
 std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj, const MethodDef* method_def, std::vector<std::shared_ptr<Variable>>&& params) {
@@ -52,6 +53,5 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
   }
   return result.result_;
 }
-
 
 }
