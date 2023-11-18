@@ -34,7 +34,7 @@ class FuncCallExpr : public Expression {
   friend std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const FuncCallExpr* call_expr);
   friend std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const FunctionDef* function, const FuncCallExpr* call_expr);
   friend std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr);
-  friend std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, FuncCallExpr* call_expr);
   
   void SetFuncName(const std::string& func_name) { func_name_ = func_name; }
 
@@ -53,6 +53,8 @@ class FuncCallExpr : public Expression {
   };
   
   FuncCallType type = FuncCallType::INVALID;
+  // only used when type == OPERATOR_OVERRIDE
+  std::string method_name;
 
  private:
   std::string func_name_;

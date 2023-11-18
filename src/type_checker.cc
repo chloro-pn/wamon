@@ -370,7 +370,7 @@ std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const
   return type->return_type_->Clone();
 }
 
-std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr) {
+std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, FuncCallExpr* call_expr) {
   auto struct_type = dynamic_cast<BasicType*>(ctype.get());
   if (struct_type == nullptr) {
     throw WamonExecption("invalid type {} for call op", ctype->GetTypeInfo());
@@ -384,6 +384,7 @@ std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& t
   if (method_def == nullptr) {
     throw WamonExecption("invalid type {} for call op", ctype->GetTypeInfo());
   }
+  call_expr->method_name = op_func_name;
   return method_def->GetReturnType()->Clone();
 }
 
@@ -453,6 +454,9 @@ std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecke
       call_expr->type = FuncCallExpr::FuncCallType::BUILT_IN_FUNC;
       return BuiltinFunctions::Instance().TypeCheck(call_expr->func_name_, tc, call_expr);
     } else {
+      if (find_result == FindNameResult::NONE) {
+        throw WamonExecption("invalid function name {} , not found it", call_expr->func_name_);
+      }
       call_expr->type = FuncCallExpr::FuncCallType::FUNC;
       auto func = tc.GetStaticAnalyzer().FindFunction(call_expr->func_name_);
       return CheckAndGetFuncReturnType(tc, func ,call_expr);

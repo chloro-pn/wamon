@@ -147,6 +147,11 @@ void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Varia
   if (fields.size() != 1) {
     throw WamonExecption("FunctionVariable's ConstructByFields method error : fields.size() == {}", fields.size());
   }
+  if (IsBasicType(fields[0]->GetType()) && !IsBuiltInType(fields[0]->GetType())) {
+    // structtype
+    obj_ = fields[0]->Clone();
+    return;
+  }
   if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
     throw WamonExecption("FunctionVariable's ConstructByFields method error, type dismatch : {} != {}", fields[0]->GetTypeInfo(), GetTypeInfo());
   }
@@ -166,6 +171,7 @@ std::unique_ptr<Variable> FunctionVariable::Clone() {
   }
   auto obj = std::make_unique<FunctionVariable>(std::move(param_type), fun_type->GetReturnType()->Clone(), "");
   obj->SetFuncName(func_name_);
+  obj->SetObj(obj_ == nullptr ? nullptr : obj_->Clone());
   return obj;
 }
 

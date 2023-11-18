@@ -36,7 +36,18 @@ std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_
 
 std::shared_ptr<Variable> Interpreter::CallCallable(std::shared_ptr<Variable> callable, std::vector<std::shared_ptr<Variable>>&& params) {
   auto& func_name = AsFunctionVariable(callable)->GetFuncName();
-  return CallFunctionByName(func_name, std::move(params));
+  auto obj = AsFunctionVariable(callable)->GetObj();
+  if (obj != nullptr) {
+    auto method_name = OperatorDef::CreateName(Token::LEFT_PARENTHESIS, params);
+    auto method_def = GetPackageUnit().FindStruct(obj->GetTypeInfo())->GetMethod(method_name);
+    assert(method_def != nullptr);
+    EnterContext<RuntimeContextType::Method>();
+    auto result = CallMethod(obj, method_def, std::move(params));
+    LeaveContext();
+    return result;
+  } else {
+    return CallFunctionByName(func_name, std::move(params));
+  }
 }
 
 std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj, const MethodDef* method_def, std::vector<std::shared_ptr<Variable>>&& params) {

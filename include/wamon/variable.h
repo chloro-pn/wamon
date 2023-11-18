@@ -473,8 +473,16 @@ class FunctionVariable : public CompoundVariable {
     func_name_ = func_name;
   }
 
+  void SetObj(std::shared_ptr<Variable> obj) {
+    obj_ = obj;
+  }
+
   const std::string& GetFuncName() const {
     return func_name_;
+  }
+
+  std::shared_ptr<Variable> GetObj() const {
+    return obj_;
   }
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
@@ -495,6 +503,7 @@ class FunctionVariable : public CompoundVariable {
 
  private:
   std::string func_name_;
+  std::shared_ptr<Variable> obj_;
 };
 
 inline FunctionVariable* AsFunctionVariable(const std::shared_ptr<Variable>& v) {

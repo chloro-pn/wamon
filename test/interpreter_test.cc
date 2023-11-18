@@ -246,6 +246,70 @@ TEST(interpreter, callmethod) {
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 25);
 }
 
+TEST(interpreter, callable) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    struct my_struct_name {
+      int a;
+      double b;
+      string c;
+    }
+
+    method my_struct_name {
+      func get_age() -> int {
+        return self.a;
+      }
+
+      operator () (int a) -> int {
+        return self.a + a;
+      }
+    }
+
+    let v : int = (2);
+    let ms : my_struct_name = (25, 2.1, "bob");
+    let mycallable : f((int) -> int) = (ms);
+
+    func test_func(int a) -> int {
+      return a + 1;
+    }
+
+    func call_test() -> int {
+      // callable对象，持有原始函数
+      let f1 : f((int) -> int) = (test_func);
+      // callable对象，持有运算符重载的结构体对象
+      let f2 : f((int) -> int) = (ms);
+
+      return call f1(0) + call f2(0) + call ms(-20);
+    }
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+
+  wamon::StaticAnalyzer sa(pu);
+  wamon::TypeChecker tc(sa);
+  tc.CheckTypes();
+  tc.CheckAndRegisterGlobalVariable();
+  tc.CheckStructs();
+  tc.CheckFunctions();
+  tc.CheckMethods();
+
+  wamon::Interpreter interpreter(pu);
+  auto v = interpreter.FindVariableById("mycallable");
+  auto a = interpreter.FindVariableById("v");
+  std::vector<std::shared_ptr<wamon::Variable>> params;
+  params.push_back(a);
+  auto ret = interpreter.CallCallable(v, std::move(params));
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+
+  params.clear();
+  ret = interpreter.CallFunctionByName("call_test", std::move(params));
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 31);
+}
+
 TEST(interpreter, operator) {
   wamon::Scanner scan;
   std::string str = R"(

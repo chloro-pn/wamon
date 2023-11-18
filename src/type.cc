@@ -1,5 +1,6 @@
 #include "wamon/type.h"
 #include "wamon/ast.h"
+#include "wamon/operator_def.h"
 #include "wamon/package_unit.h"
 
 namespace wamon {
@@ -39,6 +40,22 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
     throw WamonExecption("CheckCanConstructBy check error, var's type should not be void");
   }
   // 原生函数到callable_object类型
+  if (IsFuncType(var_type)) {
+    if (param_types.size() == 1 && IsSameType(var_type, param_types[0])) {
+      return;
+    }
+    if (param_types.size() == 1 && IsBasicType(param_types[0]) && !IsBuiltInType(param_types[0])) {
+      // 重载了()运算符的结构体类型的对象
+      auto method_name = OperatorDef::CreateName(Token::LEFT_PARENTHESIS, GetParamType(var_type));
+      auto struct_def = pu.FindStruct(param_types[0]->GetTypeInfo());
+      if (struct_def != nullptr) {
+        auto method_def = struct_def->GetMethod(method_name);
+        if (method_def != nullptr) {
+          return;
+        }
+      }
+    }
+  }
   // built-in类型
   if (param_types.size() == 1 && IsSameType(var_type, param_types[0])) {
     return;

@@ -28,6 +28,15 @@ std::shared_ptr<Variable> FuncCallExpr::Calculate(Interpreter& interpreter) {
     auto result = interpreter.CallFunction(func_name_, std::move(params));
     interpreter.LeaveContext();
     return result;
+  } else if (type == FuncCallType::OPERATOR_OVERRIDE) {
+    auto obj = interpreter.FindVariableById<false>(func_name_);
+    assert(obj != nullptr);
+    auto method_def = interpreter.GetPackageUnit().FindStruct(obj->GetTypeInfo())->GetMethod(method_name);
+    assert(method_def != nullptr);
+    interpreter.EnterContext<RuntimeContextType::Method>();
+    auto result = interpreter.CallMethod(obj, method_def, std::move(params));
+    interpreter.LeaveContext();
+    return result;
   }
   throw WamonExecption("FuncCallExpr calculate error, invalid type");
 }

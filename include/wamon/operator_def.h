@@ -9,6 +9,8 @@
 
 namespace wamon {
 
+class Variable;
+
 class OperatorDef {
   friend std::unique_ptr<MethodDef> OperatorOverrideToMethod(const std::string& type_name, std::unique_ptr<OperatorDef>&& op);
   friend std::unique_ptr<FunctionDef> OperatorOverrideToFunc(std::unique_ptr<OperatorDef>&& op);
@@ -68,6 +70,8 @@ class OperatorDef {
     }
     return std::string("__op_") + (token == Token::LEFT_PARENTHESIS ? "call" : GetTokenStr(token)) + type_list_id;
   }
+
+  static std::string CreateName(Token token, const std::vector<std::shared_ptr<Variable>>& param_list);
 
   static std::string CreateName(const std::unique_ptr<OperatorDef>& op) {
     return std::string("__op_") + op->GetOpStr() + op->GetTypeListId();
