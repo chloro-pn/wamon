@@ -148,6 +148,11 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
     v1->Assign(v2);
     return std::make_shared<VoidVariable>();
   };
+
+  // operator []
+  handles[GetTokenStr(Token::SUBSCRIPT)] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
+    return AsListVariable(v1)->at(AsIntVariable(v2)->GetValue());
+  };
 }
 
 static void register_buildin_uoperator_handles(std::unordered_map<std::string, Operator::UnaryOperatorType>& handles) {
@@ -189,7 +194,7 @@ std::shared_ptr<Variable> Operator::Calculate(Token op, std::shared_ptr<Variable
   std::vector<std::unique_ptr<Type>> opernads;
   opernads.push_back(v1->GetType());
   opernads.push_back(v2->GetType());
-  if (op == Token::MEMBER_ACCESS || op == Token::COMPARE || op == Token::ASSIGN) {
+  if (op == Token::MEMBER_ACCESS || op == Token::COMPARE || op == Token::ASSIGN || op == Token::SUBSCRIPT) {
     tmp = GetTokenStr(op);
   } else {
     tmp = OperatorDef::CreateName(op, opernads);

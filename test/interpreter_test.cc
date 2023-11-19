@@ -58,6 +58,11 @@ TEST(interpreter, variable) {
 
     let myfunc2 : f((int, int) -> int) = (myfunc);
     let call_ret : int = (call myfunc2(2, 3));
+
+    func update_list() -> int {
+      mylist[1] = mylist[1] * 2;
+      return mylist[1];
+    }
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -103,6 +108,12 @@ TEST(interpreter, variable) {
   v = interpreter.FindVariableById("call_ret");
   EXPECT_EQ(v->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 5);
+
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  auto ret = interpreter.CallFunctionByName("update_list", {});
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 6);
 }
 
 TEST(interpreter, variable_compare) {
