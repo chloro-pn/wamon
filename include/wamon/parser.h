@@ -72,7 +72,7 @@ size_t FindNextToken(const std::vector<WamonToken> &tokens, size_t begin,
       --counter3;
     }
   }
-  if (throw_if_not_found) {
+  if constexpr (throw_if_not_found) {
     throw WamonExecption("FindNextToken error, not found {}", GetTokenStr(token));
   }
   return end;

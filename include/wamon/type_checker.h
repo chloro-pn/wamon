@@ -20,6 +20,7 @@ class TypeChecker {
   friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr);
   friend std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr);
   friend std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetBuiltinMethodReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const MethodCallExpr* call_expr);
   friend class BuiltinFunctions;
 
   explicit TypeChecker(StaticAnalyzer& sa);

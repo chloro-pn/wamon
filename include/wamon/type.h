@@ -182,6 +182,14 @@ inline bool IsBoolType(const std::unique_ptr<Type>& type) {
   return type->GetTypeInfo() == "bool";
 }
 
+inline bool IsIntType(const std::unique_ptr<Type>& type) {
+  return type->GetTypeInfo() == "int";
+}
+
+inline bool IsDoubleType(const std::unique_ptr<Type>& type) {
+  return type->GetTypeInfo() == "double";
+}
+
 inline bool IsVoidType(const std::unique_ptr<Type>& type) {
   return type->GetTypeInfo() == "void";
 }
