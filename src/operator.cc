@@ -160,6 +160,45 @@ static void register_buildin_uoperator_handles(std::unordered_map<std::string, O
     ret->SetHoldVariable(v);
     return ret;
   };
+  operands.push_back(TypeFactory<bool>::Get());
+  auto tmp = OperatorDef::CreateName(Token::NOT, operands);
+  handles[tmp] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
+    bool tmp = AsBoolVariable(v)->GetValue();
+    return std::make_shared<BoolVariable>(!tmp, "");
+  };
+
+  operands.clear();
+  operands.push_back(TypeFactory<int>::Get());
+  tmp = OperatorDef::CreateName(Token::MINUS, operands);
+  handles[tmp] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
+    int tmp = AsIntVariable(v)->GetValue();
+    return std::make_shared<IntVariable>(-tmp, "");
+  };
+
+  operands.clear();
+  operands.push_back(TypeFactory<double>::Get());
+  tmp = OperatorDef::CreateName(Token::MINUS, operands);
+  handles[tmp] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
+    double tmp = AsDoubleVariable(v)->GetValue();
+    return std::make_shared<DoubleVariable>(-tmp, "");
+  };
+}
+
+std::shared_ptr<Variable> Operator::Calculate(Token op, std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) {
+  std::string tmp;
+  std::vector<std::unique_ptr<Type>> opernads;
+  opernads.push_back(v1->GetType());
+  opernads.push_back(v2->GetType());
+  if (op == Token::MEMBER_ACCESS || op == Token::COMPARE || op == Token::ASSIGN) {
+    tmp = GetTokenStr(op);
+  } else {
+    tmp = OperatorDef::CreateName(op, opernads);
+  }
+  auto handle = operator_handles_.find(tmp);
+  if (handle == operator_handles_.end()) {
+    return nullptr;
+  }
+  return (*handle).second(v1, v2);
 }
 
 Operator::Operator() { 

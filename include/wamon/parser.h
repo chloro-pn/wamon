@@ -39,7 +39,7 @@ size_t FindMatchedToken(const std::vector<WamonToken> &tokens, size_t begin) {
 }
 
 // 在区间(begin, end]中找到第一个值为token的token，注意需要跳过所有不匹配的大中小括号，如果找不到的话，返回end。
-template <Token token>
+template <Token token, bool skip_first_token = true, bool throw_if_not_found = false>
 size_t FindNextToken(const std::vector<WamonToken> &tokens, size_t begin,
                      size_t end = std::numeric_limits<size_t>::max()) {
   if (end != std::numeric_limits<size_t>::max()) {
@@ -47,7 +47,9 @@ size_t FindNextToken(const std::vector<WamonToken> &tokens, size_t begin,
       throw WamonExecption("find next token error");
     }
   }
-  begin += 1;
+  if constexpr (skip_first_token) {
+    begin += 1;
+  }
   end = std::min(end, tokens.size() - 1);
   size_t counter1 = 0;  // ()
   size_t counter2 = 0;  // []
@@ -69,6 +71,9 @@ size_t FindNextToken(const std::vector<WamonToken> &tokens, size_t begin,
     } else if (tokens[i].token == Token::RIGHT_BRACE) {
       --counter3;
     }
+  }
+  if (throw_if_not_found) {
+    throw WamonExecption("FindNextToken error, not found {}", GetTokenStr(token));
   }
   return end;
 }

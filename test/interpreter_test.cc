@@ -330,6 +330,38 @@ TEST(interpreter, operator) {
     func intdivide(int a, int b) -> int {
       return a / b;
     }
+
+    func intuoperator(int a) -> int {
+      return -a;
+    }
+
+    func boolnot(bool b) -> bool {
+      return !b;
+    }
+
+    operator | (int a, int update) -> int {
+      return a + update;
+    }
+  
+    func op_override() -> int {
+      return 2 | 3;
+    }
+
+    struct myint {
+      int a;
+    }
+
+    let v1 : myint = (2);
+    let v2 : myint = (3);
+
+    operator + (myint a, myint b) -> myint {
+      let tmp : myint = (a.a + b.a);
+      return tmp;
+    }
+
+    func op_override2() -> int {
+      return (v1 + v2).a;
+    }
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -345,8 +377,8 @@ TEST(interpreter, operator) {
 
   wamon::Interpreter interpreter(pu);
   std::vector<std::shared_ptr<wamon::Variable>> params;
-  params.push_back(std::shared_ptr<wamon::Variable>(new wamon::StringVariable("hello ", "")));
-  params.push_back(std::shared_ptr<wamon::Variable>(new wamon::StringVariable("world", "")));
+  params.push_back(std::shared_ptr<wamon::StringVariable>(new wamon::StringVariable("hello ", "")));
+  params.push_back(std::shared_ptr<wamon::StringVariable>(new wamon::StringVariable("world", "")));
   interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   auto ret = interpreter.CallFunctionByName("stradd", std::move(params));
   interpreter.LeaveContext();
@@ -354,8 +386,8 @@ TEST(interpreter, operator) {
   EXPECT_EQ(wamon::AsStringVariable(ret)->GetValue(), "hello world");
   
   params.clear();
-  params.push_back(std::shared_ptr<wamon::Variable>(new wamon::IntVariable(10, "")));
-  params.push_back(std::shared_ptr<wamon::Variable>(new wamon::IntVariable(5, "")));
+  params.push_back(std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(10, "")));
+  params.push_back(std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(5, "")));
   auto tmp_params = params;
   interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("intminus", std::move(tmp_params));
@@ -376,4 +408,74 @@ TEST(interpreter, operator) {
   interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 2);
+
+  tmp_params.clear();
+  tmp_params.push_back(std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(10, "")));
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  ret = interpreter.CallFunctionByName("intuoperator", std::move(tmp_params));
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), -10);
+
+  tmp_params.clear();
+  tmp_params.push_back(std::shared_ptr<wamon::BoolVariable>(new wamon::BoolVariable(true, "")));
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  ret = interpreter.CallFunctionByName("boolnot", std::move(tmp_params));
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "bool");
+  EXPECT_EQ(wamon::AsBoolVariable(ret)->GetValue(), false);
+
+  tmp_params.clear();
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  ret = interpreter.CallFunctionByName("op_override", std::move(tmp_params));
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
+
+  tmp_params.clear();
+  auto v1 = interpreter.FindVariableById("v1");
+  auto v2 = interpreter.FindVariableById("v2");
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  ret = interpreter.CallFunctionByName("op_override2", std::move(tmp_params));
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
+  }
+
+TEST(interpreter, fibonacci) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    func Fibonacci(int n) -> int {
+      if (n == 0) {
+        return 0;
+      }
+      if (n == 1) {
+        return 1;
+      }
+      return call Fibonacci(n - 1) + call Fibonacci(n - 2);
+    }
+
+    let v : int = (10);
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+
+  wamon::StaticAnalyzer sa(pu);
+  wamon::TypeChecker tc(sa);
+  tc.CheckTypes();
+  tc.CheckAndRegisterGlobalVariable();
+  tc.CheckStructs();
+  tc.CheckFunctions();
+  tc.CheckMethods();
+
+  wamon::Interpreter interpreter(pu);
+  auto a = interpreter.FindVariableById("v");
+  std::vector<std::shared_ptr<wamon::Variable>> params;
+  params.push_back(a);
+  auto ret = interpreter.CallFunctionByName("Fibonacci", std::move(params));
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 55);
 }

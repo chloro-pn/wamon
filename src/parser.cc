@@ -433,7 +433,7 @@ std::unique_ptr<Statement> TryToParseSkipStmt(const std::vector<WamonToken>& tok
   } else if (AssertToken(tokens, begin, Token::RETURN)) {
     ret.reset(new ReturnStmt());
     if (AssertToken(tokens, begin, Token::SEMICOLON) == false) {
-      auto end = FindNextToken<Token::SEMICOLON>(tokens, begin);
+      auto end = FindNextToken<Token::SEMICOLON, false, true>(tokens, begin);
       auto expr = ParseExpression(tokens, begin, end);
       next = end + 1;
       static_cast<ReturnStmt*>(ret.get())->SetReturn(std::move(expr));
@@ -446,7 +446,7 @@ std::unique_ptr<Statement> TryToParseSkipStmt(const std::vector<WamonToken>& tok
 
 std::unique_ptr<ExpressionStmt> ParseExprStmt(const std::vector<WamonToken>& tokens, size_t begin, size_t &next) {
   // parse expr stmt.
-  size_t colon = FindNextToken<Token::SEMICOLON>(tokens, begin);
+  size_t colon = FindNextToken<Token::SEMICOLON, false, true>(tokens, begin);
   auto expr = ParseExpression(tokens, begin, colon);
   next = colon + 1;
   std::unique_ptr<ExpressionStmt> expr_stmt(new ExpressionStmt());

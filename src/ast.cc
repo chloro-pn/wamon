@@ -128,21 +128,26 @@ ExecuteResult ForStmt::Execute(Interpreter& interpreter) {
 }
 
 ExecuteResult IfStmt::Execute(Interpreter& interpreter) {
+  bool need_leave_context = false;
   auto v = check_->Calculate(interpreter);
   bool check = AsBoolVariable(v)->GetValue();
   ExecuteResult er = ExecuteResult::Next();
   if (check == true) {
     interpreter.EnterContext<RuntimeContextType::IF>();
+    need_leave_context = true;
     er = if_block_->Execute(interpreter);
   } else {
     if (else_block_ != nullptr) {
       interpreter.EnterContext<RuntimeContextType::ELSE>();
+      need_leave_context = true;
       er = else_block_->Execute(interpreter);
     } else {
       er = ExecuteResult::Next();
     }
   }
-  interpreter.LeaveContext();
+  if (need_leave_context == true) {
+    interpreter.LeaveContext();
+  }
   if (er.state_ == ExecuteState::Next || er.state_ == ExecuteState::Break) {
     er.state_ = ExecuteState::Next;
   }

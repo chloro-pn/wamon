@@ -12,14 +12,6 @@ Interpreter::Interpreter(const PackageUnit& pu) : pu_(pu) {
   }
 }
 
-std::shared_ptr<Variable> Interpreter::CalculateOperator(Token op, const std::shared_ptr<Variable>& left, const std::shared_ptr<Variable>& right) {
-  return Operator::Instance().Calculate(op, left, right);
-}
-
-std::shared_ptr<Variable> Interpreter::CalculateOperator(Token op, const std::shared_ptr<Variable>& operand) {
-  return Operator::Instance().Calculate(op, operand);
-}
-
 std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_def, std::vector<std::shared_ptr<Variable>>&& params) {
   auto param_name = function_def->GetParamList().begin();
   for(auto param : params) {

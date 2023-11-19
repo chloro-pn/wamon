@@ -5,6 +5,7 @@
 #include "wamon/exception.h"
 #include "wamon/ast.h"
 #include "wamon/builtin_functions.h"
+#include "wamon/operator.h"
 
 #include <unordered_map>
 #include <vector>
@@ -89,9 +90,23 @@ class Interpreter {
     return FindVariableById("__self__");
   }
 
-  std::shared_ptr<Variable> CalculateOperator(Token op, const std::shared_ptr<Variable>& left, const std::shared_ptr<Variable>& right);
-
-  std::shared_ptr<Variable> CalculateOperator(Token op, const std::shared_ptr<Variable>& operand);
+  template <typename... VariableType>
+  std::shared_ptr<Variable> CalculateOperator(Token op, const std::shared_ptr<VariableType>&... operand) {
+    auto ret = Operator::Instance().Calculate(op, operand...);
+    if (ret == nullptr) {
+      auto override_name = OperatorDef::CreateName(op, {operand...});
+      auto func_def = GetPackageUnit().FindFunction(override_name);
+      if (func_def != nullptr) {
+        EnterContext<RuntimeContextType::Function>();
+        ret = CallFunction(func_def, {operand...});
+        LeaveContext();
+        return ret;
+      }
+    } else {
+      return ret;
+    }
+    throw WamonExecption("operator {} calculate error, handle not exist", GetTokenStr(op));
+  }
 
   template <bool throw_if_not_found = true>
   std::shared_ptr<Variable> FindVariableById(const std::string& id_name) {

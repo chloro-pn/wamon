@@ -32,22 +32,7 @@ class Operator {
     return false;
   }
 
-  std::shared_ptr<Variable> Calculate(Token op, std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) {
-    std::string tmp;
-    std::vector<std::unique_ptr<Type>> opernads;
-    opernads.push_back(v1->GetType());
-    opernads.push_back(v2->GetType());
-    if (op == Token::MEMBER_ACCESS) {
-      tmp = GetTokenStr(Token::MEMBER_ACCESS);
-    } else {
-      tmp = OperatorDef::CreateName(op, opernads);
-    }
-    auto handle = operator_handles_.find(tmp);
-    if (handle == operator_handles_.end()) {
-      throw WamonExecption("operator {} calculate error, handle not exist", GetTokenStr(op));
-    }
-    return (*handle).second(v1, v2);
-  }
+  std::shared_ptr<Variable> Calculate(Token op, std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2);
 
   std::shared_ptr<Variable> Calculate(Token op, std::shared_ptr<Variable> v) {
     std::string handle_name;
@@ -61,7 +46,7 @@ class Operator {
     }
     auto handle = uoperator_handles_.find(handle_name);
     if (handle == uoperator_handles_.end()) {
-      throw WamonExecption("operator {} calculate error, handle not exist", GetTokenStr(op));
+      return nullptr;
     }
     return (*handle).second(v);
   }
