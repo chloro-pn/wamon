@@ -252,9 +252,64 @@ TEST(interpreter, callmethod) {
 
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("ms");
+  interpreter.EnterContext<wamon::RuntimeContextType::Method>();
   auto ret = interpreter.CallMethodByName(v, "get_age", {});
+  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 25);
+}
+
+TEST(interpreter, inner_type_method) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    let v1 : string = ("hello");
+    let v2 : list(int) = (2, 3, 4);
+
+    func func1() -> int {
+      return call v1.len();
+    }
+
+    func func2() -> byte {
+      return call v1.at(0);
+    }
+
+    func func3() -> int {
+      return call v2.size() + call v2.at(1);
+      // 6
+    }
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+
+  wamon::StaticAnalyzer sa(pu);
+  wamon::TypeChecker tc(sa);
+  tc.CheckTypes();
+  tc.CheckAndRegisterGlobalVariable();
+  tc.CheckStructs();
+  tc.CheckFunctions();
+  tc.CheckMethods();
+
+  wamon::Interpreter interpreter(pu);
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  auto ret = interpreter.CallFunctionByName("func1", {});
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
+
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  ret = interpreter.CallFunctionByName("func2", {});
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "byte");
+  EXPECT_EQ(wamon::AsByteVariable(ret)->GetValue(), 'h');
+
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  ret = interpreter.CallFunctionByName("func3", {});
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 6);
 }
 
 TEST(interpreter, callable) {

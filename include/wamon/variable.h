@@ -309,6 +309,10 @@ class ByteVariable : public Variable {
   char value_;
 };
 
+inline ByteVariable* AsByteVariable(const std::shared_ptr<Variable>& v) {
+  return static_cast<ByteVariable*>(v.get());
+}
+
 class StructVariable : public Variable {
  public:
   StructVariable(const StructDef* sd, Interpreter& i, const std::string& name);

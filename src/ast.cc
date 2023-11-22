@@ -1,5 +1,6 @@
 #include "wamon/ast.h"
 #include "wamon/interpreter.h"
+#include "wamon/inner_type_method.h"
 
 namespace wamon {
 
@@ -48,6 +49,12 @@ std::shared_ptr<Variable> MethodCallExpr::Calculate(Interpreter& interpreter) {
     params.push_back(std::move(v));
   }
   auto v = interpreter.FindVariableById(id_name_);
+  if (IsInnerType(v->GetType())) {
+    interpreter.EnterContext<RuntimeContextType::Method>();
+    auto result = interpreter.CallMethod(v, method_name_, std::move(params));
+    interpreter.LeaveContext();
+    return result;
+  }
   auto methoddef = interpreter.GetPackageUnit().FindTypeMethod(v->GetTypeInfo(), method_name_);
   interpreter.EnterContext<RuntimeContextType::Method>();
   auto result = interpreter.CallMethod(v, methoddef, std::move(params));

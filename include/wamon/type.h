@@ -203,6 +203,11 @@ inline bool IsBuiltInType(const std::unique_ptr<Type>& type) {
          type->GetTypeInfo() == "void";
 }
 
+inline bool IsInnerType(const std::unique_ptr<Type>& type) {
+  bool struct_type = type->IsBasicType() && !IsBuiltInType(type);
+  return !struct_type;
+}
+
 inline std::vector<std::string> GetBuiltInTypesWithoutVoid() {
   return std::vector<std::string> {
     "string",

@@ -65,7 +65,7 @@ class MethodCallExpr : public Expression {
  public:
   friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker& tc, MethodCallExpr* method_call_expr);
   friend std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const MethodCallExpr* call_expr);
-  friend std::unique_ptr<Type> CheckAndGetBuiltinMethodReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const MethodCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetInnerMethodReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const MethodCallExpr* call_expr);
   
    void SetIdName(const std::string& id_name) { id_name_ = id_name; }
 

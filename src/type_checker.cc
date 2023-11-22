@@ -5,7 +5,7 @@
 #include "wamon/exception.h"
 #include "wamon/topological_sort.h"
 #include "wamon/builtin_functions.h"
-#include "wamon/builtin_type_method.h"
+#include "wamon/inner_type_method.h"
 
 #include "fmt/format.h"
 
@@ -389,13 +389,13 @@ std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& t
   return method_def->GetReturnType()->Clone();
 }
 
-std::unique_ptr<Type> CheckAndGetBuiltinMethodReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const MethodCallExpr* call_expr) {
-  assert(IsBuiltInType(ctype));
+std::unique_ptr<Type> CheckAndGetInnerMethodReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const MethodCallExpr* call_expr) {
+  assert(IsInnerType(ctype));
   std::vector<std::unique_ptr<Type>> params_type;
   for(auto& each : call_expr->parameters_) {
     params_type.push_back(tc.GetExpressionType(each.get()));
   }
-  return BuiltInTypeMethod::Instance().CheckAndGetReturnType(ctype, call_expr->method_name_, params_type);
+  return InnerTypeMethod::Instance().CheckAndGetReturnType(ctype, call_expr->method_name_, params_type);
 }
 
 std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const MethodCallExpr* call_expr) {
@@ -480,9 +480,8 @@ std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker&
   if (find_result != FindNameResult::OBJECT) {
     throw WamonExecption("CheckParamTypeAndGetResultTypeForMethod error, not find ident's type");
   }
-  if (IsBuiltInType(find_type)) {
-    return CheckAndGetBuiltinMethodReturnType(tc, find_type, method_call_expr);
-    throw WamonExecption("CheckParamTypeAndGetResultTypeForMethod error, ident's type is not struct");
+  if (IsInnerType(find_type)) {
+    return CheckAndGetInnerMethodReturnType(tc, find_type, method_call_expr);
   }
   // if not find, throw exception
   auto methoddef = tc.GetStaticAnalyzer().GetPackageUnit().FindTypeMethod(find_type->GetTypeInfo(), method_call_expr->method_name_);

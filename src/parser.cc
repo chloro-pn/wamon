@@ -552,7 +552,9 @@ std::vector<std::unique_ptr<Expression>> ParseExprList(const std::vector<WamonTo
   while (current != end) {
     size_t next = FindNextToken<Token::COMMA>(tokens, current, end);
     auto expr = ParseExpression(tokens, current + 1, next);
-    ret.push_back(std::move(expr));
+    if (expr != nullptr) {
+      ret.push_back(std::move(expr));
+    }
     current = next;
   }
   return ret;

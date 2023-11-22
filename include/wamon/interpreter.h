@@ -5,6 +5,7 @@
 #include "wamon/exception.h"
 #include "wamon/ast.h"
 #include "wamon/builtin_functions.h"
+#include "wamon/inner_type_method.h"
 #include "wamon/operator.h"
 
 #include <unordered_map>
@@ -111,6 +112,15 @@ class Interpreter {
   template <bool throw_if_not_found = true>
   std::shared_ptr<Variable> FindVariableById(const std::string& id_name) {
     for(auto it = runtime_stack_.rbegin(); it != runtime_stack_.rend(); ++it) {
+      // 对于函数和方法栈，如果找不到则直接在全局作用域中查找，而不是继续向上查找
+      if (it->type_ == RuntimeContextType::Method || it->type_ == RuntimeContextType::Function) {
+        auto result = it->FindVariable(id_name);
+        if (result != nullptr) {
+          return result;
+        } else {
+          break;
+        }
+      }
       auto result = it->FindVariable(id_name);
       if (result != nullptr) {
         return result;
@@ -134,8 +144,7 @@ class Interpreter {
   // todo : builtin funcs need type check
   std::shared_ptr<Variable> CallFunctionByName(const std::string& func_name, std::vector<std::shared_ptr<Variable>>&& params) {
     if (BuiltinFunctions::Instance().Find(func_name)) {
-      auto func = BuiltinFunctions::Instance().Get(func_name);
-      return func(std::move(params));
+      return CallFunction(func_name, std::move(params));
     }
     return CallFunction(pu_.FindFunction(func_name), std::move(params));
   }
@@ -144,7 +153,15 @@ class Interpreter {
 
   std::shared_ptr<Variable> CallMethod(std::shared_ptr<Variable> obj, const MethodDef* method_def, std::vector<std::shared_ptr<Variable>>&& params);
 
+  std::shared_ptr<Variable> CallMethod(std::shared_ptr<Variable> obj, const std::string& method_name, std::vector<std::shared_ptr<Variable>>&& params) {
+    auto method = InnerTypeMethod::Instance().Get(obj, method_name);
+    return method(obj, std::move(params));
+  }
+
   std::shared_ptr<Variable> CallMethodByName(std::shared_ptr<Variable> obj, const std::string& method_name, std::vector<std::shared_ptr<Variable>>&& params) {
+    if (IsInnerType(obj->GetType())) {
+      return CallMethod(obj, method_name, std::move(params));
+    }
     auto type = obj->GetTypeInfo();
     auto method_def = pu_.FindStruct(type)->GetMethod(method_name);
     return CallMethod(obj, method_def, std::move(params));
