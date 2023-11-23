@@ -1,6 +1,5 @@
-#include "wamon/topological_sort.h"
-
 #include "gtest/gtest.h"
+#include "wamon/topological_sort.h"
 
 TEST(graph, basic) {
   wamon::Graph<int> graph;

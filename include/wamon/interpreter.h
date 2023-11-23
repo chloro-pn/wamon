@@ -1,16 +1,16 @@
 #pragma once
 
-#include "wamon/variable.h"
-#include "wamon/package_unit.h"
-#include "wamon/exception.h"
-#include "wamon/ast.h"
-#include "wamon/builtin_functions.h"
-#include "wamon/inner_type_method.h"
-#include "wamon/operator.h"
-
+#include <functional>
 #include <unordered_map>
 #include <vector>
-#include <functional>
+
+#include "wamon/ast.h"
+#include "wamon/builtin_functions.h"
+#include "wamon/exception.h"
+#include "wamon/inner_type_method.h"
+#include "wamon/operator.h"
+#include "wamon/package_unit.h"
+#include "wamon/variable.h"
 
 namespace wamon {
 
@@ -23,7 +23,7 @@ enum class RuntimeContextType {
   IF,
   ELSE,
   WHILE,
-  Block, // 流程控制语句或者块语句对应的上下文
+  Block,  // 流程控制语句或者块语句对应的上下文
 };
 
 struct RuntimeContext {
@@ -45,7 +45,7 @@ struct RuntimeContext {
   }
 
   void RegisterVariable(std::unique_ptr<Variable>&& variable) {
-    const auto& name = variable->GetName();
+    std::string name = variable->GetName();
     check_not_exist(name);
     symbol_table_.insert({name, std::shared_ptr<Variable>(std::move(variable))});
   }
@@ -56,6 +56,17 @@ struct RuntimeContext {
       return nullptr;
     }
     return it->second;
+  }
+
+  RuntimeContext() = default;
+
+  RuntimeContext(const RuntimeContext&) = delete;
+  RuntimeContext(RuntimeContext&& other) : type_(other.type_), symbol_table_(std::move(other.symbol_table_)) {}
+  RuntimeContext& operator=(const RuntimeContext& other) = delete;
+  RuntimeContext& operator=(RuntimeContext&& other) {
+    type_ = other.type_;
+    symbol_table_ = std::move(other.symbol_table_);
+    return *this;
   }
 
   RuntimeContextType type_;
@@ -69,8 +80,8 @@ class Interpreter {
 
   template <RuntimeContextType type>
   void EnterContext() {
-    RuntimeContext rs;
-    rs.type_ = type;
+    auto rs = std::make_unique<RuntimeContext>();
+    rs->type_ = type;
     runtime_stack_.push_back(std::move(rs));
   }
 
@@ -83,13 +94,11 @@ class Interpreter {
     if (runtime_stack_.empty() == true) {
       return package_context_;
     }
-    return runtime_stack_.back();
+    return *runtime_stack_.back();
   }
 
   // 获取当前调用栈上最近的方法调用对象
-  std::shared_ptr<Variable> GetSelfObject() {
-    return FindVariableById("__self__");
-  }
+  std::shared_ptr<Variable> GetSelfObject() { return FindVariableById("__self__"); }
 
   template <typename... VariableType>
   std::shared_ptr<Variable> CalculateOperator(Token op, const std::shared_ptr<VariableType>&... operand) {
@@ -111,17 +120,17 @@ class Interpreter {
 
   template <bool throw_if_not_found = true>
   std::shared_ptr<Variable> FindVariableById(const std::string& id_name) {
-    for(auto it = runtime_stack_.rbegin(); it != runtime_stack_.rend(); ++it) {
+    for (auto it = runtime_stack_.rbegin(); it != runtime_stack_.rend(); ++it) {
       // 对于函数和方法栈，如果找不到则直接在全局作用域中查找，而不是继续向上查找
-      if (it->type_ == RuntimeContextType::Method || it->type_ == RuntimeContextType::Function) {
-        auto result = it->FindVariable(id_name);
+      if ((*it)->type_ == RuntimeContextType::Method || (*it)->type_ == RuntimeContextType::Function) {
+        auto result = (*it)->FindVariable(id_name);
         if (result != nullptr) {
           return result;
         } else {
           break;
         }
       }
-      auto result = it->FindVariable(id_name);
+      auto result = (*it)->FindVariable(id_name);
       if (result != nullptr) {
         return result;
       }
@@ -133,32 +142,40 @@ class Interpreter {
     return result;
   }
 
-  std::shared_ptr<Variable> CallFunction(const FunctionDef* function_def, std::vector<std::shared_ptr<Variable>>&& params);
+  std::shared_ptr<Variable> CallFunction(const FunctionDef* function_def,
+                                         std::vector<std::shared_ptr<Variable>>&& params);
 
   // call builtin funcs
-  std::shared_ptr<Variable> CallFunction(const std::string& builtin_name, std::vector<std::shared_ptr<Variable>>&& params) {
+  std::shared_ptr<Variable> CallFunction(const std::string& builtin_name,
+                                         std::vector<std::shared_ptr<Variable>>&& params) {
     auto func = BuiltinFunctions::Instance().Get(builtin_name);
-    return func(std::move(params));
+    assert(func != nullptr);
+    return (*func)(std::move(params));
   }
 
   // todo : builtin funcs need type check
-  std::shared_ptr<Variable> CallFunctionByName(const std::string& func_name, std::vector<std::shared_ptr<Variable>>&& params) {
+  std::shared_ptr<Variable> CallFunctionByName(const std::string& func_name,
+                                               std::vector<std::shared_ptr<Variable>>&& params) {
     if (BuiltinFunctions::Instance().Find(func_name)) {
       return CallFunction(func_name, std::move(params));
     }
     return CallFunction(pu_.FindFunction(func_name), std::move(params));
   }
 
-  std::shared_ptr<Variable> CallCallable(std::shared_ptr<Variable> callable, std::vector<std::shared_ptr<Variable>>&& params);
+  std::shared_ptr<Variable> CallCallable(std::shared_ptr<Variable> callable,
+                                         std::vector<std::shared_ptr<Variable>>&& params);
 
-  std::shared_ptr<Variable> CallMethod(std::shared_ptr<Variable> obj, const MethodDef* method_def, std::vector<std::shared_ptr<Variable>>&& params);
+  std::shared_ptr<Variable> CallMethod(std::shared_ptr<Variable> obj, const MethodDef* method_def,
+                                       std::vector<std::shared_ptr<Variable>>&& params);
 
-  std::shared_ptr<Variable> CallMethod(std::shared_ptr<Variable> obj, const std::string& method_name, std::vector<std::shared_ptr<Variable>>&& params) {
+  std::shared_ptr<Variable> CallMethod(std::shared_ptr<Variable> obj, const std::string& method_name,
+                                       std::vector<std::shared_ptr<Variable>>&& params) {
     auto method = InnerTypeMethod::Instance().Get(obj, method_name);
     return method(obj, std::move(params));
   }
 
-  std::shared_ptr<Variable> CallMethodByName(std::shared_ptr<Variable> obj, const std::string& method_name, std::vector<std::shared_ptr<Variable>>&& params) {
+  std::shared_ptr<Variable> CallMethodByName(std::shared_ptr<Variable> obj, const std::string& method_name,
+                                             std::vector<std::shared_ptr<Variable>>&& params) {
     if (IsInnerType(obj->GetType())) {
       return CallMethod(obj, method_name, std::move(params));
     }
@@ -167,17 +184,20 @@ class Interpreter {
     return CallMethod(obj, method_def, std::move(params));
   }
 
-  const PackageUnit& GetPackageUnit() const {
-    return pu_;
+  std::string RegisterCppFunctions(const std::string& name, BuiltinFunctions::CheckType ct,
+                                   BuiltinFunctions::HandleType ht) {
+    return BuiltinFunctions::Instance().Register(name, std::move(ct), std::move(ht));
   }
+
+  const PackageUnit& GetPackageUnit() const { return pu_; }
 
  private:
   // 这里使用vector模拟栈，因为需要对其进行遍历
-  std::vector<RuntimeContext> runtime_stack_;
+  std::vector<std::unique_ptr<RuntimeContext>> runtime_stack_;
   // 包符号表
   RuntimeContext package_context_;
   // 解释执行的时候需要从package_unit_中查找函数、方法、类型等信息
   const PackageUnit& pu_;
 };
 
-}
+}  // namespace wamon

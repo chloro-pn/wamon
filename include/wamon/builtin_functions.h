@@ -1,11 +1,11 @@
 #pragma once
 
-#include <unordered_map>
-#include <string>
+#include <cassert>
 #include <functional>
 #include <memory>
+#include <string>
+#include <unordered_map>
 #include <vector>
-#include <cassert>
 
 #include "wamon/variable.h"
 
@@ -17,7 +17,8 @@ class TypeChecker;
 
 class BuiltinFunctions {
  public:
-  using BuiltInFuncType = std::function<std::shared_ptr<Variable>(std::vector<std::shared_ptr<Variable>>&&)>;
+  using HandleType = std::function<std::shared_ptr<Variable>(std::vector<std::shared_ptr<Variable>>&&)>;
+  using CheckType = std::function<std::unique_ptr<Type>(const std::vector<std::unique_ptr<Type>>& params_type)>;
 
   BuiltinFunctions();
 
@@ -26,21 +27,30 @@ class BuiltinFunctions {
     return obj;
   }
 
-  bool Find(const std::string& name) {
-    return builtin_funcs_.find(name) != builtin_funcs_.end();
+  std::unique_ptr<Type> TypeCheck(const std::string& name, const std::vector<std::unique_ptr<Type>>& params_type);
+
+  bool Find(const std::string& name) { return builtin_handles_.find(name) != builtin_handles_.end(); }
+
+  HandleType* Get(const std::string& name) {
+    auto it = builtin_handles_.find(name);
+    if (it == builtin_handles_.end()) {
+      return nullptr;
+    }
+    return &builtin_handles_[name];
   }
 
-  std::unique_ptr<Type> TypeCheck(const std::string& name, const TypeChecker& tc, FuncCallExpr* call_expr);
-
-  BuiltInFuncType& Get(const std::string& name) {
-    assert(Find(name) == true);
-    return builtin_funcs_[name];
+  std::string Register(const std::string& name, CheckType ct, HandleType ht) {
+    if (builtin_checks_.find(name) != builtin_checks_.end() || builtin_handles_.find(name) != builtin_handles_.end()) {
+      return "register failed, duplicate name " + name;
+    }
+    builtin_checks_[name] = std::move(ct);
+    builtin_handles_[name] = std::move(ht);
+    return "succ";
   }
 
  private:
-  std::unordered_map<std::string, BuiltInFuncType> builtin_funcs_;
-
-  std::unique_ptr<Type> len_type_check(const TypeChecker& tc, FuncCallExpr* call_expr);
+  std::unordered_map<std::string, HandleType> builtin_handles_;
+  std::unordered_map<std::string, CheckType> builtin_checks_;
 };
 
-}
+}  // namespace wamon

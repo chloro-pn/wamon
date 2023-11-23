@@ -1,9 +1,10 @@
 #pragma once
 
-#include "wamon/type.h"
-
 #include <string>
 #include <vector>
+
+#include "wamon/output.h"
+#include "wamon/type.h"
 
 namespace wamon {
 
@@ -15,9 +16,7 @@ class StructDef;
  */
 class Variable {
  public:
-  explicit Variable(std::unique_ptr<Type>&& t, const std::string& name = "") : type_(std::move(t)), name_(name) {
-
-  }
+  explicit Variable(std::unique_ptr<Type>&& t, const std::string& name = "") : type_(std::move(t)), name_(name) {}
 
   virtual void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) = 0;
 
@@ -29,19 +28,15 @@ class Variable {
 
   virtual void Assign(const std::shared_ptr<Variable>& other) = 0;
 
+  virtual void Print(Output& output) = 0;
+
   virtual ~Variable() = default;
 
-  std::string GetTypeInfo() const {
-    return type_->GetTypeInfo();
-  }
+  std::string GetTypeInfo() const { return type_->GetTypeInfo(); }
 
-  std::unique_ptr<Type> GetType() const {
-    return type_->Clone();
-  }
+  std::unique_ptr<Type> GetType() const { return type_->Clone(); }
 
-  const std::string& GetName() const {
-    return name_;
-  }
+  const std::string& GetName() const { return name_; }
 
  protected:
   void check_compare_type_match(const std::shared_ptr<Variable>& other) {
@@ -57,7 +52,8 @@ class Variable {
 };
 
 class Interpreter;
-std::unique_ptr<Variable> VariableFactory(std::unique_ptr<Type> type, const std::string& name, Interpreter& interpreter);
+std::unique_ptr<Variable> VariableFactory(std::unique_ptr<Type> type, const std::string& name,
+                                          Interpreter& interpreter);
 
 class VoidVariable : public Variable {
  public:
@@ -78,16 +74,15 @@ class VoidVariable : public Variable {
     throw WamonExecption("VoidVariable.Assign should not be called");
   }
 
-  std::unique_ptr<Variable> Clone() override {
-    return std::make_unique<VoidVariable>();
-  }
+  void Print(Output& output) override { throw WamonExecption("VoidVariable.Print should not be called"); }
+
+  std::unique_ptr<Variable> Clone() override { return std::make_unique<VoidVariable>(); }
 };
 
 class StringVariable : public Variable {
  public:
-  StringVariable(const std::string& v, const std::string& name) : Variable(TypeFactory<std::string>::Get(), name), value_(v) {
-
-  }
+  StringVariable(const std::string& v, const std::string& name)
+      : Variable(TypeFactory<std::string>::Get(), name), value_(v) {}
 
   const std::string& GetValue() const { return value_; }
 
@@ -96,19 +91,16 @@ class StringVariable : public Variable {
       throw WamonExecption("StringVariable's ConstructByFields method error : fields.size() == {}", fields.size());
     }
     if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
-      throw WamonExecption("StringVariable's ConstructByFields method error, type dismatch : {} != {}", fields[0]->GetTypeInfo(), GetTypeInfo());
+      throw WamonExecption("StringVariable's ConstructByFields method error, type dismatch : {} != {}",
+                           fields[0]->GetTypeInfo(), GetTypeInfo());
     }
     StringVariable* ptr = static_cast<StringVariable*>(fields[0].get());
     value_ = ptr->GetValue();
   }
 
-  void DefaultConstruct() override {
-    value_.clear();
-  }
+  void DefaultConstruct() override { value_.clear(); }
 
-  std::unique_ptr<Variable> Clone() override {
-    return std::make_unique<StringVariable>(GetValue(), "");
-  }
+  std::unique_ptr<Variable> Clone() override { return std::make_unique<StringVariable>(GetValue(), ""); }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -120,6 +112,8 @@ class StringVariable : public Variable {
     value_ = static_cast<StringVariable*>(other.get())->value_;
   }
 
+  void Print(Output& output) override { output.OutPutString(value_); }
+
  private:
   std::string value_;
 };
@@ -130,9 +124,7 @@ inline StringVariable* AsStringVariable(const std::shared_ptr<Variable>& v) {
 
 class BoolVariable : public Variable {
  public:
-  BoolVariable(bool v, const std::string& name) : Variable(TypeFactory<bool>::Get(), name), value_(v) {
-
-  }
+  BoolVariable(bool v, const std::string& name) : Variable(TypeFactory<bool>::Get(), name), value_(v) {}
 
   bool GetValue() const { return value_; }
 
@@ -141,19 +133,16 @@ class BoolVariable : public Variable {
       throw WamonExecption("BoolVariable's ConstructByFields method error : fields.size() == {}", fields.size());
     }
     if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
-      throw WamonExecption("BoolVariable's ConstructByFields method error, type dismatch : {} != {}", fields[0]->GetTypeInfo(), GetTypeInfo());
+      throw WamonExecption("BoolVariable's ConstructByFields method error, type dismatch : {} != {}",
+                           fields[0]->GetTypeInfo(), GetTypeInfo());
     }
     BoolVariable* ptr = static_cast<BoolVariable*>(fields[0].get());
     value_ = ptr->GetValue();
   }
 
-  void DefaultConstruct() override {
-    value_ = true;
-  }
+  void DefaultConstruct() override { value_ = true; }
 
-  std::unique_ptr<Variable> Clone() override {
-    return std::make_unique<BoolVariable>(GetValue(), "");
-  }
+  std::unique_ptr<Variable> Clone() override { return std::make_unique<BoolVariable>(GetValue(), ""); }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -165,20 +154,18 @@ class BoolVariable : public Variable {
     value_ = static_cast<BoolVariable*>(other.get())->value_;
   }
 
+  void Print(Output& output) override { output.OutPutBool(value_); }
+
  private:
   bool value_;
 };
 
 // 不提供运行时检测，应该在静态分析阶段确定
-inline BoolVariable* AsBoolVariable(const std::shared_ptr<Variable>& v) {
-  return static_cast<BoolVariable*>(v.get());
-}
+inline BoolVariable* AsBoolVariable(const std::shared_ptr<Variable>& v) { return static_cast<BoolVariable*>(v.get()); }
 
 class IntVariable : public Variable {
  public:
-  IntVariable(int v, const std::string& name) : Variable(TypeFactory<int>::Get(), name), value_(v) {
-
-  }
+  IntVariable(int v, const std::string& name) : Variable(TypeFactory<int>::Get(), name), value_(v) {}
 
   int GetValue() const { return value_; }
 
@@ -187,19 +174,16 @@ class IntVariable : public Variable {
       throw WamonExecption("IntVariable's ConstructByFields method error : fields.size() == {}", fields.size());
     }
     if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
-      throw WamonExecption("IntVariable's ConstructByFields method error, type dismatch : {} != {}", fields[0]->GetTypeInfo(), GetTypeInfo());
+      throw WamonExecption("IntVariable's ConstructByFields method error, type dismatch : {} != {}",
+                           fields[0]->GetTypeInfo(), GetTypeInfo());
     }
     IntVariable* ptr = static_cast<IntVariable*>(fields[0].get());
     value_ = ptr->GetValue();
   }
 
-  void DefaultConstruct() override {
-    value_ = 0;
-  }
+  void DefaultConstruct() override { value_ = 0; }
 
-  std::unique_ptr<Variable> Clone() override {
-    return std::make_unique<IntVariable>(GetValue(), "");
-  }
+  std::unique_ptr<Variable> Clone() override { return std::make_unique<IntVariable>(GetValue(), ""); }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -211,23 +195,19 @@ class IntVariable : public Variable {
     value_ = static_cast<IntVariable*>(other.get())->value_;
   }
 
+  void Print(Output& output) override { output.OutPutInt(value_); }
+
  private:
   int value_;
 };
 
-inline IntVariable* AsIntVariable(const std::shared_ptr<Variable>& v) {
-  return static_cast<IntVariable*>(v.get());
-}
+inline IntVariable* AsIntVariable(const std::shared_ptr<Variable>& v) { return static_cast<IntVariable*>(v.get()); }
 
-inline IntVariable* AsIntVariable(Variable* v) {
-  return static_cast<IntVariable*>(v);
-}
+inline IntVariable* AsIntVariable(Variable* v) { return static_cast<IntVariable*>(v); }
 
 class DoubleVariable : public Variable {
  public:
-  DoubleVariable(double v, const std::string& name) : Variable(TypeFactory<double>::Get(), name), value_(v) {
-
-  }
+  DoubleVariable(double v, const std::string& name) : Variable(TypeFactory<double>::Get(), name), value_(v) {}
 
   double GetValue() const { return value_; }
 
@@ -236,19 +216,16 @@ class DoubleVariable : public Variable {
       throw WamonExecption("DoubleVariable's ConstructByFields method error : fields.size() == {}", fields.size());
     }
     if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
-      throw WamonExecption("DoubleVariable's ConstructByFields method error, type dismatch : {} != {}", fields[0]->GetTypeInfo(), GetTypeInfo());
+      throw WamonExecption("DoubleVariable's ConstructByFields method error, type dismatch : {} != {}",
+                           fields[0]->GetTypeInfo(), GetTypeInfo());
     }
     DoubleVariable* ptr = static_cast<DoubleVariable*>(fields[0].get());
     value_ = ptr->GetValue();
   }
 
-  void DefaultConstruct() override {
-    value_ = 0.0;
-  }
+  void DefaultConstruct() override { value_ = 0.0; }
 
-  std::unique_ptr<Variable> Clone() override {
-    return std::make_unique<DoubleVariable>(GetValue(), "");
-  }
+  std::unique_ptr<Variable> Clone() override { return std::make_unique<DoubleVariable>(GetValue(), ""); }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -260,6 +237,8 @@ class DoubleVariable : public Variable {
     value_ = static_cast<DoubleVariable*>(other.get())->value_;
   }
 
+  void Print(Output& output) override { output.OutPutDouble(value_); }
+
  private:
   double value_;
 };
@@ -270,30 +249,26 @@ inline DoubleVariable* AsDoubleVariable(const std::shared_ptr<Variable>& v) {
 
 class ByteVariable : public Variable {
  public:
-  ByteVariable(int v, const std::string& name) : Variable(TypeFactory<char>::Get(), name), value_(v) {
+  ByteVariable(unsigned char v, const std::string& name)
+      : Variable(TypeFactory<unsigned char>::Get(), name), value_(v) {}
 
-  }
-
-  char GetValue() const { return value_; }
+  unsigned char GetValue() const { return value_; }
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     if (fields.size() != 1) {
       throw WamonExecption("ByteVariable's ConstructByFields method error : fields.size() == {}", fields.size());
     }
     if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
-      throw WamonExecption("ByteVariable's ConstructByFields method error, type dismatch : {} != {}", fields[0]->GetTypeInfo(), GetTypeInfo());
+      throw WamonExecption("ByteVariable's ConstructByFields method error, type dismatch : {} != {}",
+                           fields[0]->GetTypeInfo(), GetTypeInfo());
     }
     ByteVariable* ptr = static_cast<ByteVariable*>(fields[0].get());
     value_ = ptr->GetValue();
   }
 
-  void DefaultConstruct() override {
-    value_ = 0;
-  }
+  void DefaultConstruct() override { value_ = 0; }
 
-  std::unique_ptr<Variable> Clone() override {
-    return std::make_unique<ByteVariable>(GetValue(), "");
-  }
+  std::unique_ptr<Variable> Clone() override { return std::make_unique<ByteVariable>(GetValue(), ""); }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -305,13 +280,13 @@ class ByteVariable : public Variable {
     value_ = static_cast<ByteVariable*>(other.get())->value_;
   }
 
+  void Print(Output& output) override { output.OutPutByte(value_); }
+
  private:
-  char value_;
+  unsigned char value_;
 };
 
-inline ByteVariable* AsByteVariable(const std::shared_ptr<Variable>& v) {
-  return static_cast<ByteVariable*>(v.get());
-}
+inline ByteVariable* AsByteVariable(const std::shared_ptr<Variable>& v) { return static_cast<ByteVariable*>(v.get()); }
 
 class StructVariable : public Variable {
  public:
@@ -328,7 +303,7 @@ class StructVariable : public Variable {
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
     StructVariable* other_struct = static_cast<StructVariable*>(other.get());
-    for(size_t index = 0; index < data_members_.size(); ++index) {
+    for (size_t index = 0; index < data_members_.size(); ++index) {
       if (data_members_[index].data->Compare(other_struct->data_members_[index].data) == false) {
         return false;
       }
@@ -339,10 +314,12 @@ class StructVariable : public Variable {
   void Assign(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
     StructVariable* other_struct = static_cast<StructVariable*>(other.get());
-    for(size_t index = 0; index < data_members_.size(); ++index) {
+    for (size_t index = 0; index < data_members_.size(); ++index) {
       data_members_[index].data->Assign(other_struct->data_members_[index].data);
     }
   }
+
+  void Print(Output& output) override;
 
  private:
   const StructDef* def_;
@@ -360,28 +337,19 @@ inline StructVariable* AsStructVariable(const std::shared_ptr<Variable>& v) {
 
 class CompoundVariable : public Variable {
  public:
-  CompoundVariable(std::unique_ptr<Type>&& t, const std::string& name) : Variable(std::move(t), name) {
-
-  }
+  CompoundVariable(std::unique_ptr<Type>&& t, const std::string& name) : Variable(std::move(t), name) {}
 };
 
 class PointerVariable : public CompoundVariable {
  public:
-  PointerVariable(std::unique_ptr<Type>&& hold_type, const std::string& name) : CompoundVariable(std::make_unique<PointerType>(std::move(hold_type)), name) {
+  PointerVariable(std::unique_ptr<Type>&& hold_type, const std::string& name)
+      : CompoundVariable(std::make_unique<PointerType>(std::move(hold_type)), name) {}
 
-  }
+  std::shared_ptr<Variable> GetHoldVariable() { return obj_.lock(); }
 
-  std::shared_ptr<Variable> GetHoldVariable() {
-    return obj_.lock();
-  }
+  std::unique_ptr<Type> GetHoldType() { return obj_.lock()->GetType(); }
 
-  std::unique_ptr<Type> GetHoldType() {
-    return obj_.lock()->GetType();
-  }
-
-  void SetHoldVariable(std::shared_ptr<Variable> v) {
-    obj_ = v;
-  }
+  void SetHoldVariable(std::shared_ptr<Variable> v) { obj_ = v; }
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
 
@@ -399,6 +367,16 @@ class PointerVariable : public CompoundVariable {
     obj_ = static_cast<PointerVariable*>(other.get())->obj_;
   }
 
+  void Print(Output& output) override {
+    auto v = obj_.lock();
+    if (v) {
+      output.OutPutString("pointer to : ");
+      v->Print(output);
+    } else {
+      output.OutPutString("nullptr");
+    }
+  }
+
  private:
   std::weak_ptr<Variable> obj_;
 };
@@ -409,18 +387,15 @@ inline PointerVariable* AsPointerVariable(const std::shared_ptr<Variable>& v) {
 
 class ListVariable : public CompoundVariable {
  public:
-  ListVariable(std::unique_ptr<Type>&& element_type, const std::string& name) : CompoundVariable(std::make_unique<ListType>(element_type->Clone()), name),
-                                                                                element_type_(std::move(element_type)) {
-
-  }
+  ListVariable(std::unique_ptr<Type>&& element_type, const std::string& name)
+      : CompoundVariable(std::make_unique<ListType>(element_type->Clone()), name),
+        element_type_(std::move(element_type)) {}
 
   void PushBack(std::shared_ptr<Variable> element);
 
   void PopBack();
 
-  size_t Size() const {
-    return elements_.size();
-  }
+  size_t Size() const { return elements_.size(); }
 
   std::shared_ptr<Variable> at(size_t i) {
     if (i >= Size()) {
@@ -441,7 +416,7 @@ class ListVariable : public CompoundVariable {
     if (elements_.size() != list_v->elements_.size()) {
       return false;
     }
-    for(size_t i = 0; i < elements_.size(); ++i) {
+    for (size_t i = 0; i < elements_.size(); ++i) {
       if (elements_[i]->Compare((list_v->elements_)[i]) == false) {
         return false;
       }
@@ -453,9 +428,13 @@ class ListVariable : public CompoundVariable {
     check_compare_type_match(other);
     ListVariable* list_v = static_cast<ListVariable*>(other.get());
     elements_.clear();
-    for(size_t i = 0; i < list_v->elements_.size(); ++i) {
+    for (size_t i = 0; i < list_v->elements_.size(); ++i) {
       PushBack(list_v->elements_[i]->Clone());
     }
+  }
+
+  void Print(Output& output) override {
+    output.OutputFormat("list ({}) size : {}", element_type_->GetTypeInfo(), elements_.size());
   }
 
  private:
@@ -463,31 +442,20 @@ class ListVariable : public CompoundVariable {
   std::vector<std::shared_ptr<Variable>> elements_;
 };
 
-inline ListVariable* AsListVariable(const std::shared_ptr<Variable>& v) {
-  return static_cast<ListVariable*>(v.get());
-}
+inline ListVariable* AsListVariable(const std::shared_ptr<Variable>& v) { return static_cast<ListVariable*>(v.get()); }
 
 class FunctionVariable : public CompoundVariable {
  public:
-  FunctionVariable(std::vector<std::unique_ptr<Type>>&& param, std::unique_ptr<Type>&& ret, const std::string& name) : CompoundVariable(std::make_unique<FuncType>(std::move(param), std::move(ret)), name) {
-    
-  }
+  FunctionVariable(std::vector<std::unique_ptr<Type>>&& param, std::unique_ptr<Type>&& ret, const std::string& name)
+      : CompoundVariable(std::make_unique<FuncType>(std::move(param), std::move(ret)), name) {}
 
-  void SetFuncName(const std::string& func_name) {
-    func_name_ = func_name;
-  }
+  void SetFuncName(const std::string& func_name) { func_name_ = func_name; }
 
-  void SetObj(std::shared_ptr<Variable> obj) {
-    obj_ = obj;
-  }
+  void SetObj(std::shared_ptr<Variable> obj) { obj_ = obj; }
 
-  const std::string& GetFuncName() const {
-    return func_name_;
-  }
+  const std::string& GetFuncName() const { return func_name_; }
 
-  std::shared_ptr<Variable> GetObj() const {
-    return obj_;
-  }
+  std::shared_ptr<Variable> GetObj() const { return obj_; }
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
 
@@ -505,6 +473,15 @@ class FunctionVariable : public CompoundVariable {
     func_name_ = static_cast<FunctionVariable*>(other.get())->GetFuncName();
   }
 
+  void Print(Output& output) override {
+    output.OutputFormat("func {} ", GetTypeInfo());
+    if (obj_) {
+      output.OutPutString("callable");
+    } else {
+      output.OutputFormat("function {}", func_name_);
+    }
+  }
+
  private:
   std::string func_name_;
   std::shared_ptr<Variable> obj_;
@@ -514,4 +491,4 @@ inline FunctionVariable* AsFunctionVariable(const std::shared_ptr<Variable>& v) 
   return static_cast<FunctionVariable*>(v.get());
 }
 
-}
+}  // namespace wamon

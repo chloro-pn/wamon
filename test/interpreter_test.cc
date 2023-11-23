@@ -1,10 +1,11 @@
-#include "wamon/scanner.h"
-#include "wamon/parser.h"
 #include "wamon/interpreter.h"
-#include "wamon/variable.h"
+
+#include "gtest/gtest.h"
+#include "wamon/parser.h"
+#include "wamon/scanner.h"
 #include "wamon/static_analyzer.h"
 #include "wamon/type_checker.h"
-#include "gtest/gtest.h"
+#include "wamon/variable.h"
 
 TEST(interpreter, callfunction) {
   wamon::Scanner scan;
@@ -21,7 +22,7 @@ TEST(interpreter, callfunction) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
-  
+
   wamon::StaticAnalyzer sa(pu);
   wamon::TypeChecker tc(sa);
   tc.CheckTypes();
@@ -51,8 +52,9 @@ TEST(interpreter, variable) {
     }
 
     let mydata : my_struct_name = (2, 3.5, "hello");
+    let mystr : string = ("hello");
     let myptr : ptr(my_struct_name) = (&mydata);
-    let mylen : int = (call len("hello"));
+    let mylen : int = (call mystr.len());
     let mylist : list(int) = (2, 3, 4);
     let myfunc : f((int, int) -> int) = (add);
 
@@ -75,7 +77,7 @@ TEST(interpreter, variable) {
   tc.CheckStructs();
   tc.CheckFunctions();
   tc.CheckMethods();
-  //tc.CheckOperatorOverride();
+  // tc.CheckOperatorOverride();
 
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("mydata");
@@ -138,7 +140,7 @@ TEST(interpreter, variable_compare) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
-  
+
   wamon::StaticAnalyzer sa(pu);
   wamon::TypeChecker tc(sa);
   tc.CheckTypes();
@@ -187,7 +189,7 @@ TEST(interpreter, variable_assign) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
-  
+
   wamon::StaticAnalyzer sa(pu);
   wamon::TypeChecker tc(sa);
   tc.CheckTypes();
@@ -450,7 +452,7 @@ TEST(interpreter, operator) {
   interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "string");
   EXPECT_EQ(wamon::AsStringVariable(ret)->GetValue(), "hello world");
-  
+
   params.clear();
   params.push_back(std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(10, "")));
   params.push_back(std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(5, "")));
@@ -506,7 +508,7 @@ TEST(interpreter, operator) {
   interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
-  }
+}
 
 TEST(interpreter, fibonacci) {
   wamon::Scanner scan;
@@ -544,4 +546,50 @@ TEST(interpreter, fibonacci) {
   auto ret = interpreter.CallFunctionByName("Fibonacci", std::move(params));
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 55);
+}
+
+TEST(interpreter, register_cpp_function) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    func testfunc() -> int {
+      let v2 : int = (call func111("hello"));
+      return v2;
+    }
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+
+  wamon::Interpreter interpreter(pu);
+  interpreter.RegisterCppFunctions(
+      "func111",
+      [](const std::vector<std::unique_ptr<wamon::Type>>& params_type) -> std::unique_ptr<wamon::Type> {
+        if (params_type.size() != 1) {
+          throw wamon::WamonExecption("invalid params count {}", params_type.size());
+        }
+        if (!wamon::IsStringType(params_type[0])) {
+          throw wamon::WamonExecption("invalid params type {}", params_type[0]->GetTypeInfo());
+        }
+        return wamon::TypeFactory<int>::Get();
+      },
+      [](std::vector<std::shared_ptr<wamon::Variable>>&& params) -> std::shared_ptr<wamon::Variable> {
+        auto len = wamon::AsStringVariable(params[0])->GetValue().size();
+        return std::make_shared<wamon::IntVariable>(static_cast<int>(len), "");
+      });
+
+  wamon::StaticAnalyzer sa(pu);
+  wamon::TypeChecker tc(sa);
+  tc.CheckTypes();
+  tc.CheckAndRegisterGlobalVariable();
+  tc.CheckStructs();
+  tc.CheckFunctions();
+  tc.CheckMethods();
+
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  auto ret = interpreter.CallFunctionByName("testfunc", {});
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 }

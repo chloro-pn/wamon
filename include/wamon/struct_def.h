@@ -1,47 +1,40 @@
 #pragma once
 
-#include <string>
-#include <vector>
-#include <utility>
-#include <memory>
 #include <algorithm>
+#include <memory>
 #include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
-#include "wamon/type.h"
+#include "wamon/exception.h"
 #include "wamon/method_def.h"
 #include "wamon/operator_def.h"
-#include "wamon/exception.h"
+#include "wamon/type.h"
 
 namespace wamon {
 
 class StructDef {
  public:
-  explicit StructDef(const std::string& name) : name_(name) {
+  explicit StructDef(const std::string& name) : name_(name) {}
 
-  }
-
-  const std::string& GetStructName() const {
-    return name_;
-  }
+  const std::string& GetStructName() const { return name_; }
 
   void AddDataMember(const std::string& name, std::unique_ptr<Type>&& type) {
-    if (std::find_if(data_members_.begin(), data_members_.end(), [&name](const auto& member) -> bool {
-      return name == member.first;
-    }) != data_members_.end()) {
+    if (std::find_if(data_members_.begin(), data_members_.end(),
+                     [&name](const auto& member) -> bool { return name == member.first; }) != data_members_.end()) {
       throw WamonExecption("duplicate field {} in type {}", name, name_);
     }
     data_members_.push_back({name, std::move(type)});
   }
 
   void AddMethods(std::unique_ptr<methods_def>&& ms) {
-    for(auto&& each :*ms) {
+    for (auto&& each : *ms) {
       methods_.emplace_back(std::move(each));
     }
   }
 
-  const std::vector<std::pair<std::string, std::unique_ptr<Type>>>& GetDataMembers() const {
-    return data_members_;
-  }
+  const std::vector<std::pair<std::string, std::unique_ptr<Type>>>& GetDataMembers() const { return data_members_; }
 
   const MethodDef* GetMethod(const std::string& method_name) const {
     for (auto& each : methods_) {
@@ -52,20 +45,17 @@ class StructDef {
     return nullptr;
   }
 
-  const methods_def& GetMethods() {
-    return methods_;
-  }
+  const methods_def& GetMethods() { return methods_; }
 
   std::unique_ptr<Type> GetDataMemberType(const std::string& field_name) {
-    auto it = std::find_if(data_members_.begin(), data_members_.end(), [&field_name](const auto& member) -> bool {
-      return field_name == member.first;
-    });
+    auto it = std::find_if(data_members_.begin(), data_members_.end(),
+                           [&field_name](const auto& member) -> bool { return field_name == member.first; });
     if (it == data_members_.end()) {
       throw WamonExecption("get data member' type error, field {} not exist", field_name);
     }
     return it->second->Clone();
   }
-  
+
   std::vector<std::string> GetDependent(const std::unique_ptr<Type>& type) const {
     // 指针和函数类型直接跳过，因为其包含的类型我们都不需要依赖
     if (IsPtrType(type) || IsFuncType(type)) {
@@ -83,9 +73,9 @@ class StructDef {
   // 注意，这里不应该返回所有数据成员涉及的结构体类型，例如ptr(structa)类型并不依赖于structa
   std::set<std::string> GetDependent() const {
     std::set<std::string> ret;
-    for(auto& each : data_members_) {
+    for (auto& each : data_members_) {
       auto data_member_dependent = GetDependent(each.second);
-      for(auto&& tmp : data_member_dependent) {
+      for (auto&& tmp : data_member_dependent) {
         ret.insert(std::move(tmp));
       }
     }
@@ -99,4 +89,4 @@ class StructDef {
   methods_def methods_;
   std::unique_ptr<OperatorDef> call_operator_;
 };
-}
+}  // namespace wamon

@@ -1,18 +1,18 @@
 #pragma once
 
-#include <string>
-#include <vector>
-#include <memory>
-#include <unordered_map>
-#include <cassert>
 #include <algorithm>
+#include <cassert>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "wamon/ast.h"
+#include "wamon/exception.h"
 #include "wamon/function_def.h"
-#include "wamon/struct_def.h"
 #include "wamon/method_def.h"
 #include "wamon/operator_def.h"
-#include "wamon/exception.h"
+#include "wamon/struct_def.h"
 
 namespace wamon {
 
@@ -27,8 +27,8 @@ class PackageUnit {
   void SetImportPackage(const std::vector<std::string>& import_packages) { import_packages_ = import_packages; }
   void AddVarDef(std::unique_ptr<VariableDefineStmt>&& vd) {
     if (std::find_if(var_define_.begin(), var_define_.end(), [&vd](const auto& v) -> bool {
-      return vd->GetVarName() == v->GetVarName();
-    }) != var_define_.end()) {
+          return vd->GetVarName() == v->GetVarName();
+        }) != var_define_.end()) {
       throw WamonExecption("duplicate global value {}", vd->GetVarName());
     }
     var_define_.push_back(std::move(vd));
@@ -57,7 +57,7 @@ class PackageUnit {
     }
     structs_[type_name]->AddMethods(std::move(methods));
   }
-  
+
   const StructDef* FindStruct(const std::string& struct_name) const {
     auto it = structs_.find(struct_name);
     if (it == structs_.end()) {
@@ -90,17 +90,11 @@ class PackageUnit {
     return it->second->GetDataMemberType(field_name);
   }
 
-  const std::vector<std::unique_ptr<VariableDefineStmt>>& GetGlobalVariDefStmt() const {
-    return var_define_;
-  }
+  const std::vector<std::unique_ptr<VariableDefineStmt>>& GetGlobalVariDefStmt() const { return var_define_; }
 
-  const std::unordered_map<std::string, std::unique_ptr<FunctionDef>>& GetFunctions() const {
-    return funcs_;
-  }
+  const std::unordered_map<std::string, std::unique_ptr<FunctionDef>>& GetFunctions() const { return funcs_; }
 
-  const std::unordered_map<std::string, std::unique_ptr<StructDef>>& GetStructs() const {
-    return structs_;
-  }
+  const std::unordered_map<std::string, std::unique_ptr<StructDef>>& GetStructs() const { return structs_; }
 
  private:
   std::string package_name_;
@@ -111,4 +105,4 @@ class PackageUnit {
   std::unordered_map<std::string, std::unique_ptr<StructDef>> structs_;
 };
 
-}
+}  // namespace wamon

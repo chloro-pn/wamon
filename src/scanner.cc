@@ -3,14 +3,14 @@
 #include <regex>
 #include <stdexcept>
 
-#include "wamon/key_words.h"
 #include "wamon/exception.h"
+#include "wamon/key_words.h"
 
 namespace wamon {
 
 static uint8_t string_to_byte(const std::string &str) {
   if (str.size() != 4 || str[0] != '0' || str[1] != 'X') {
-    throw WamonExecption("invalid byte");
+    throw WamonExecption("invalid format (byte) : {}", str);
   }
   int b1 = 0, b2 = 0;
   if (str[2] >= '0' && str[2] <= '9') {
@@ -18,14 +18,14 @@ static uint8_t string_to_byte(const std::string &str) {
   } else if (str[2] >= 'A' && str[2] <= 'F') {
     b1 = str[2] - 'A' + 10;
   } else {
-    throw WamonExecption("invalid byte");
+    throw WamonExecption("invalid format (byte) : {}", str);
   }
   if (str[3] >= '0' && str[3] <= '9') {
     b2 = str[3] - '0';
   } else if (str[3] >= 'A' && str[3] <= 'F') {
     b2 = str[3] - 'A' + 10;
   } else {
-    throw WamonExecption("invalid byte");
+    throw WamonExecption("invalid format (byte) : {}", str);
   }
   return static_cast<uint8_t>(b1 * 16 + b2);
 }

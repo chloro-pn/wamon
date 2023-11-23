@@ -60,10 +60,10 @@ enum class Token {
   LT,  // LESS_THAN,
   ADDRESS_OF,
   PIPE,
-  MEMBER_ACCESS, // a.b == a MEMBER_ACCESS b
+  MEMBER_ACCESS,  // a.b == a MEMBER_ACCESS b
 
   // 特殊的TOKEN，不会在词法分析阶段出现，而是将一些语法等价为二元运算符
-  SUBSCRIPT,   // a[b] == a SUBSCRIPT b
+  SUBSCRIPT,  // a[b] == a SUBSCRIPT b
 
   // 自定义标识符和字面量
   ID,

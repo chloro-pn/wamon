@@ -1,48 +1,41 @@
 #include "wamon/builtin_functions.h"
+
 #include "wamon/ast.h"
 #include "wamon/exception.h"
+#include "wamon/output.h"
 #include "wamon/type_checker.h"
 
 namespace wamon {
 
-static void register_builtin_funcs(std::unordered_map<std::string, std::function<std::shared_ptr<Variable>(std::vector<std::shared_ptr<Variable>>&&)>>& funcs) {
-  funcs["len"] = [](std::vector<std::shared_ptr<Variable>>&& params) -> std::shared_ptr<Variable> {
-    if (params.size() != 1) {
+static void register_builtin_handles(std::unordered_map<std::string, BuiltinFunctions::HandleType>& handles) {
+  handles["print"] = [](std::vector<std::shared_ptr<Variable>>&& params) -> std::shared_ptr<Variable> {
+    StdOutput output;
+    for (auto& each : params) {
+      each->Print(output);
+      output.OutPutString(" ");
+    }
+    return std::make_shared<VoidVariable>();
+  };
+}
 
-    }
-    if (IsListType(params[0]->GetType())) {
-
-    }
-    if (IsStringType(params[0]->GetType())) {
-      int len = AsStringVariable(params[0])->GetValue().size();
-      return std::make_shared<IntVariable>(len, "");
-    }
-    return nullptr;
+static void register_builtin_checks(std::unordered_map<std::string, BuiltinFunctions::CheckType>& checks) {
+  checks["print"] = [](const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
+    return TypeFactory<void>::Get();
   };
 }
 
 BuiltinFunctions::BuiltinFunctions() {
-  register_builtin_funcs(builtin_funcs_);
+  register_builtin_checks(builtin_checks_);
+  register_builtin_handles(builtin_handles_);
 }
 
-std::unique_ptr<Type> BuiltinFunctions::len_type_check(const TypeChecker& tc, FuncCallExpr* call_expr) {
-  auto& parameters = call_expr->GetParameters();
-  if (parameters.size() != 1) {
-    throw WamonExecption("builtinfunction len get invalid params count : {} , need 1", parameters.size());
+std::unique_ptr<Type> BuiltinFunctions::TypeCheck(const std::string& name,
+                                                  const std::vector<std::unique_ptr<Type>>& params_type) {
+  auto check = builtin_checks_.find(name);
+  if (check == builtin_checks_.end()) {
+    throw WamonExecption("BuiltinFunctions::TypeCheck error, not implemented {} now", name);
   }
-  auto param_type = tc.GetExpressionType(parameters[0].get());
-  if (IsStringType(param_type) || IsListType(param_type)) {
-    // type check success
-    return TypeFactory<int>::Get();
-  }
-  throw WamonTypeCheck("builtinfunction len typecheck error", param_type->GetTypeInfo(), "need string or list type");
+  return check->second(params_type);
 }
 
-std::unique_ptr<Type> BuiltinFunctions::TypeCheck(const std::string& name, const TypeChecker& tc, FuncCallExpr* call_expr) {
-  if (name == "len") {
-    return len_type_check(tc, call_expr);
-  }
-  throw WamonExecption("not implemented now");
-}
-
-}
+}  // namespace wamon

@@ -1,50 +1,54 @@
 #include "wamon/type_checker.h"
-#include "wamon/token.h"
-#include "wamon/static_analyzer.h"
-#include "wamon/function_def.h"
-#include "wamon/exception.h"
-#include "wamon/topological_sort.h"
-#include "wamon/builtin_functions.h"
-#include "wamon/inner_type_method.h"
-
-#include "fmt/format.h"
 
 #include <cassert>
-#include <vector>
 #include <string>
+#include <vector>
+
+#include "fmt/format.h"
+#include "wamon/builtin_functions.h"
+#include "wamon/exception.h"
+#include "wamon/function_def.h"
+#include "wamon/inner_type_method.h"
+#include "wamon/static_analyzer.h"
+#include "wamon/token.h"
+#include "wamon/topological_sort.h"
 
 namespace wamon {
 
 void CheckBlockStatement(TypeChecker& tc, BlockStmt* stmt) {
-  for(auto& each : stmt->GetStmts()) {
+  for (auto& each : stmt->GetStmts()) {
     tc.CheckStatement(each.get());
   }
 }
 
-TypeChecker::TypeChecker(StaticAnalyzer& sa) : static_analyzer_(sa) {
-
-}
+TypeChecker::TypeChecker(StaticAnalyzer& sa) : static_analyzer_(sa) {}
 
 void TypeChecker::CheckTypes() {
   const auto& pu = static_analyzer_.GetPackageUnit();
-  for(auto& each : pu.GetGlobalVariDefStmt()) {
-    CheckType(each->GetType(), fmt::format("check global variable {}'s type {}", each->GetVarName(), each->GetType()->GetTypeInfo()));
+  for (auto& each : pu.GetGlobalVariDefStmt()) {
+    CheckType(each->GetType(),
+              fmt::format("check global variable {}'s type {}", each->GetVarName(), each->GetType()->GetTypeInfo()));
   }
-  for(auto& each : pu.GetFunctions()) {
-    for(auto& param : each.second->param_list_) {
-      CheckType(param.first, fmt::format("check function {} param {}'s type {}", each.first, param.second, param.first->GetTypeInfo()));
+  for (auto& each : pu.GetFunctions()) {
+    for (auto& param : each.second->param_list_) {
+      CheckType(param.first, fmt::format("check function {} param {}'s type {}", each.first, param.second,
+                                         param.first->GetTypeInfo()));
     }
-    CheckType(each.second->return_type_, fmt::format("check function {} return type {}", each.first, each.second->return_type_->GetTypeInfo()));
+    CheckType(each.second->return_type_,
+              fmt::format("check function {} return type {}", each.first, each.second->return_type_->GetTypeInfo()));
   }
-  for(auto& each : pu.GetStructs()) {
-    for(auto& member : each.second->GetDataMembers()) {
-      CheckType(member.second, fmt::format("check struct {} member {}'s type {}", each.first, member.first, member.second->GetTypeInfo()));
+  for (auto& each : pu.GetStructs()) {
+    for (auto& member : each.second->GetDataMembers()) {
+      CheckType(member.second, fmt::format("check struct {} member {}'s type {}", each.first, member.first,
+                                           member.second->GetTypeInfo()));
     }
-    for(auto& member : each.second->GetMethods()) {
-      for(auto& param : member->GetParamList()) {
-        CheckType(param.first, fmt::format("check struct {} method {} param {}'s type {}", each.first, member->GetMethodName(), param.second, param.first->GetTypeInfo()));
+    for (auto& member : each.second->GetMethods()) {
+      for (auto& param : member->GetParamList()) {
+        CheckType(param.first, fmt::format("check struct {} method {} param {}'s type {}", each.first,
+                                           member->GetMethodName(), param.second, param.first->GetTypeInfo()));
       }
-      CheckType(member->GetReturnType(), fmt::format("check struct {} method {} return type {}", each.first, member->GetMethodName(), member->GetReturnType()->GetTypeInfo()));
+      CheckType(member->GetReturnType(), fmt::format("check struct {} method {} return type {}", each.first,
+                                                     member->GetMethodName(), member->GetReturnType()->GetTypeInfo()));
     }
   }
 }
@@ -52,7 +56,7 @@ void TypeChecker::CheckTypes() {
 void TypeChecker::CheckType(const std::unique_ptr<Type>& type, const std::string& context_info, bool can_be_void) {
   if (IsFuncType(type)) {
     auto func_type = static_cast<FuncType*>(type.get());
-    for(auto& param : func_type->param_type_) {
+    for (auto& param : func_type->param_type_) {
       CheckType(param, context_info, false);
     }
     CheckType(func_type->return_type_, context_info, true);
@@ -81,13 +85,13 @@ void TypeChecker::CheckType(const std::unique_ptr<Type>& type, const std::string
 
 void TypeChecker::CheckAndRegisterGlobalVariable() {
   const auto& global_var_def_stmts = static_analyzer_.GetGlobalVarDefStmt();
-  for(const auto& each : global_var_def_stmts) {
+  for (const auto& each : global_var_def_stmts) {
     CheckStatement(each.get());
   }
 }
 
 void TypeChecker::CheckFunctions() {
-  for(auto& each : static_analyzer_.GetFunctions()) {
+  for (auto& each : static_analyzer_.GetFunctions()) {
     // 首先进行上下文相关的检测、表达式类型检测、语句合法性检测
     auto func_context = std::make_unique<Context>(each.second->name_);
     static_analyzer_.RegisterFuncParamsToContext(each.second->param_list_, func_context.get());
@@ -105,16 +109,16 @@ void TypeChecker::CheckStructs() {
   // 保证不同类型的TypeInfo不相同，因此可以用其代表一个类型进行循环依赖分析
   bool all_succ = true;
   Graph<std::string> graph;
-  for(const auto& each : built_in_types) {
+  for (const auto& each : built_in_types) {
     all_succ &= graph.AddNode(each);
   }
-  for(const auto& each : structs) {
+  for (const auto& each : structs) {
     all_succ &= graph.AddNode(each.first);
   }
   // 如果类型a依赖于类型b，插入一条a->b有向边
-  for(const auto& each : structs) {
+  for (const auto& each : structs) {
     auto dependent = each.second->GetDependent();
-    for(auto& to : dependent) {
+    for (auto& to : dependent) {
       graph.AddEdge(each.first, to);
     }
   }
@@ -126,7 +130,7 @@ void TypeChecker::CheckStructs() {
 void TypeChecker::CheckMethods() {
   const PackageUnit& pu = static_analyzer_.GetPackageUnit();
   const auto& structs = pu.GetStructs();
-  for(const auto& each : structs) {
+  for (const auto& each : structs) {
     for (const auto& method : each.second->GetMethods()) {
       std::unique_ptr<Context> ctx = std::make_unique<Context>(each.first, method->GetMethodName());
       static_analyzer_.RegisterFuncParamsToContext(method->GetParamList(), ctx.get());
@@ -139,7 +143,7 @@ void TypeChecker::CheckMethods() {
 }
 
 bool TypeChecker::IsDeterministicReturn(BlockStmt* basic_block) {
-  for(auto it = basic_block->GetStmts().rbegin(); it != basic_block->GetStmts().rend(); ++it) {
+  for (auto it = basic_block->GetStmts().rbegin(); it != basic_block->GetStmts().rend(); ++it) {
     if (dynamic_cast<ReturnStmt*>((*it).get()) != nullptr) {
       return true;
     }
@@ -176,18 +180,18 @@ void TypeChecker::CheckDeterministicReturn(MethodDef* method) {
   }
 }
 
-/* 
+/*
  * binary operator
  */
 
 // +
 std::unique_ptr<Type> CheckAndGetPlusResultType(std::unique_ptr<Type> lt, std::unique_ptr<Type> rt) {
   std::vector<std::string> plus_support_basic_type = {
-    "string",
-    "int",
-    "double",
+      "string",
+      "int",
+      "double",
   };
-  for(auto& each : plus_support_basic_type) {
+  for (auto& each : plus_support_basic_type) {
     if (lt->GetTypeInfo() == each && rt->GetTypeInfo() == each) {
       return lt->Clone();
     }
@@ -198,10 +202,10 @@ std::unique_ptr<Type> CheckAndGetPlusResultType(std::unique_ptr<Type> lt, std::u
 // - * /
 std::unique_ptr<Type> CheckAndGetMMDResultType(Token op, std::unique_ptr<Type> lt, std::unique_ptr<Type> rt) {
   std::vector<std::string> mmd_support_basic_type = {
-    "int",
-    "double",
+      "int",
+      "double",
   };
-  for(auto& each : mmd_support_basic_type) {
+  for (auto& each : mmd_support_basic_type) {
     if (lt->GetTypeInfo() == each && rt->GetTypeInfo() == each) {
       return lt->Clone();
     }
@@ -260,7 +264,8 @@ std::unique_ptr<Type> CheckAndGetAssignResultType(std::unique_ptr<Type> lt, std:
 }
 
 // 首先尝试内置支持的运算符类型，如果失败则尝试自定义运算符重载
-std::unique_ptr<Type> CheckAndGetBinaryOperatorResultType(Token op, std::unique_ptr<Type> lt, std::unique_ptr<Type> rt, const PackageUnit& pu) {
+std::unique_ptr<Type> CheckAndGetBinaryOperatorResultType(Token op, std::unique_ptr<Type> lt, std::unique_ptr<Type> rt,
+                                                          const PackageUnit& pu) {
   auto lt_copy = lt->Clone();
   auto rt_copy = rt->Clone();
   std::unique_ptr<Type> ret = nullptr;
@@ -290,7 +295,8 @@ std::unique_ptr<Type> CheckAndGetBinaryOperatorResultType(Token op, std::unique_
   if (ret != nullptr) {
     return ret;
   } else {
-    throw WamonExecption("invalid operand type for {} : {} and {}", GetTokenStr(op), lt_copy->GetTypeInfo(), rt_copy->GetTypeInfo());
+    throw WamonExecption("invalid operand type for {} : {} and {}", GetTokenStr(op), lt_copy->GetTypeInfo(),
+                         rt_copy->GetTypeInfo());
   }
 }
 
@@ -299,11 +305,11 @@ std::unique_ptr<Type> CheckAndGetBinaryOperatorResultType(Token op, std::unique_
  */
 
 std::unique_ptr<Type> CheckAndGetUnaryMinusResultType(std::unique_ptr<Type> operand) {
-  std::vector<std::string> supprot_unary_minus_basic_type {
-    "int",
-    "double",
+  std::vector<std::string> supprot_unary_minus_basic_type{
+      "int",
+      "double",
   };
-  for(auto& each : supprot_unary_minus_basic_type) {
+  for (auto& each : supprot_unary_minus_basic_type) {
     if (operand->GetTypeInfo() == each) {
       return operand->Clone();
     }
@@ -312,7 +318,7 @@ std::unique_ptr<Type> CheckAndGetUnaryMinusResultType(std::unique_ptr<Type> oper
 }
 
 std::unique_ptr<Type> CheckAndGetUnaryMultiplyResultType(std::unique_ptr<Type> operand) {
-  if(IsPtrType(operand) == false) {
+  if (IsPtrType(operand) == false) {
     throw WamonExecption("invalid operand type for deref, {}", operand->GetTypeInfo());
   }
   return dynamic_cast<PointerType*>(operand.get())->hold_type_->Clone();
@@ -348,36 +354,33 @@ std::unique_ptr<Type> CheckAndGetUnaryOperatorResultType(Token op, std::unique_p
   throw WamonExecption("operator {} is not support now", GetTokenStr(op));
 }
 
-std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr) {
+std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype,
+                                                    const FuncCallExpr* call_expr) {
   auto type = dynamic_cast<FuncType*>(ctype.get());
   assert(type != nullptr);
   if (type->param_type_.size() != call_expr->parameters_.size()) {
     throw WamonExecption("callable_object_call {} error, The number of parameters does not match : {} != {}",
-      call_expr->func_name_,
-      type->param_type_.size(),
-      call_expr->parameters_.size());
+                         call_expr->func_name_, type->param_type_.size(), call_expr->parameters_.size());
   }
   for (size_t arg_i = 0; arg_i < type->param_type_.size(); ++arg_i) {
     auto arg_i_type = tc.GetExpressionType(call_expr->parameters_[arg_i].get());
     if (!IsSameType(type->param_type_[arg_i], arg_i_type)) {
-      throw WamonExecption("callable_object_call {} error, arg_{}'s type dismatch {} != {}", 
-        call_expr->func_name_, 
-        arg_i,
-        type->param_type_[arg_i]->GetTypeInfo(),
-        arg_i_type->GetTypeInfo());
+      throw WamonExecption("callable_object_call {} error, arg_{}'s type dismatch {} != {}", call_expr->func_name_,
+                           arg_i, type->param_type_[arg_i]->GetTypeInfo(), arg_i_type->GetTypeInfo());
     }
   }
   // 类型检测成功
   return type->return_type_->Clone();
 }
 
-std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, FuncCallExpr* call_expr) {
+std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype,
+                                                            FuncCallExpr* call_expr) {
   auto struct_type = dynamic_cast<BasicType*>(ctype.get());
   if (struct_type == nullptr) {
     throw WamonExecption("invalid type {} for call op", ctype->GetTypeInfo());
   }
   std::vector<std::unique_ptr<Type>> param_types;
-  for(auto& each: call_expr->parameters_) {
+  for (auto& each : call_expr->parameters_) {
     param_types.emplace_back(tc.GetExpressionType(each.get()));
   }
   std::string op_func_name = OperatorDef::CreateName(Token::LEFT_PARENTHESIS, param_types);
@@ -389,51 +392,44 @@ std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& t
   return method_def->GetReturnType()->Clone();
 }
 
-std::unique_ptr<Type> CheckAndGetInnerMethodReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const MethodCallExpr* call_expr) {
+std::unique_ptr<Type> CheckAndGetInnerMethodReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype,
+                                                       const MethodCallExpr* call_expr) {
   assert(IsInnerType(ctype));
   std::vector<std::unique_ptr<Type>> params_type;
-  for(auto& each : call_expr->parameters_) {
+  for (auto& each : call_expr->parameters_) {
     params_type.push_back(tc.GetExpressionType(each.get()));
   }
   return InnerTypeMethod::Instance().CheckAndGetReturnType(ctype, call_expr->method_name_, params_type);
 }
 
-std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const MethodCallExpr* call_expr) {
+std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method,
+                                                  const MethodCallExpr* call_expr) {
   if (method->param_list_.size() != call_expr->parameters_.size()) {
-    throw WamonExecption("method_call {} error, The number of parameters does not match : {} != {}", 
-      call_expr->method_name_,
-      method->param_list_.size(),
-      call_expr->parameters_.size());
+    throw WamonExecption("method_call {} error, The number of parameters does not match : {} != {}",
+                         call_expr->method_name_, method->param_list_.size(), call_expr->parameters_.size());
   }
   for (size_t arg_i = 0; arg_i < method->param_list_.size(); ++arg_i) {
     auto arg_i_type = tc.GetExpressionType(call_expr->parameters_[arg_i].get());
     if (!IsSameType(method->param_list_[arg_i].first, arg_i_type)) {
-      throw WamonExecption("method_call {} error, arg_{}'s type dismatch {} != {}", 
-        call_expr->method_name_, 
-        arg_i,
-        method->param_list_[arg_i].first->GetTypeInfo(),
-        arg_i_type->GetTypeInfo());
+      throw WamonExecption("method_call {} error, arg_{}'s type dismatch {} != {}", call_expr->method_name_, arg_i,
+                           method->param_list_[arg_i].first->GetTypeInfo(), arg_i_type->GetTypeInfo());
     }
   }
   // 类型检测成功
   return method->return_type_->Clone();
 }
 
-std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const FunctionDef* function, const FuncCallExpr* call_expr) {
+std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const FunctionDef* function,
+                                                const FuncCallExpr* call_expr) {
   if (function->param_list_.size() != call_expr->parameters_.size()) {
-    throw WamonExecption("func_call {} error, The number of parameters does not match : {} != {}", 
-      call_expr->func_name_,
-      function->param_list_.size(),
-      call_expr->parameters_.size());
+    throw WamonExecption("func_call {} error, The number of parameters does not match : {} != {}",
+                         call_expr->func_name_, function->param_list_.size(), call_expr->parameters_.size());
   }
   for (size_t arg_i = 0; arg_i < function->param_list_.size(); ++arg_i) {
     auto arg_i_type = tc.GetExpressionType(call_expr->parameters_[arg_i].get());
     if (!IsSameType(function->param_list_[arg_i].first, arg_i_type)) {
-      throw WamonExecption("func_call {} error, arg_{}'s type dismatch {} != {}", 
-        call_expr->func_name_, 
-        arg_i,
-        function->param_list_[arg_i].first->GetTypeInfo(),
-        arg_i_type->GetTypeInfo());
+      throw WamonExecption("func_call {} error, arg_{}'s type dismatch {} != {}", call_expr->func_name_, arg_i,
+                           function->param_list_[arg_i].first->GetTypeInfo(), arg_i_type->GetTypeInfo());
     }
   }
   // 类型检测成功
@@ -442,9 +438,10 @@ std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const Fun
 
 // 新的设计：
 // 首先在符号表中查找call_expr->func_name_，分两种情况：
-//   1. 找到了一个object 
+//   1. 找到了一个object
 //   2. 找到了原生函数或者没找到
-// 当是情况1时，检查该object的类型，如果是函数类型，说明它是一个callable object，callable object可以由原生函数构造，也可以由lambda表达式构造，也可以由重载了()运算符的类型的变量构造，如果是结构体类型，则由重载了()运算符的类型的变量构造
+// 当是情况1时，检查该object的类型，如果是函数类型，说明它是一个callable object，callable
+// object可以由原生函数构造，也可以由lambda表达式构造，也可以由重载了()运算符的类型的变量构造，如果是结构体类型，则由重载了()运算符的类型的变量构造
 // 当是情况2时，则首先查内建函数，如果没找到则查用户定义函数
 // todo: 记录一些必要信息供运行时调用
 std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr) {
@@ -462,14 +459,18 @@ std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecke
   } else {
     if (BuiltinFunctions::Instance().Find(call_expr->func_name_)) {
       call_expr->type = FuncCallExpr::FuncCallType::BUILT_IN_FUNC;
-      return BuiltinFunctions::Instance().TypeCheck(call_expr->func_name_, tc, call_expr);
+      std::vector<std::unique_ptr<Type>> param_types;
+      for (auto& each : call_expr->parameters_) {
+        param_types.push_back(tc.GetExpressionType(each.get()));
+      }
+      return BuiltinFunctions::Instance().TypeCheck(call_expr->func_name_, param_types);
     } else {
       if (find_result == FindNameResult::NONE) {
         throw WamonExecption("invalid function name {} , not found it", call_expr->func_name_);
       }
       call_expr->type = FuncCallExpr::FuncCallType::FUNC;
       auto func = tc.GetStaticAnalyzer().FindFunction(call_expr->func_name_);
-      return CheckAndGetFuncReturnType(tc, func ,call_expr);
+      return CheckAndGetFuncReturnType(tc, func, call_expr);
     }
   }
 }
@@ -484,7 +485,8 @@ std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker&
     return CheckAndGetInnerMethodReturnType(tc, find_type, method_call_expr);
   }
   // if not find, throw exception
-  auto methoddef = tc.GetStaticAnalyzer().GetPackageUnit().FindTypeMethod(find_type->GetTypeInfo(), method_call_expr->method_name_);
+  auto methoddef =
+      tc.GetStaticAnalyzer().GetPackageUnit().FindTypeMethod(find_type->GetTypeInfo(), method_call_expr->method_name_);
   return CheckAndGetMethodReturnType(tc, methoddef, method_call_expr);
 }
 
@@ -518,7 +520,8 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
     }
     auto left_type = GetExpressionType(tmp->left_.get());
     auto right_type = GetExpressionType(tmp->right_.get());
-    return CheckAndGetBinaryOperatorResultType(tmp->op_, std::move(left_type), std::move(right_type), GetStaticAnalyzer().GetPackageUnit());
+    return CheckAndGetBinaryOperatorResultType(tmp->op_, std::move(left_type), std::move(right_type),
+                                               GetStaticAnalyzer().GetPackageUnit());
   }
   if (auto tmp = dynamic_cast<UnaryExpr*>(expr)) {
     auto operand_type = GetExpressionType(tmp->operand_.get());
@@ -561,7 +564,8 @@ void TypeChecker::CheckStatement(Statement* stmt) {
     auto check_type = GetExpressionType(tmp->check_.get());
     GetExpressionType(tmp->update_.get());
     if (!IsBoolType(check_type)) {
-      throw WamonExecption("for_stmt's check expr should return the value which has bool type, but {}", check_type->GetTypeInfo());
+      throw WamonExecption("for_stmt's check expr should return the value which has bool type, but {}",
+                           check_type->GetTypeInfo());
     }
     CheckBlockStatement(*this, tmp->block_.get());
     return;
@@ -569,7 +573,8 @@ void TypeChecker::CheckStatement(Statement* stmt) {
   if (auto tmp = dynamic_cast<IfStmt*>(stmt)) {
     auto check_type = GetExpressionType(tmp->check_.get());
     if (!IsBoolType(check_type)) {
-      throw WamonExecption("if_stmt's check expr should return the value which has bool type, but {}", check_type->GetTypeInfo());
+      throw WamonExecption("if_stmt's check expr should return the value which has bool type, but {}",
+                           check_type->GetTypeInfo());
     }
     CheckBlockStatement(*this, tmp->if_block_.get());
     if (tmp->else_block_ != nullptr) {
@@ -580,7 +585,8 @@ void TypeChecker::CheckStatement(Statement* stmt) {
   if (auto tmp = dynamic_cast<WhileStmt*>(stmt)) {
     auto check_type = GetExpressionType(tmp->check_.get());
     if (!IsBoolType(check_type)) {
-      throw WamonExecption("while_stmt's check expr should return the value which has bool type, but {}", check_type->GetTypeInfo());
+      throw WamonExecption("while_stmt's check expr should return the value which has bool type, but {}",
+                           check_type->GetTypeInfo());
     }
     CheckBlockStatement(*this, tmp->block_.get());
     return;
@@ -595,7 +601,8 @@ void TypeChecker::CheckStatement(Statement* stmt) {
     if (tmp->return_ != nullptr) {
       auto return_type = GetExpressionType(tmp->return_.get());
       if (!IsSameType(return_type, define_return_type)) {
-        throw WamonExecption("return type dismatch, {} != {}", define_return_type->GetTypeInfo(), return_type->GetTypeInfo());
+        throw WamonExecption("return type dismatch, {} != {}", define_return_type->GetTypeInfo(),
+                             return_type->GetTypeInfo());
       }
     } else {
       if (!IsSameType(define_return_type, GetVoidType())) {
@@ -612,8 +619,9 @@ void TypeChecker::CheckStatement(Statement* stmt) {
   if (auto tmp = dynamic_cast<VariableDefineStmt*>(stmt)) {
     // 类型检测
     std::vector<std::unique_ptr<Type>> params_type;
-    CheckType(tmp->type_, fmt::format("check variable {} 's type {}", tmp->GetVarName(), tmp->GetType()->GetTypeInfo()));
-    for(auto& each : tmp->constructors_) {
+    CheckType(tmp->type_,
+              fmt::format("check variable {} 's type {}", tmp->GetVarName(), tmp->GetType()->GetTypeInfo()));
+    for (auto& each : tmp->constructors_) {
       params_type.push_back(GetExpressionType(each.get()));
     }
     CheckCanConstructBy(static_analyzer_.GetPackageUnit(), tmp->type_, params_type);
@@ -623,4 +631,4 @@ void TypeChecker::CheckStatement(Statement* stmt) {
   }
   throw WamonExecption("invalid stmt type {}, check error", stmt->GetStmtName());
 }
-}
+}  // namespace wamon

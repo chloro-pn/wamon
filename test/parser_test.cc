@@ -3,9 +3,9 @@
 // for test
 #define private public
 
-#include "wamon/scanner.h"
-#include "wamon/parser.h"
 #include "wamon/exception.h"
+#include "wamon/parser.h"
+#include "wamon/scanner.h"
 
 TEST(parser, basic) {
   wamon::Scanner scan;

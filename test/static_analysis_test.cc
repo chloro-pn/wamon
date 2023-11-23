@@ -1,15 +1,15 @@
-#include "gtest/gtest.h"
-
 #include <set>
+
+#include "gtest/gtest.h"
 
 // for test
 #define private public
 
-#include "wamon/scanner.h"
-#include "wamon/parser.h"
 #include "wamon/exception.h"
-#include "wamon/type_checker.h"
+#include "wamon/parser.h"
+#include "wamon/scanner.h"
 #include "wamon/static_analyzer.h"
+#include "wamon/type_checker.h"
 
 TEST(static_analysis, base) {
   wamon::Scanner scan;
@@ -109,7 +109,7 @@ TEST(static_analysis, return_type) {
   )";
   wamon::Scanner scan;
   std::vector<std::string> strs = {
-    R"(
+      R"(
         package main;
         func test() -> int {
           let i : int = (0);
@@ -118,7 +118,7 @@ TEST(static_analysis, return_type) {
           }
         }
     )",
-    R"(
+      R"(
       package main;
       func test() -> int {
         while(true) {
@@ -126,7 +126,7 @@ TEST(static_analysis, return_type) {
         }
       }
     )",
-    R"(
+      R"(
       package main;
       func test() -> void {
         {
@@ -138,14 +138,14 @@ TEST(static_analysis, return_type) {
         }
       }
     )",
-    R"(
+      R"(
       package main;
       func test() -> void {
         return 0;
       }
     )",
   };
-  for(auto str : strs) {
+  for (auto str : strs) {
     auto tokens = scan.Scan(str);
     wamon::PackageUnit pu = wamon::Parse(tokens);
     wamon::StaticAnalyzer sa(pu);
@@ -189,7 +189,7 @@ TEST(static_analysis, call_op_override) {
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
   wamon::StaticAnalyzer sa(pu);
-  
+
   wamon::TypeChecker tc(sa);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
   EXPECT_NO_THROW(tc.CheckFunctions());
@@ -244,7 +244,7 @@ TEST(static_analysis, builtin_func_check) {
 
   wamon::TypeChecker tc(sa);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
-  EXPECT_NO_THROW(tc.CheckTypes());  
+  EXPECT_NO_THROW(tc.CheckTypes());
 }
 
 TEST(static_analysis, construct_check) {
@@ -270,19 +270,19 @@ TEST(static_analysis, construct_check) {
   wamon::TypeChecker tc(sa);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
   std::vector<std::string> strs = {
-    R"(
+      R"(
       package main;
       let list_var : list(int) = ("hello world", 2, 3);
     )",
-    R"(
+      R"(
       package main;
       let void_var : void = (2);
     )",
-    R"(
+      R"(
       package main;
       let func_var : f(()) = (0);
     )",
-    R"(
+      R"(
       package main;
       struct mclass {
         int a;
@@ -292,7 +292,7 @@ TEST(static_analysis, construct_check) {
       let struct_var : mclass = ("hello world", 2);
     )",
   };
-  for(auto str : strs) {
+  for (auto str : strs) {
     auto tokens = scan.Scan(str);
     wamon::PackageUnit pu = wamon::Parse(tokens);
     wamon::StaticAnalyzer sa(pu);
@@ -304,7 +304,7 @@ TEST(static_analysis, construct_check) {
 TEST(static_analysis, deterministic_return) {
   wamon::Scanner scan;
   std::vector<std::string> strs = {
-    R"(
+      R"(
       package main;
       func test() -> int {
         if (true) {
@@ -312,7 +312,7 @@ TEST(static_analysis, deterministic_return) {
         }
       }
     )",
-    R"(
+      R"(
       package main;
       func test() -> int {
         while(true) {
@@ -320,7 +320,7 @@ TEST(static_analysis, deterministic_return) {
         }
       }
     )",
-    R"(
+      R"(
       package main;
       func test() -> int {
         if (true) {
@@ -330,7 +330,7 @@ TEST(static_analysis, deterministic_return) {
         }
       }
     )",
-    R"(
+      R"(
       package main;
       func test() -> int {
         let a : int = (2);
@@ -347,7 +347,7 @@ TEST(static_analysis, deterministic_return) {
       }
     )",
   };
-  for(auto str : strs) {
+  for (auto str : strs) {
     auto tokens = scan.Scan(str);
     wamon::PackageUnit pu = wamon::Parse(tokens);
     wamon::StaticAnalyzer sa(pu);
@@ -356,7 +356,7 @@ TEST(static_analysis, deterministic_return) {
   }
 
   strs = {
-    R"(
+      R"(
       package main;
       func test() -> int {
         {
@@ -368,7 +368,7 @@ TEST(static_analysis, deterministic_return) {
         }
       }
     )",
-    R"(
+      R"(
       package main;
       func test() -> int {
         if (true) {
@@ -377,7 +377,7 @@ TEST(static_analysis, deterministic_return) {
         return 1;
       }
     )",
-    R"(
+      R"(
       package main;
       func test() -> int {
         while(true) {
@@ -386,7 +386,7 @@ TEST(static_analysis, deterministic_return) {
         return 1;
       }
     )",
-    R"(
+      R"(
       package main;
       func test() -> int {
         if (true) {
@@ -397,7 +397,7 @@ TEST(static_analysis, deterministic_return) {
         }
       }
     )",
-    R"(
+      R"(
       package main;
       func test() -> int {
         let a : int = (2);
@@ -415,7 +415,7 @@ TEST(static_analysis, deterministic_return) {
       }
     )",
   };
-  for(auto str : strs) {
+  for (auto str : strs) {
     auto tokens = scan.Scan(str);
     wamon::PackageUnit pu = wamon::Parse(tokens);
     wamon::StaticAnalyzer sa(pu);
@@ -447,9 +447,9 @@ TEST(static_analysis, struct_dependent_info) {
   const wamon::StructDef* struct_def = pu.FindStruct("sb");
   auto dependents = struct_def->GetDependent();
   std::set<std::string> should_be = {
-    "sa",
-    "byte",
-    "bool",
+      "sa",
+      "byte",
+      "bool",
   };
   EXPECT_TRUE(dependents == should_be);
 }

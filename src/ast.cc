@@ -1,13 +1,14 @@
 #include "wamon/ast.h"
-#include "wamon/interpreter.h"
+
 #include "wamon/inner_type_method.h"
+#include "wamon/interpreter.h"
 
 namespace wamon {
 
 std::shared_ptr<Variable> FuncCallExpr::Calculate(Interpreter& interpreter) {
   // callable or function
   std::vector<std::shared_ptr<Variable>> params;
-  for(auto& each : parameters_) {
+  for (auto& each : parameters_) {
     auto v = each->Calculate(interpreter);
     params.push_back(std::move(v));
   }
@@ -44,7 +45,7 @@ std::shared_ptr<Variable> FuncCallExpr::Calculate(Interpreter& interpreter) {
 
 std::shared_ptr<Variable> MethodCallExpr::Calculate(Interpreter& interpreter) {
   std::vector<std::shared_ptr<Variable>> params;
-  for(auto& each : parameters_) {
+  for (auto& each : parameters_) {
     auto v = each->Calculate(interpreter);
     params.push_back(std::move(v));
   }
@@ -92,13 +93,11 @@ std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
   }
 }
 
-std::shared_ptr<Variable> SelfExpr::Calculate(Interpreter& interpreter) {
-  return interpreter.GetSelfObject();
-}
+std::shared_ptr<Variable> SelfExpr::Calculate(Interpreter& interpreter) { return interpreter.GetSelfObject(); }
 
 ExecuteResult BlockStmt::Execute(Interpreter& interpreter) {
   interpreter.EnterContext<RuntimeContextType::Block>();
-  for(auto& each : block_) {
+  for (auto& each : block_) {
     ExecuteResult step = each->Execute(interpreter);
     if (step.state_ != ExecuteState::Next) {
       interpreter.LeaveContext();
@@ -164,7 +163,7 @@ ExecuteResult IfStmt::Execute(Interpreter& interpreter) {
 
 ExecuteResult WhileStmt::Execute(Interpreter& interpreter) {
   interpreter.EnterContext<RuntimeContextType::WHILE>();
-  while(true) {
+  while (true) {
     auto v = check_->Calculate(interpreter);
     bool check = AsBoolVariable(v)->GetValue();
     if (check == false) {
@@ -205,7 +204,7 @@ ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   auto& context = interpreter.GetCurrentContext();
   auto v = VariableFactory(type_->Clone(), var_name_, interpreter);
   std::vector<std::shared_ptr<Variable>> fields;
-  for(auto& each : constructors_) {
+  for (auto& each : constructors_) {
     fields.push_back(each->Calculate(interpreter));
   }
   if (fields.empty() == true) {
@@ -217,4 +216,4 @@ ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   return ExecuteResult::Next();
 }
 
-}
+}  // namespace wamon

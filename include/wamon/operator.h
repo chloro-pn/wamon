@@ -1,18 +1,16 @@
 #pragma once
 
-#include <unordered_map>
 #include <functional>
+#include <unordered_map>
 
+#include "wamon/operator_def.h"
 #include "wamon/token.h"
 #include "wamon/variable.h"
-#include "wamon/operator_def.h"
 
 namespace wamon {
 
 class Operator {
  public:
-  Operator();
-
   static Operator& Instance() {
     static Operator op;
     return op;
@@ -26,7 +24,8 @@ class Operator {
 
   // 查询运算符是否允许被重载
   bool CanBeOverride(Token token) const {
-    if (token == Token::COMPARE || token == Token::PLUS || token == Token::MINUS || token == Token::MULTIPLY || token == Token::DIVIDE || token == Token::AND || token == Token::OR || token == Token::PIPE) {
+    if (token == Token::COMPARE || token == Token::PLUS || token == Token::MINUS || token == Token::MULTIPLY ||
+        token == Token::DIVIDE || token == Token::AND || token == Token::OR || token == Token::PIPE) {
       return true;
     }
     return false;
@@ -51,11 +50,13 @@ class Operator {
     return (*handle).second(v);
   }
 
-  using BinaryOperatorType = std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>, std::shared_ptr<Variable>)>;
+  using BinaryOperatorType =
+      std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>, std::shared_ptr<Variable>)>;
 
   using UnaryOperatorType = std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>)>;
 
  private:
+  Operator();
   // 双元运算符 -> 优先级
   std::unordered_map<Token, int> operators_;
   // 单元运算符具有最高优先级，并且是左结合的，并且单元运算符的优先级一致

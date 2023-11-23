@@ -1,6 +1,5 @@
-#include "wamon/inner_type_method.h"
-
 #include "gtest/gtest.h"
+#include "wamon/inner_type_method.h"
 
 TEST(builtin_type_method, basic) {
   auto builtintype = wamon::TypeFactory<std::string>::Get();

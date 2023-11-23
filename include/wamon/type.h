@@ -1,10 +1,10 @@
 #pragma once
 
+#include <cassert>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <cassert>
 
 #include "wamon/token.h"
 
@@ -23,7 +23,7 @@
  *   - 指针类型 *       int*
  *   - 数组类型 [num]   int[2]
  *   - 函数类型 <-      int <- (type_list)
- * 
+ *
  */
 namespace wamon {
 
@@ -58,21 +58,13 @@ class PointerType : public CompoundType {
   friend class TypeChecker;
   friend std::unique_ptr<Type> CheckAndGetUnaryMultiplyResultType(std::unique_ptr<Type> operand);
 
-  PointerType(std::unique_ptr<Type>&& hold_type) : hold_type_(std::move(hold_type)) {
-    
-  }
+  PointerType(std::unique_ptr<Type>&& hold_type) : hold_type_(std::move(hold_type)) {}
 
-  void SetHoldType(std::unique_ptr<Type>&& hold_type) {
-    hold_type_ = std::move(hold_type);
-  }
+  void SetHoldType(std::unique_ptr<Type>&& hold_type) { hold_type_ = std::move(hold_type); }
 
-  std::unique_ptr<Type> GetHoldType() const {
-    return hold_type_->Clone();
-  }
+  std::unique_ptr<Type> GetHoldType() const { return hold_type_->Clone(); }
 
-  std::string GetTypeInfo() const override { 
-    return "ptr(" + hold_type_->GetTypeInfo() + ")";
-  }
+  std::string GetTypeInfo() const override { return "ptr(" + hold_type_->GetTypeInfo() + ")"; }
 
   std::unique_ptr<Type> Clone() const override;
 
@@ -84,21 +76,15 @@ class ListType : public CompoundType {
  public:
   friend class TypeChecker;
 
-  ListType(std::unique_ptr<Type>&& hold_type) : hold_type_(std::move(hold_type)) {
-    
-  }
+  ListType(std::unique_ptr<Type>&& hold_type) : hold_type_(std::move(hold_type)) {}
 
-  void SetHoldType(std::unique_ptr<Type>&& hold_type) {
-    hold_type_ = std::move(hold_type);
-  }
+  void SetHoldType(std::unique_ptr<Type>&& hold_type) { hold_type_ = std::move(hold_type); }
 
   std::string GetTypeInfo() const override;
 
   std::unique_ptr<Type> Clone() const override;
 
-  std::unique_ptr<Type> GetHoldType() const {
-    return hold_type_->Clone();
-  }
+  std::unique_ptr<Type> GetHoldType() const { return hold_type_->Clone(); }
 
  private:
   std::unique_ptr<Type> hold_type_;
@@ -110,28 +96,24 @@ class FuncCallExpr;
 class FuncType : public CompoundType {
  public:
   friend class TypeChecker;
-  friend std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype,
+                                                             const FuncCallExpr* call_expr);
 
-  FuncType(std::vector<std::unique_ptr<Type>>&& param_type, std::unique_ptr<Type>&& return_type) : param_type_(std::move(param_type)), return_type_(std::move(return_type)) {
-    
-  }
+  FuncType(std::vector<std::unique_ptr<Type>>&& param_type, std::unique_ptr<Type>&& return_type)
+      : param_type_(std::move(param_type)), return_type_(std::move(return_type)) {}
 
   void SetParamTypeAndReturnType(std::vector<std::unique_ptr<Type>>&& param_type, std::unique_ptr<Type>&& return_type) {
     param_type_ = std::move(param_type);
     return_type_ = std::move(return_type);
   }
 
-  const std::vector<std::unique_ptr<Type>>& GetParamType() {
-    return param_type_;
-  }
+  const std::vector<std::unique_ptr<Type>>& GetParamType() { return param_type_; }
 
-  const std::unique_ptr<Type>& GetReturnType() {
-    return return_type_;
-  }
+  const std::unique_ptr<Type>& GetReturnType() { return return_type_; }
 
   std::string GetTypeInfo() const override {
     std::string ret("f((");
-    for(const auto& each : param_type_) {
+    for (const auto& each : param_type_) {
       ret += each->GetTypeInfo();
       ret += ", ";
     }
@@ -158,49 +140,27 @@ inline bool IsSameType(const std::unique_ptr<Type>& lt, const std::unique_ptr<Ty
   return lt->GetTypeInfo() == rt->GetTypeInfo();
 }
 
-inline bool IsPtrType(const std::unique_ptr<Type>& type) {
-  return dynamic_cast<PointerType*>(type.get()) != nullptr;
-}
+inline bool IsPtrType(const std::unique_ptr<Type>& type) { return dynamic_cast<PointerType*>(type.get()) != nullptr; }
 
-inline bool IsFuncType(const std::unique_ptr<Type>& type) {
-  return dynamic_cast<FuncType*>(type.get()) != nullptr;
-}
+inline bool IsFuncType(const std::unique_ptr<Type>& type) { return dynamic_cast<FuncType*>(type.get()) != nullptr; }
 
-inline bool IsListType(const std::unique_ptr<Type>& type) {
-  return dynamic_cast<ListType*>(type.get()) != nullptr;
-}
+inline bool IsListType(const std::unique_ptr<Type>& type) { return dynamic_cast<ListType*>(type.get()) != nullptr; }
 
-inline bool IsBasicType(const std::unique_ptr<Type>& type) {
-  return dynamic_cast<BasicType*>(type.get()) != nullptr;
-}
+inline bool IsBasicType(const std::unique_ptr<Type>& type) { return dynamic_cast<BasicType*>(type.get()) != nullptr; }
 
-inline bool IsStringType(const std::unique_ptr<Type>& type) {
-  return type->GetTypeInfo() == "string";
-}
+inline bool IsStringType(const std::unique_ptr<Type>& type) { return type->GetTypeInfo() == "string"; }
 
-inline bool IsBoolType(const std::unique_ptr<Type>& type) {
-  return type->GetTypeInfo() == "bool";
-}
+inline bool IsBoolType(const std::unique_ptr<Type>& type) { return type->GetTypeInfo() == "bool"; }
 
-inline bool IsIntType(const std::unique_ptr<Type>& type) {
-  return type->GetTypeInfo() == "int";
-}
+inline bool IsIntType(const std::unique_ptr<Type>& type) { return type->GetTypeInfo() == "int"; }
 
-inline bool IsDoubleType(const std::unique_ptr<Type>& type) {
-  return type->GetTypeInfo() == "double";
-}
+inline bool IsDoubleType(const std::unique_ptr<Type>& type) { return type->GetTypeInfo() == "double"; }
 
-inline bool IsVoidType(const std::unique_ptr<Type>& type) {
-  return type->GetTypeInfo() == "void";
-}
+inline bool IsVoidType(const std::unique_ptr<Type>& type) { return type->GetTypeInfo() == "void"; }
 
 inline bool IsBuiltInType(const std::unique_ptr<Type>& type) {
-  return type->GetTypeInfo() == "string" || 
-         type->GetTypeInfo() == "int" ||
-         type->GetTypeInfo() == "double" ||
-         type->GetTypeInfo() == "byte" ||
-         type->GetTypeInfo() == "bool" ||
-         type->GetTypeInfo() == "void";
+  return type->GetTypeInfo() == "string" || type->GetTypeInfo() == "int" || type->GetTypeInfo() == "double" ||
+         type->GetTypeInfo() == "byte" || type->GetTypeInfo() == "bool" || type->GetTypeInfo() == "void";
 }
 
 inline bool IsInnerType(const std::unique_ptr<Type>& type) {
@@ -209,18 +169,12 @@ inline bool IsInnerType(const std::unique_ptr<Type>& type) {
 }
 
 inline std::vector<std::string> GetBuiltInTypesWithoutVoid() {
-  return std::vector<std::string> {
-    "string",
-    "int",
-    "double",
-    "byte",
-    "bool",
+  return std::vector<std::string>{
+      "string", "int", "double", "byte", "bool",
   };
 }
 
-inline std::unique_ptr<Type> GetVoidType() {
-  return std::make_unique<BasicType>("void");
-}
+inline std::unique_ptr<Type> GetVoidType() { return std::make_unique<BasicType>("void"); }
 
 inline std::unique_ptr<Type> GetHoldType(const std::unique_ptr<Type>& ptrtype) {
   assert(IsPtrType(ptrtype));
@@ -236,7 +190,7 @@ inline std::vector<std::unique_ptr<Type>> GetParamType(const std::unique_ptr<Typ
   assert(IsFuncType(type));
   auto& param_type = dynamic_cast<FuncType*>(type.get())->GetParamType();
   std::vector<std::unique_ptr<Type>> ret;
-  for(auto& each :param_type) {
+  for (auto& each : param_type) {
     ret.push_back(each->Clone());
   }
   return ret;
@@ -252,44 +206,32 @@ struct TypeFactory;
 
 template <>
 struct TypeFactory<void> {
-  static std::unique_ptr<Type> Get() {
-    return std::make_unique<BasicType>("void");
-  }
+  static std::unique_ptr<Type> Get() { return std::make_unique<BasicType>("void"); }
 };
 
 template <>
 struct TypeFactory<std::string> {
-  static std::unique_ptr<Type> Get() {
-    return std::make_unique<BasicType>("string");
-  }
+  static std::unique_ptr<Type> Get() { return std::make_unique<BasicType>("string"); }
 };
 
 template <>
 struct TypeFactory<int> {
-  static std::unique_ptr<Type> Get() {
-    return std::make_unique<BasicType>("int");
-  }
+  static std::unique_ptr<Type> Get() { return std::make_unique<BasicType>("int"); }
 };
 
 template <>
 struct TypeFactory<double> {
-  static std::unique_ptr<Type> Get() {
-    return std::make_unique<BasicType>("double");
-  }
+  static std::unique_ptr<Type> Get() { return std::make_unique<BasicType>("double"); }
 };
 
 template <>
 struct TypeFactory<bool> {
-  static std::unique_ptr<Type> Get() {
-    return std::make_unique<BasicType>("bool");
-  }
+  static std::unique_ptr<Type> Get() { return std::make_unique<BasicType>("bool"); }
 };
 
 template <>
-struct TypeFactory<char> {
-  static std::unique_ptr<Type> Get() {
-    return std::make_unique<BasicType>("byte");
-  }
+struct TypeFactory<unsigned char> {
+  static std::unique_ptr<Type> Get() { return std::make_unique<BasicType>("byte"); }
 };
 
 template <typename T>
@@ -310,7 +252,7 @@ struct TypeFactory<T*> {
 
 inline std::string GetTypeListId(const std::vector<std::unique_ptr<Type>>& type_list) {
   std::string result;
-  for(auto& each : type_list) {
+  for (auto& each : type_list) {
     result += each->GetTypeInfo();
     result += "-";
   }
@@ -319,6 +261,7 @@ inline std::string GetTypeListId(const std::vector<std::unique_ptr<Type>>& type_
 
 class PackageUnit;
 
-void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var_type, const std::vector<std::unique_ptr<Type>>& param_types);
+void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var_type,
+                         const std::vector<std::unique_ptr<Type>>& param_types);
 
 }  // namespace wamon

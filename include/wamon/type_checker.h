@@ -1,10 +1,10 @@
 #pragma once
 
-#include "wamon/ast.h"
-#include "wamon/type.h"
-#include "wamon/context.h"
-
 #include <set>
+
+#include "wamon/ast.h"
+#include "wamon/context.h"
+#include "wamon/type.h"
 
 namespace wamon {
 
@@ -15,12 +15,20 @@ class TypeChecker {
   friend void CheckBlockStatement(TypeChecker& tc, BlockStmt* stmt);
   friend std::unique_ptr<Type> CheckAndGetSSResultType(const TypeChecker& tc, BinaryExpr* binary_expr);
   friend std::unique_ptr<Type> CheckAndGetMemberAccessResultType(const TypeChecker& tc, BinaryExpr* binary_expr);
-  friend std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const MethodCallExpr* call_expr);
-  friend std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const FunctionDef* function, const FuncCallExpr* call_expr);
-  friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr);
-  friend std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr);
-  friend std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, FuncCallExpr* call_expr);
-  friend std::unique_ptr<Type> CheckAndGetInnerMethodReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const MethodCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method,
+                                                           const MethodCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const FunctionDef* function,
+                                                         const FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc,
+                                                                         FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype,
+                                                             const FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& tc,
+                                                                     const std::unique_ptr<Type>& ctype,
+                                                                     FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetInnerMethodReturnType(const TypeChecker& tc,
+                                                                const std::unique_ptr<Type>& ctype,
+                                                                const MethodCallExpr* call_expr);
   friend class BuiltinFunctions;
 
   explicit TypeChecker(StaticAnalyzer& sa);
@@ -64,13 +72,9 @@ class TypeChecker {
   // 这应该是类型检测的第四个阶段
   void CheckOperatorOverride();
 
-  const StaticAnalyzer& GetStaticAnalyzer() const {
-    return static_analyzer_;
-  }
+  const StaticAnalyzer& GetStaticAnalyzer() const { return static_analyzer_; }
 
-  StaticAnalyzer& GetStaticAnalyzer() {
-    return static_analyzer_;
-  }
+  StaticAnalyzer& GetStaticAnalyzer() { return static_analyzer_; }
 
  private:
   StaticAnalyzer& static_analyzer_;
@@ -99,4 +103,4 @@ class TypeChecker {
   bool IsDeterministicReturn(BlockStmt* basic_block);
 };
 
-}
+}  // namespace wamon

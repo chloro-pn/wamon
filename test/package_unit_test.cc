@@ -1,10 +1,9 @@
 #include "gtest/gtest.h"
 // just for test
 #define private public
+#include "wamon/package_unit.h"
 #include "wamon/parser.h"
 #include "wamon/scanner.h"
-
-#include "wamon/package_unit.h"
 
 TEST(package_unit, basic) {
   wamon::Scanner scan;

@@ -30,12 +30,18 @@ class FunctionDef;
 
 class FuncCallExpr : public Expression {
  public:
-  friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& sa, FuncCallExpr* call_expr);
-  friend std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const FuncCallExpr* call_expr);
-  friend std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const FunctionDef* function, const FuncCallExpr* call_expr);
-  friend std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const FuncCallExpr* call_expr);
-  friend std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, FuncCallExpr* call_expr);
-  
+  friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& sa,
+                                                                         FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method,
+                                                           const FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const FunctionDef* function,
+                                                         const FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype,
+                                                             const FuncCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& tc,
+                                                                     const std::unique_ptr<Type>& ctype,
+                                                                     FuncCallExpr* call_expr);
+
   void SetFuncName(const std::string& func_name) { func_name_ = func_name; }
 
   void SetParameters(std::vector<std::unique_ptr<Expression>>&& param) { parameters_ = std::move(param); }
@@ -51,7 +57,7 @@ class FuncCallExpr : public Expression {
     OPERATOR_OVERRIDE,
     INVALID,
   };
-  
+
   FuncCallType type = FuncCallType::INVALID;
   // only used when type == OPERATOR_OVERRIDE
   std::string method_name;
@@ -63,19 +69,22 @@ class FuncCallExpr : public Expression {
 
 class MethodCallExpr : public Expression {
  public:
-  friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker& tc, MethodCallExpr* method_call_expr);
-  friend std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method, const MethodCallExpr* call_expr);
-  friend std::unique_ptr<Type> CheckAndGetInnerMethodReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype, const MethodCallExpr* call_expr);
-  
-   void SetIdName(const std::string& id_name) { id_name_ = id_name; }
+  friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker& tc,
+                                                                       MethodCallExpr* method_call_expr);
+  friend std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method,
+                                                           const MethodCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckAndGetInnerMethodReturnType(const TypeChecker& tc,
+                                                                const std::unique_ptr<Type>& ctype,
+                                                                const MethodCallExpr* call_expr);
 
-   void SetMethodName(const std::string& method_name) {
-    method_name_ = method_name;
-   }
+  void SetIdName(const std::string& id_name) { id_name_ = id_name; }
 
-   void SetParameters(std::vector<std::unique_ptr<Expression>>&& param) { parameters_ = std::move(param); }
+  void SetMethodName(const std::string& method_name) { method_name_ = method_name; }
 
-   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
+  void SetParameters(std::vector<std::unique_ptr<Expression>>&& param) { parameters_ = std::move(param); }
+
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
+
  private:
   std::string id_name_;
   std::string method_name_;
@@ -109,7 +118,7 @@ class UnaryExpr : public Expression {
   void SetOp(Token op) { op_ = op; }
 
   void SetOperand(std::unique_ptr<Expression>&& operand) { operand_ = std::move(operand); }
-  
+
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
 
  private:
@@ -122,9 +131,7 @@ class IdExpr : public Expression {
   friend class TypeChecker;
   void SetId(const std::string& id) { id_name_ = id; }
 
-  const std::string& GetId() const {
-    return id_name_;
-  }
+  const std::string& GetId() const { return id_name_; }
 
   enum class Type {
     Variable,
@@ -155,7 +162,6 @@ class StringIteralExpr : public Expression {
 
 class IntIteralExpr : public Expression {
  public:
-
   void SetIntIter(const int64_t& n) { num_ = n; }
 
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
@@ -206,9 +212,7 @@ class ByteIteralExpr : public Expression {
 
 class VoidIteralExpr : public Expression {
  public:
- std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
-    return std::make_shared<VoidVariable>();
- }
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override { return std::make_shared<VoidVariable>(); }
 };
 
 class SelfExpr : public Expression {
@@ -227,7 +231,7 @@ struct ExecuteResult {
   ExecuteState state_;
   std::shared_ptr<Variable> result_;
 
-  static ExecuteResult Next() { 
+  static ExecuteResult Next() {
     ExecuteResult obj;
     obj.state_ = ExecuteState::Next;
     return obj;
@@ -261,17 +265,11 @@ class Statement : public AstNode {
 
 class BlockStmt : public Statement {
  public:
-  void SetBlock(std::vector<std::unique_ptr<Statement>>&& block) {
-    block_ = std::move(block);
-  }
+  void SetBlock(std::vector<std::unique_ptr<Statement>>&& block) { block_ = std::move(block); }
 
-  std::string GetStmtName() override {
-    return "block_stmt";
-  }
+  std::string GetStmtName() override { return "block_stmt"; }
 
-  const std::vector<std::unique_ptr<Statement>>& GetStmts() const {
-    return block_;
-  }
+  const std::vector<std::unique_ptr<Statement>>& GetStmts() const { return block_; }
 
   ExecuteResult Execute(Interpreter&) override;
 
@@ -283,25 +281,15 @@ class ForStmt : public Statement {
  public:
   friend class TypeChecker;
 
-  void SetInit(std::unique_ptr<Expression>&& init) {
-    init_ = std::move(init);
-  }
+  void SetInit(std::unique_ptr<Expression>&& init) { init_ = std::move(init); }
 
-  void SetCheck(std::unique_ptr<Expression>&& check) {
-    check_ = std::move(check);
-  }
+  void SetCheck(std::unique_ptr<Expression>&& check) { check_ = std::move(check); }
 
-  void SetUpdate(std::unique_ptr<Expression>&& update) {
-    update_ = std::move(update);
-  }
+  void SetUpdate(std::unique_ptr<Expression>&& update) { update_ = std::move(update); }
 
-  void SetBlock(std::unique_ptr<BlockStmt>&& block) {
-    block_ = std::move(block);
-  }
+  void SetBlock(std::unique_ptr<BlockStmt>&& block) { block_ = std::move(block); }
 
-  std::string GetStmtName() override {
-    return "for_stmt";
-  }
+  std::string GetStmtName() override { return "for_stmt"; }
 
   ExecuteResult Execute(Interpreter&) override;
 
@@ -316,24 +304,16 @@ class IfStmt : public Statement {
  public:
   friend class TypeChecker;
 
-  void SetCheck(std::unique_ptr<Expression>&& check) {
-    check_ = std::move(check);
-  }
+  void SetCheck(std::unique_ptr<Expression>&& check) { check_ = std::move(check); }
 
-  void SetIfStmt(std::unique_ptr<BlockStmt>&& if_block) {
-    if_block_ = std::move(if_block);
-  }
+  void SetIfStmt(std::unique_ptr<BlockStmt>&& if_block) { if_block_ = std::move(if_block); }
 
-  void SetElseStmt(std::unique_ptr<BlockStmt>&& else_block) {
-    else_block_ = std::move(else_block);
-  }
+  void SetElseStmt(std::unique_ptr<BlockStmt>&& else_block) { else_block_ = std::move(else_block); }
 
-  std::string GetStmtName() override {
-    return "if_stmt";
-  }
+  std::string GetStmtName() override { return "if_stmt"; }
 
   ExecuteResult Execute(Interpreter&) override;
-  
+
  private:
   std::unique_ptr<Expression> check_;
   std::unique_ptr<BlockStmt> if_block_;
@@ -344,17 +324,11 @@ class WhileStmt : public Statement {
  public:
   friend class TypeChecker;
 
-  void SetCheck(std::unique_ptr<Expression>&& check) {
-    check_ = std::move(check);
-  }
+  void SetCheck(std::unique_ptr<Expression>&& check) { check_ = std::move(check); }
 
-  void SetBlock(std::unique_ptr<BlockStmt>&& block) {
-    block_ = std::move(block);
-  }
+  void SetBlock(std::unique_ptr<BlockStmt>&& block) { block_ = std::move(block); }
 
-  std::string GetStmtName() override {
-    return "while_stmt";
-  }
+  std::string GetStmtName() override { return "while_stmt"; }
 
   ExecuteResult Execute(Interpreter&) override;
 
@@ -365,40 +339,28 @@ class WhileStmt : public Statement {
 
 class BreakStmt : public Statement {
  public:
-  std::string GetStmtName() override {
-    return "break_stmt";
-  }
+  std::string GetStmtName() override { return "break_stmt"; }
 
-  ExecuteResult Execute(Interpreter&) override {
-    return ExecuteResult::Break();
-  }
+  ExecuteResult Execute(Interpreter&) override { return ExecuteResult::Break(); }
 };
 
 class ContinueStmt : public Statement {
  public:
-  std::string GetStmtName() override {
-    return "continue_stmt";
-  }
+  std::string GetStmtName() override { return "continue_stmt"; }
 
-  ExecuteResult Execute(Interpreter&) override {
-    return ExecuteResult::Continue();
-  }
+  ExecuteResult Execute(Interpreter&) override { return ExecuteResult::Continue(); }
 };
 
 class ReturnStmt : public Statement {
  public:
   friend class TypeChecker;
 
-  void SetReturn(std::unique_ptr<Expression>&& ret) {
-    return_ = std::move(ret);
-  }
+  void SetReturn(std::unique_ptr<Expression>&& ret) { return_ = std::move(ret); }
 
-  std::string GetStmtName() override {
-    return "return_stmt";
-  }
+  std::string GetStmtName() override { return "return_stmt"; }
 
   ExecuteResult Execute(Interpreter&) override;
-  
+
  private:
   std::unique_ptr<Expression> return_;
 };
@@ -406,17 +368,13 @@ class ReturnStmt : public Statement {
 class ExpressionStmt : public Statement {
  public:
   friend class TypeChecker;
-   
-  void SetExpr(std::unique_ptr<Expression>&& expr) { expr_ = std::move(expr); }
-  
-  // 由语义分析阶段完成
-  void SetExprType(std::unique_ptr<Type>&& type) {
-    expr_type_ = std::move(type);
-  }
 
-  std::string GetStmtName() override {
-    return "expr_stmt";
-  }
+  void SetExpr(std::unique_ptr<Expression>&& expr) { expr_ = std::move(expr); }
+
+  // 由语义分析阶段完成
+  void SetExprType(std::unique_ptr<Type>&& type) { expr_type_ = std::move(type); }
+
+  std::string GetStmtName() override { return "expr_stmt"; }
 
   const std::unique_ptr<Type>& GetType() const {
     assert(expr_type_ != nullptr);
@@ -441,24 +399,16 @@ class VariableDefineStmt : public Statement {
 
   void SetVarName(const std::string& var_name) { var_name_ = var_name; }
 
-  void SetConstructors(std::vector<std::unique_ptr<Expression>>&& cos) {
-    constructors_ = std::move(cos);
-  }
+  void SetConstructors(std::vector<std::unique_ptr<Expression>>&& cos) { constructors_ = std::move(cos); }
 
-  const std::unique_ptr<Type>& GetType() const {
-    return type_;
-  }
+  const std::unique_ptr<Type>& GetType() const { return type_; }
 
-  const std::string& GetVarName() const {
-    return var_name_;
-  }
+  const std::string& GetVarName() const { return var_name_; }
 
-  std::string GetStmtName() override {
-    return "var_def_stmt";
-  }
+  std::string GetStmtName() override { return "var_def_stmt"; }
 
   ExecuteResult Execute(Interpreter&) override;
-  
+
  private:
   std::unique_ptr<Type> type_;
   std::string var_name_;

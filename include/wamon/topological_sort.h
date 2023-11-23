@@ -1,10 +1,10 @@
 #pragma once
 
+#include <algorithm>
+#include <cassert>
+#include <queue>
 #include <unordered_map>
 #include <vector>
-#include <algorithm>
-#include <queue>
-#include <cassert>
 
 namespace wamon {
 
@@ -37,16 +37,16 @@ class Graph {
 
   bool TopologicalSort() {
     std::queue<NodeType> queue;
-    for(auto& each : graph_) {
+    for (auto& each : graph_) {
       if (each.second.in_degree_ == 0) {
         queue.push(each.first);
       }
     }
     size_t out_count = 0;
-    while(queue.empty() == false) {
+    while (queue.empty() == false) {
       NodeType node = queue.front();
       queue.pop();
-      for(auto& to : graph_[node].edges_) {
+      for (auto& to : graph_[node].edges_) {
         assert(graph_[to].in_degree_ > 0);
         graph_[to].in_degree_ -= 1;
         if (graph_[to].in_degree_ == 0) {
@@ -64,9 +64,7 @@ class Graph {
     // 拓扑排序时in_degree_的值和edges_不保持一致。
     size_t in_degree_ = 0;
 
-    bool FindEdge(const NodeType& to_node) {
-      return std::find(edges_.begin(), edges_.end(), to_node) != edges_.end();
-    }
+    bool FindEdge(const NodeType& to_node) { return std::find(edges_.begin(), edges_.end(), to_node) != edges_.end(); }
 
     bool AddEdge(NodeType to) {
       if (FindEdge(to) == true) {
@@ -80,4 +78,4 @@ class Graph {
   std::unordered_map<NodeType, Edges> graph_;
 };
 
-}
+}  // namespace wamon

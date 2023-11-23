@@ -1,10 +1,12 @@
 #include "wamon/variable.h"
+
 #include "wamon/interpreter.h"
 #include "wamon/struct_def.h"
 
 namespace wamon {
 
-std::unique_ptr<Variable> VariableFactory(std::unique_ptr<Type> type, const std::string& name, Interpreter& interpreter) {
+std::unique_ptr<Variable> VariableFactory(std::unique_ptr<Type> type, const std::string& name,
+                                          Interpreter& interpreter) {
   if (IsBuiltInType(type)) {
     std::string typeinfo = type->GetTypeInfo();
     if (typeinfo == "string") {
@@ -43,15 +45,11 @@ std::unique_ptr<Variable> VariableFactory(std::unique_ptr<Type> type, const std:
   throw WamonExecption("VariableFactory error, not implement now.");
 }
 
-StructVariable::StructVariable(const StructDef* sd, Interpreter& i, const std::string& name) : 
-    Variable(std::make_unique<BasicType>(sd->GetStructName()), name),
-    def_(sd),
-    interpreter_(i) {
-
-  }
+StructVariable::StructVariable(const StructDef* sd, Interpreter& i, const std::string& name)
+    : Variable(std::make_unique<BasicType>(sd->GetStructName()), name), def_(sd), interpreter_(i) {}
 
 std::shared_ptr<Variable> StructVariable::GetDataMemberByName(const std::string& name) {
-  for(auto& each : data_members_) {
+  for (auto& each : data_members_) {
     if (each.name == name) {
       return each.data;
     }
@@ -64,9 +62,10 @@ void StructVariable::ConstructByFields(const std::vector<std::shared_ptr<Variabl
   if (fields.size() != members.size()) {
     throw WamonExecption("StructVariable's ConstructByFields method error : fields.size() == {}", fields.size());
   }
-  for(size_t i = 0; i < members.size(); ++i) {
+  for (size_t i = 0; i < members.size(); ++i) {
     if (fields[i]->GetTypeInfo() != members[i].second->GetTypeInfo()) {
-      throw WamonExecption("StructVariable's ConstructByFields method error : {}th type dismatch : {} != {}", i, fields[i]->GetTypeInfo(), members[i].second->GetTypeInfo());
+      throw WamonExecption("StructVariable's ConstructByFields method error : {}th type dismatch : {} != {}", i,
+                           fields[i]->GetTypeInfo(), members[i].second->GetTypeInfo());
     }
     data_members_.push_back({members[i].first, fields[i]->Clone()});
   }
@@ -74,14 +73,14 @@ void StructVariable::ConstructByFields(const std::vector<std::shared_ptr<Variabl
 
 void StructVariable::DefaultConstruct() {
   auto& members = def_->GetDataMembers();
-  for(auto& each : members) {
+  for (auto& each : members) {
     data_members_.push_back({each.first, VariableFactory(each.second->Clone(), each.first, interpreter_)});
   }
 }
 
 std::unique_ptr<Variable> StructVariable::Clone() {
   std::vector<std::shared_ptr<Variable>> variables;
-  for(auto& each : data_members_) {
+  for (auto& each : data_members_) {
     variables.push_back(each.data->Clone());
   }
   auto ret = std::make_unique<StructVariable>(def_, interpreter_, GetName());
@@ -89,19 +88,28 @@ std::unique_ptr<Variable> StructVariable::Clone() {
   return ret;
 }
 
+void StructVariable::Print(Output& output) {
+  assert(def_ != nullptr);
+  output.OutputFormat("struct {} : [ ", def_->GetStructName());
+  for (size_t index = 0; index < data_members_.size(); ++index) {
+    data_members_[index].data->Print(output);
+    output.OutPutString(" ");
+  }
+  output.OutPutString(" ]");
+}
+
 void PointerVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
   if (fields.size() != 1) {
     throw WamonExecption("PointerVariable's ConstructByFields method error : fields.size() == {}", fields.size());
   }
   if (GetTypeInfo() != fields[0]->GetTypeInfo()) {
-    throw WamonExecption("PointerVariable's ConstructByFields method error, type dismatch : {} != {}", fields[0]->GetTypeInfo(), GetTypeInfo());
+    throw WamonExecption("PointerVariable's ConstructByFields method error, type dismatch : {} != {}",
+                         fields[0]->GetTypeInfo(), GetTypeInfo());
   }
   obj_ = AsPointerVariable(fields[0])->GetHoldVariable();
 }
 
-void PointerVariable::DefaultConstruct() {
-  obj_.reset();
-}
+void PointerVariable::DefaultConstruct() { obj_.reset(); }
 
 std::unique_ptr<Variable> PointerVariable::Clone() {
   auto ret = std::make_unique<PointerVariable>(obj_.lock()->GetType(), "");
@@ -109,9 +117,7 @@ std::unique_ptr<Variable> PointerVariable::Clone() {
   return ret;
 }
 
-void ListVariable::PushBack(std::shared_ptr<Variable> element) {
-  elements_.push_back(std::move(element));
-}
+void ListVariable::PushBack(std::shared_ptr<Variable> element) { elements_.push_back(std::move(element)); }
 
 void ListVariable::PopBack() {
   if (elements_.empty()) {
@@ -121,21 +127,20 @@ void ListVariable::PopBack() {
 }
 
 void ListVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
-  for(auto& each : fields) {
+  for (auto& each : fields) {
     if (each->GetTypeInfo() != element_type_->GetTypeInfo()) {
-      throw WamonExecption("ListVariable::ConstructByFields error, type dismatch : {} != {}", each->GetTypeInfo(), element_type_->GetTypeInfo());
+      throw WamonExecption("ListVariable::ConstructByFields error, type dismatch : {} != {}", each->GetTypeInfo(),
+                           element_type_->GetTypeInfo());
     }
   }
   elements_ = std::move(fields);
 }
 
-void ListVariable::DefaultConstruct() {
-  
-}
+void ListVariable::DefaultConstruct() {}
 
 std::unique_ptr<Variable> ListVariable::Clone() {
   std::vector<std::shared_ptr<Variable>> elements;
-  for(auto& each : elements_) {
+  for (auto& each : elements_) {
     elements.push_back(each->Clone());
   }
   auto ret = std::make_unique<ListVariable>(element_type_->Clone(), "");
@@ -153,20 +158,19 @@ void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Varia
     return;
   }
   if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
-    throw WamonExecption("FunctionVariable's ConstructByFields method error, type dismatch : {} != {}", fields[0]->GetTypeInfo(), GetTypeInfo());
+    throw WamonExecption("FunctionVariable's ConstructByFields method error, type dismatch : {} != {}",
+                         fields[0]->GetTypeInfo(), GetTypeInfo());
   }
   func_name_ = AsStringVariable(fields[0])->GetValue();
 }
 
-void FunctionVariable::DefaultConstruct() {
-  
-}
+void FunctionVariable::DefaultConstruct() {}
 
 std::unique_ptr<Variable> FunctionVariable::Clone() {
   std::vector<std::unique_ptr<Type>> param_type;
   auto type = GetType();
   auto fun_type = dynamic_cast<FuncType*>(type.get());
-  for(auto&& each : fun_type->GetParamType()) {
+  for (auto&& each : fun_type->GetParamType()) {
     param_type.push_back(each->Clone());
   }
   auto obj = std::make_unique<FunctionVariable>(std::move(param_type), fun_type->GetReturnType()->Clone(), "");
@@ -175,4 +179,4 @@ std::unique_ptr<Variable> FunctionVariable::Clone() {
   return obj;
 }
 
-}
+}  // namespace wamon

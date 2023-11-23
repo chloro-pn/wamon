@@ -11,7 +11,6 @@ namespace wamon {
 
 class WamonExecption : public std::exception {
  public:
-
   template <typename... Args>
   explicit WamonExecption(fmt::format_string<Args...> formator, Args&&... what) : what_() {
     what_ = fmt::format(formator, std::forward<Args>(what)...);
@@ -27,25 +26,21 @@ class WamonExecption : public std::exception {
 
 class WamonDeterministicReturn : public WamonExecption {
  public:
-  explicit WamonDeterministicReturn(const std::string& func_name) : 
-      WamonExecption("deterministic return check error , {}", func_name) {
-    
-  }
+  explicit WamonDeterministicReturn(const std::string& func_name)
+      : WamonExecption("deterministic return check error , {}", func_name) {}
 };
 
 class WamonTypeCheck : public WamonExecption {
  public:
-  explicit WamonTypeCheck(const std::string& context_info, const std::string& type_info, const std::string& reason) : 
-      WamonExecption("type check error, context : {}, type_info : {}, reason : {}", context_info, type_info, reason) {
+  explicit WamonTypeCheck(const std::string& context_info, const std::string& type_info, const std::string& reason)
+      : WamonExecption("type check error, context : {}, type_info : {}, reason : {}", context_info, type_info, reason) {
 
   }
 };
 
 class WamonCompareTypeDismatch : public WamonExecption {
  public:
-  explicit WamonCompareTypeDismatch(const std::string& t1, const std::string& t2) : 
-      WamonExecption("wamon compare type dismatch : {} != {}", t1, t2) {
-
-  }
+  explicit WamonCompareTypeDismatch(const std::string& t1, const std::string& t2)
+      : WamonExecption("wamon compare type dismatch : {} != {}", t1, t2) {}
 };
-}  // namespace bptree
+}  // namespace wamon

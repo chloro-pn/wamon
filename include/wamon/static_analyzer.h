@@ -1,10 +1,10 @@
-#include <stack>
 #include <cassert>
+#include <stack>
 
-#include "wamon/context.h"
 #include "wamon/ast.h"
-#include "wamon/type.h"
+#include "wamon/context.h"
 #include "wamon/package_unit.h"
+#include "wamon/type.h"
 
 namespace wamon {
 
@@ -17,7 +17,7 @@ enum class FindNameResult {
 // 静态分析器，在词法分析和语法分析之后的第三个阶段，执行上下文相关的语义分析，包括类型诊断、定义声明规则诊断、语句合法性诊断等。
 class StaticAnalyzer {
  public:
-  explicit StaticAnalyzer(const PackageUnit& pu):pu_(pu), global_context_(Context::ContextType::GLOBAL) {}
+  explicit StaticAnalyzer(const PackageUnit& pu) : pu_(pu), global_context_(Context::ContextType::GLOBAL) {}
 
   // 直接在全局函数表中查找函数
   const FunctionDef* FindFunction(const std::string& fname) const {
@@ -38,7 +38,7 @@ class StaticAnalyzer {
   }
 
   FindNameResult FindNameAndType(const std::string& name, std::unique_ptr<Type>& type) const {
-    for(auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
+    for (auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
       type = (*it)->GetTypeByName(name);
       if (type != nullptr) {
         return FindNameResult::OBJECT;
@@ -57,7 +57,7 @@ class StaticAnalyzer {
   }
 
   std::unique_ptr<Type> GetTypeByName(const std::string& name, IdExpr::Type& type) const {
-    for(auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
+    for (auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
       auto result = (*it)->GetTypeByName(name);
       if (result != nullptr) {
         type = IdExpr::Type::Variable;
@@ -79,21 +79,24 @@ class StaticAnalyzer {
     throw WamonExecption("GetTypeByName error, can't find id's name {} , maybe builtin func name or invalid", name);
   }
 
-  void RegisterFuncParamsToContext(const std::vector<std::pair<std::unique_ptr<Type>, std::string>>& params, Context* func_context) {
+  void RegisterFuncParamsToContext(const std::vector<std::pair<std::unique_ptr<Type>, std::string>>& params,
+                                   Context* func_context) {
     std::set<std::string> param_names;
-    for(auto& each : params) {
+    for (auto& each : params) {
       if (param_names.find(each.second) != param_names.end()) {
-        throw WamonExecption("func or method {} has duplicate param name {}", func_context->AssertFuncContextAndGetFuncName(), each.second);
+        throw WamonExecption("func or method {} has duplicate param name {}",
+                             func_context->AssertFuncContextAndGetFuncName(), each.second);
       }
       func_context->RegisterVariable(each.second, each.first->Clone());
     }
-}
+  }
 
   void Enter(std::unique_ptr<Context>&& c) {
     if (c->GetType() == Context::ContextType::GLOBAL) {
       throw WamonExecption("enter context error, the global context should be unique");
     }
-    if ((c->GetType() == Context::ContextType::FUNC || c->GetType() == Context::ContextType::METHOD) && context_stack_.empty() == false) {
+    if ((c->GetType() == Context::ContextType::FUNC || c->GetType() == Context::ContextType::METHOD) &&
+        context_stack_.empty() == false) {
       throw WamonExecption("the func and method context can only appear in global context");
     }
     context_stack_.push_back(std::move(c));
@@ -110,7 +113,7 @@ class StaticAnalyzer {
     }
     return &global_context_;
   }
-  
+
   const std::string& CheckMethodContextAndGetTypeName() {
     for (auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
       if ((*it)->GetLevel() == 2) {
@@ -124,12 +127,13 @@ class StaticAnalyzer {
   }
 
   void CheckForOrWhileContext() {
-    for(auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
+    for (auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
       if ((*it)->GetLevel() == 1) {
         throw WamonExecption("check for or while context error");
       }
       Context* cur = (*it).get();
-      if (cur->GetLevel() == 2 && (cur->GetType() == Context::ContextType::FOR_BLOCK || cur->GetType() == Context::ContextType::WHILE_BLOCK)) {
+      if (cur->GetLevel() == 2 &&
+          (cur->GetType() == Context::ContextType::FOR_BLOCK || cur->GetType() == Context::ContextType::WHILE_BLOCK)) {
         return;
       }
     }
@@ -137,7 +141,7 @@ class StaticAnalyzer {
   }
 
   std::unique_ptr<Type> CheckFuncOrMethodAndGetReturnType() {
-    for(auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
+    for (auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
       if ((*it)->GetLevel() == 2) {
         continue;
       }
@@ -164,9 +168,7 @@ class StaticAnalyzer {
     return pu_.GetFunctions();
   }
 
-  const PackageUnit& GetPackageUnit() const {
-    return pu_;
-  }
+  const PackageUnit& GetPackageUnit() const { return pu_; }
 
  private:
   const PackageUnit& pu_;
@@ -174,4 +176,4 @@ class StaticAnalyzer {
   std::vector<std::unique_ptr<Context>> context_stack_;
 };
 
-}
+}  // namespace wamon

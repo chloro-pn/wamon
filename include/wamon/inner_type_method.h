@@ -1,8 +1,8 @@
 #pragma once
 
-#include <unordered_map>
-#include <string>
 #include <functional>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "wamon/type.h"
@@ -17,20 +17,23 @@ class InnerTypeMethod {
     return obj;
   }
 
-  using CheckType = std::function<std::unique_ptr<Type>(const std::unique_ptr<Type>& builtin_type, const std::vector<std::unique_ptr<Type>>& params_type)>;
-  using HandleType = std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&&)>;
+  using CheckType = std::function<std::unique_ptr<Type>(const std::unique_ptr<Type>& builtin_type,
+                                                        const std::vector<std::unique_ptr<Type>>& params_type)>;
+  using HandleType = std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>& obj,
+                                                             std::vector<std::shared_ptr<Variable>>&&)>;
 
   std::string GetHandleId(const std::unique_ptr<Type>& builtintype, const std::string& method_name) {
     std::string handle_id;
     if (IsListType(builtintype)) {
-      handle_id = "list"+ method_name;
+      handle_id = "list" + method_name;
     } else {
       handle_id = builtintype->GetTypeInfo() + method_name;
     }
     return handle_id;
   }
 
-  std::unique_ptr<Type> CheckAndGetReturnType(const std::unique_ptr<Type>& builtintype, const std::string& method_name, const std::vector<std::unique_ptr<Type>>& params_type) {
+  std::unique_ptr<Type> CheckAndGetReturnType(const std::unique_ptr<Type>& builtintype, const std::string& method_name,
+                                              const std::vector<std::unique_ptr<Type>>& params_type) {
     std::string handle_id = GetHandleId(builtintype, method_name);
     auto handle = checks_.find(handle_id);
     if (handle == checks_.end()) {
@@ -52,4 +55,4 @@ class InnerTypeMethod {
   std::unordered_map<std::string, HandleType> handles_;
 };
 
-}
+}  // namespace wamon
