@@ -34,6 +34,13 @@ class OperatorDef {
     return GetTokenStr(op_);
   }
 
+  static const char* GetOpStr(Token op) {
+    if (op == Token::LEFT_PARENTHESIS) {
+      return "call";
+    }
+    return GetTokenStr(op);
+  }
+
   // 同一个运算符允许为不同的类型提供重载，因此需要使用参数类型列表构造一个id，本id需要保证不同的重载id不同
   std::string GetTypeListId() const {
     std::string result;
@@ -52,7 +59,7 @@ class OperatorDef {
       type_list_id += each->GetTypeInfo();
       type_list_id += "-";
     }
-    return std::string("__op_") + (token == Token::LEFT_PARENTHESIS ? "call" : GetTokenStr(token)) + type_list_id;
+    return std::string("__op_") + GetOpStr(token) + type_list_id;
   }
 
   // 避免不必要的临时对象生成
@@ -63,7 +70,7 @@ class OperatorDef {
       type_list_id += (*each)->GetTypeInfo();
       type_list_id += "-";
     }
-    return std::string("__op_") + (token == Token::LEFT_PARENTHESIS ? "call" : GetTokenStr(token)) + type_list_id;
+    return std::string("__op_") + GetOpStr(token) + type_list_id;
   }
 
   static std::string CreateName(Token token, const std::vector<std::shared_ptr<Variable>>& param_list);

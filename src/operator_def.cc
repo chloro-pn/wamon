@@ -11,7 +11,7 @@ std::string OperatorDef::CreateName(Token token, const std::vector<std::shared_p
     type_list_id += each->GetTypeInfo();
     type_list_id += "-";
   }
-  return std::string("__op_") + (token == Token::LEFT_PARENTHESIS ? "call" : GetTokenStr(token)) + type_list_id;
+  return std::string("__op_") + GetOpStr(token) + type_list_id;
 }
 
 }  // namespace wamon
