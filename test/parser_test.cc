@@ -131,14 +131,14 @@ TEST(parser, operator_priority) {
   EXPECT_NE(left, nullptr);
   EXPECT_EQ(left->op_, wamon::Token::MEMBER_ACCESS);
 
-  str = "call mf(a, b)[4]";
+  str = "call mf:(a, b)[4]";
   tokens = scan.Scan(str);
   EXPECT_NO_THROW(wamon::ParseExpression(tokens, 0, tokens.size() - 2));
 }
 
 TEST(parser, parse_stmt) {
   wamon::Scanner scan;
-  std::string str = "if (a.b) { call myfunc(b, c, d[3]); break; } else { \"string_iter\"; }";
+  std::string str = "if (a.b) { call myfunc:(b, c, d[3]); break; } else { \"string_iter\"; }";
   auto tokens = scan.Scan(str);
   size_t next = 0;
   auto stmt = wamon::ParseStatement(tokens, 0, next);
@@ -153,7 +153,7 @@ TEST(parser, parse_stmt) {
   EXPECT_EQ(next, tokens.size() - 1);
   EXPECT_EQ(stmt->GetStmtName(), "block_stmt");
 
-  str = "while(true) { call myfunc(a, b, c); }";
+  str = "while(true) { call myfunc:(a, b, c); }";
   tokens = scan.Scan(str);
   next = 0;
   stmt = wamon::ParseStatement(tokens, 0, next);
@@ -181,14 +181,14 @@ TEST(parser, parse_stmt) {
   EXPECT_EQ(next, tokens.size() - 1);
   EXPECT_GE(stmt->GetStmtName(), "continue_stmt");
 
-  str = "return call my_func();";
+  str = "return call my_func:();";
   tokens = scan.Scan(str);
   next = 0;
   stmt = wamon::TryToParseSkipStmt(tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
   EXPECT_EQ(stmt->GetStmtName(), "return_stmt");
 
-  str = "marr[call get_arr_index()];";
+  str = "marr[call get_arr_index:()];";
   tokens = scan.Scan(str);
   next = 0;
   stmt = wamon::ParseExprStmt(tokens, 0, next);

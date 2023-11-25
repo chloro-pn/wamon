@@ -29,6 +29,9 @@ class TypeChecker {
   friend std::unique_ptr<Type> CheckAndGetInnerMethodReturnType(const TypeChecker& tc,
                                                                 const std::unique_ptr<Type>& ctype,
                                                                 const MethodCallExpr* call_expr);
+  friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker& tc,
+                                                                       MethodCallExpr* method_call_expr);
+
   friend class BuiltinFunctions;
 
   explicit TypeChecker(StaticAnalyzer& sa);

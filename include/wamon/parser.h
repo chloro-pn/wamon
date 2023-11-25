@@ -78,6 +78,22 @@ size_t FindNextToken(const std::vector<WamonToken> &tokens, size_t begin,
   return end;
 }
 
+// 在区间[begin, end]中查找符号token，如果找到了则finded设置为true，否则设置为false。
+// 如果找到了则返回找到的第一个对应token的下标，否则返回值无意义。
+template <Token token>
+size_t FindTokenFromRange(const std::vector<WamonToken> &tokens, size_t begin, size_t end, bool &finded) {
+  assert(tokens.size() >= end);
+  assert(begin <= end);
+  for (size_t i = begin; i <= end; ++i) {
+    if (tokens[i].token == token) {
+      finded = true;
+      return i;
+    }
+  }
+  finded = false;
+  return 0;
+}
+
 class Type;
 std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &begin);
 

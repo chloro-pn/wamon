@@ -42,7 +42,7 @@ class FuncCallExpr : public Expression {
                                                                      const std::unique_ptr<Type>& ctype,
                                                                      FuncCallExpr* call_expr);
 
-  void SetFuncName(const std::string& func_name) { func_name_ = func_name; }
+  void SetCaller(std::unique_ptr<Expression>&& caller) { caller_ = std::move(caller); }
 
   void SetParameters(std::vector<std::unique_ptr<Expression>>&& param) { parameters_ = std::move(param); }
 
@@ -63,7 +63,7 @@ class FuncCallExpr : public Expression {
   std::string method_name;
 
  private:
-  std::string func_name_;
+  std::unique_ptr<Expression> caller_;
   std::vector<std::unique_ptr<Expression>> parameters_;
 };
 
@@ -77,7 +77,7 @@ class MethodCallExpr : public Expression {
                                                                 const std::unique_ptr<Type>& ctype,
                                                                 const MethodCallExpr* call_expr);
 
-  void SetIdName(const std::string& id_name) { id_name_ = id_name; }
+  void SetCaller(std::unique_ptr<Expression>&& caller) { caller_ = std::move(caller); };
 
   void SetMethodName(const std::string& method_name) { method_name_ = method_name; }
 
@@ -86,7 +86,7 @@ class MethodCallExpr : public Expression {
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
 
  private:
-  std::string id_name_;
+  std::unique_ptr<Expression> caller_;
   std::string method_name_;
   std::vector<std::unique_ptr<Expression>> parameters_;
 };
@@ -133,16 +133,16 @@ class IdExpr : public Expression {
 
   const std::string& GetId() const { return id_name_; }
 
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
+
   enum class Type {
     Variable,
+    Callable,
     Function,
-    BUiltinFunc,
     Invalid,
   };
 
   Type type_ = Type::Invalid;
-
-  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
 
  private:
   std::string id_name_;

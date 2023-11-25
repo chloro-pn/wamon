@@ -22,7 +22,7 @@ TEST(package_unit, basic) {
 
     func my_func(int age, string name) -> void {}
 
-    let my_var : bool = (call init());
+    let my_var : bool = (call init:());
 
     method my_struct_name {
       func get_a() -> int {

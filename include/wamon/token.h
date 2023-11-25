@@ -91,6 +91,9 @@ enum class Token {
   LIST,
   F,
 
+  // 移动语义
+  MOVE,
+
   // 包管理
   PACKAGE,
   IMPORT,
@@ -220,6 +223,8 @@ inline const char *GetTokenStr(Token token) {
       return "list";
     case Token::F:
       return "f";
+    case Token::MOVE:
+      return "move";
     case Token::PACKAGE:
       return "package";
     case Token::IMPORT:

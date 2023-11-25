@@ -181,7 +181,7 @@ TEST(static_analysis, call_op_override) {
 
     func main() -> int {
       let m : m_test = (2, 3.4, "bob");
-      let result : string = (call m(2, 3.4));
+      let result : string = (call m:(2, 3.4));
       return m + 2;
     }
   )";
@@ -234,7 +234,7 @@ TEST(static_analysis, builtin_func_check) {
     package main;
     
     func mylen(string a) -> int {
-      let tmp : int = (call len(a));
+      let tmp : int = (call len:(a));
       return tmp;
     }
   )";

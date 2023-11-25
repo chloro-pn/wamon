@@ -54,12 +54,12 @@ TEST(interpreter, variable) {
     let mydata : my_struct_name = (2, 3.5, "hello");
     let mystr : string = ("hello");
     let myptr : ptr(my_struct_name) = (&mydata);
-    let mylen : int = (call mystr.len());
+    let mylen : int = (call mystr:len());
     let mylist : list(int) = (2, 3, 4);
     let myfunc : f((int, int) -> int) = (add);
 
     let myfunc2 : f((int, int) -> int) = (myfunc);
-    let call_ret : int = (call myfunc2(2, 3));
+    let call_ret : int = (call myfunc2:(2, 3));
 
     func update_list() -> int {
       mylist[1] = mylist[1] * 2;
@@ -239,6 +239,7 @@ TEST(interpreter, callmethod) {
     }
 
     let ms : my_struct_name = (25, 2.1, "bob");
+    let clen : int = (call ms.c:len());
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -259,6 +260,10 @@ TEST(interpreter, callmethod) {
   interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 25);
+
+  v = interpreter.FindVariableById("clen");
+  EXPECT_EQ(v->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 3);
 }
 
 TEST(interpreter, inner_type_method) {
@@ -270,15 +275,15 @@ TEST(interpreter, inner_type_method) {
     let v2 : list(int) = (2, 3, 4);
 
     func func1() -> int {
-      return call v1.len();
+      return call v1:len();
     }
 
     func func2() -> byte {
-      return call v1.at(0);
+      return call v1:at(0);
     }
 
     func func3() -> int {
-      return call v2.size() + call v2.at(1);
+      return call v2:size() + call v2:at(1);
       // 6
     }
   )";
@@ -349,7 +354,7 @@ TEST(interpreter, callable) {
       // callable对象，持有运算符重载的结构体对象
       let f2 : f((int) -> int) = (ms);
 
-      return call f1(0) + call f2(0) + call ms(-20);
+      return call f1:(0) + call f2:(0) + call ms:(-20);
     }
   )";
   wamon::PackageUnit pu;
@@ -522,7 +527,7 @@ TEST(interpreter, fibonacci) {
       if (n == 1) {
         return 1;
       }
-      return call Fibonacci(n - 1) + call Fibonacci(n - 2);
+      return call Fibonacci:(n - 1) + call Fibonacci:(n - 2);
     }
 
     let v : int = (10);
@@ -554,7 +559,7 @@ TEST(interpreter, register_cpp_function) {
     package main;
 
     func testfunc() -> int {
-      let v2 : int = (call func111("hello"));
+      let v2 : int = (call func111:("hello"));
       return v2;
     }
   )";

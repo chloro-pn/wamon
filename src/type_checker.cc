@@ -359,14 +359,14 @@ std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const
   auto type = dynamic_cast<FuncType*>(ctype.get());
   assert(type != nullptr);
   if (type->param_type_.size() != call_expr->parameters_.size()) {
-    throw WamonExecption("callable_object_call {} error, The number of parameters does not match : {} != {}",
-                         call_expr->func_name_, type->param_type_.size(), call_expr->parameters_.size());
+    throw WamonExecption("callable_object_call error, The number of parameters does not match : {} != {}",
+                         type->param_type_.size(), call_expr->parameters_.size());
   }
   for (size_t arg_i = 0; arg_i < type->param_type_.size(); ++arg_i) {
     auto arg_i_type = tc.GetExpressionType(call_expr->parameters_[arg_i].get());
     if (!IsSameType(type->param_type_[arg_i], arg_i_type)) {
-      throw WamonExecption("callable_object_call {} error, arg_{}'s type dismatch {} != {}", call_expr->func_name_,
-                           arg_i, type->param_type_[arg_i]->GetTypeInfo(), arg_i_type->GetTypeInfo());
+      throw WamonExecption("callable_object_call error, arg_{}'s type dismatch {} != {}", arg_i,
+                           type->param_type_[arg_i]->GetTypeInfo(), arg_i_type->GetTypeInfo());
     }
   }
   // 类型检测成功
@@ -422,13 +422,13 @@ std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const M
 std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const FunctionDef* function,
                                                 const FuncCallExpr* call_expr) {
   if (function->param_list_.size() != call_expr->parameters_.size()) {
-    throw WamonExecption("func_call {} error, The number of parameters does not match : {} != {}",
-                         call_expr->func_name_, function->param_list_.size(), call_expr->parameters_.size());
+    throw WamonExecption("func_call {} error, The number of parameters does not match : {} != {}", function->name_,
+                         function->param_list_.size(), call_expr->parameters_.size());
   }
   for (size_t arg_i = 0; arg_i < function->param_list_.size(); ++arg_i) {
     auto arg_i_type = tc.GetExpressionType(call_expr->parameters_[arg_i].get());
     if (!IsSameType(function->param_list_[arg_i].first, arg_i_type)) {
-      throw WamonExecption("func_call {} error, arg_{}'s type dismatch {} != {}", call_expr->func_name_, arg_i,
+      throw WamonExecption("func_call {} error, arg_{}'s type dismatch {} != {}", function->name_, arg_i,
                            function->param_list_[arg_i].first->GetTypeInfo(), arg_i_type->GetTypeInfo());
     }
   }
@@ -436,51 +436,42 @@ std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const Fun
   return function->return_type_->Clone();
 }
 
-// 新的设计：
-// 首先在符号表中查找call_expr->func_name_，分两种情况：
-//   1. 找到了一个object
-//   2. 找到了原生函数或者没找到
-// 当是情况1时，检查该object的类型，如果是函数类型，说明它是一个callable object，callable
-// object可以由原生函数构造，也可以由lambda表达式构造，也可以由重载了()运算符的类型的变量构造，如果是结构体类型，则由重载了()运算符的类型的变量构造
-// 当是情况2时，则首先查内建函数，如果没找到则查用户定义函数
-// todo: 记录一些必要信息供运行时调用
 std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr) {
-  std::unique_ptr<Type> find_type;
-  auto find_result = tc.GetStaticAnalyzer().FindNameAndType(call_expr->func_name_, find_type);
-  if (find_result == FindNameResult::OBJECT) {
-    if (!IsFuncType(find_type)) {
-      // 尝试重载的()运算符
-      call_expr->type = FuncCallExpr::FuncCallType::OPERATOR_OVERRIDE;
-      return CheckAndGetOperatorOverrideReturnType(tc, find_type, call_expr);
-    } else {
-      call_expr->type = FuncCallExpr::FuncCallType::CALLABLE;
-      return CheckAndGetCallableReturnType(tc, find_type, call_expr);
+  auto id_expr = dynamic_cast<IdExpr*>(call_expr->caller_.get());
+  if (id_expr != nullptr && BuiltinFunctions::Instance().Find(id_expr->GetId())) {
+    call_expr->type = FuncCallExpr::FuncCallType::BUILT_IN_FUNC;
+    std::vector<std::unique_ptr<Type>> param_types;
+    for (auto& each : call_expr->parameters_) {
+      param_types.push_back(tc.GetExpressionType(each.get()));
     }
-  } else {
-    if (BuiltinFunctions::Instance().Find(call_expr->func_name_)) {
-      call_expr->type = FuncCallExpr::FuncCallType::BUILT_IN_FUNC;
-      std::vector<std::unique_ptr<Type>> param_types;
-      for (auto& each : call_expr->parameters_) {
-        param_types.push_back(tc.GetExpressionType(each.get()));
-      }
-      return BuiltinFunctions::Instance().TypeCheck(call_expr->func_name_, param_types);
-    } else {
-      if (find_result == FindNameResult::NONE) {
-        throw WamonExecption("invalid function name {} , not found it", call_expr->func_name_);
-      }
-      call_expr->type = FuncCallExpr::FuncCallType::FUNC;
-      auto func = tc.GetStaticAnalyzer().FindFunction(call_expr->func_name_);
-      return CheckAndGetFuncReturnType(tc, func, call_expr);
-    }
+    return BuiltinFunctions::Instance().TypeCheck(id_expr->GetId(), param_types);
   }
+  // would calcualte id_expr.type_
+  std::unique_ptr<Type> find_type = tc.GetExpressionType(call_expr->caller_.get());
+  std::string func_name;
+  if (id_expr != nullptr && id_expr->type_ == IdExpr::Type::Function) {
+    call_expr->type = FuncCallExpr::FuncCallType::FUNC;
+    func_name = id_expr->GetId();
+  } else if (IsFuncType(find_type)) {
+    call_expr->type = FuncCallExpr::FuncCallType::CALLABLE;
+  } else {
+    call_expr->type = FuncCallExpr::FuncCallType::OPERATOR_OVERRIDE;
+  }
+  if (call_expr->type == FuncCallExpr::FuncCallType::CALLABLE) {
+    return CheckAndGetCallableReturnType(tc, find_type, call_expr);
+  }
+  if (call_expr->type == FuncCallExpr::FuncCallType::OPERATOR_OVERRIDE) {
+    return CheckAndGetOperatorOverrideReturnType(tc, find_type, call_expr);
+  }
+  if (call_expr->type == FuncCallExpr::FuncCallType::FUNC) {
+    auto func = tc.GetStaticAnalyzer().FindFunction(func_name);
+    return CheckAndGetFuncReturnType(tc, func, call_expr);
+  }
+  throw WamonExecption("CheckParamTypeAndGetResultTypeForFunction error, invalid format");
 }
 
 std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker& tc, MethodCallExpr* method_call_expr) {
-  std::unique_ptr<Type> find_type;
-  auto find_result = tc.GetStaticAnalyzer().FindNameAndType(method_call_expr->id_name_, find_type);
-  if (find_result != FindNameResult::OBJECT) {
-    throw WamonExecption("CheckParamTypeAndGetResultTypeForMethod error, not find ident's type");
-  }
+  std::unique_ptr<Type> find_type = tc.GetExpressionType(method_call_expr->caller_.get());
   if (IsInnerType(find_type)) {
     return CheckAndGetInnerMethodReturnType(tc, find_type, method_call_expr);
   }
@@ -546,6 +537,11 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   IdExpr::Type type = IdExpr::Type::Invalid;
   auto ret = static_analyzer_.GetTypeByName(tmp->id_name_, type);
   tmp->type_ = type;
+  if (tmp->type_ == IdExpr::Type::Variable) {
+    if (IsFuncType(ret)) {
+      tmp->type_ = IdExpr::Type::Callable;
+    }
+  }
   return ret;
 }
 

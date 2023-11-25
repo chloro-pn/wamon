@@ -56,7 +56,12 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
   }
   // built-in类型
   if (IsBuiltInType(var_type)) {
-    if (param_types.size() != 1 || !IsSameType(var_type, param_types[0])) {
+    if (param_types.size() != 1) {
+      throw WamonExecption(
+          "CheckCanConstructBy check error, builtin type {} should have only one param that has the same type",
+          var_type->GetTypeInfo());
+    }
+    if (!IsSameType(var_type, param_types[0])) {
       throw WamonExecption(
           "CheckCanConstructBy check error, builtin type {} should have only one param that has the same type",
           var_type->GetTypeInfo());

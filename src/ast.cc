@@ -12,14 +12,18 @@ std::shared_ptr<Variable> FuncCallExpr::Calculate(Interpreter& interpreter) {
     auto v = each->Calculate(interpreter);
     params.push_back(std::move(v));
   }
+  std::string func_name;
+  if (type == FuncCallType::FUNC || type == FuncCallType::BUILT_IN_FUNC) {
+    func_name = dynamic_cast<IdExpr*>(caller_.get())->GetId();
+  }
   if (type == FuncCallType::FUNC) {
-    auto funcdef = interpreter.GetPackageUnit().FindFunction(func_name_);
+    auto funcdef = interpreter.GetPackageUnit().FindFunction(func_name);
     interpreter.EnterContext<RuntimeContextType::Function>();
     auto result = interpreter.CallFunction(funcdef, std::move(params));
     interpreter.LeaveContext();
     return result;
   } else if (type == FuncCallType::CALLABLE) {
-    auto obj = interpreter.FindVariableById<false>(func_name_);
+    auto obj = caller_->Calculate(interpreter);
     assert(obj != nullptr);
     interpreter.EnterContext<RuntimeContextType::Callable>();
     auto result = interpreter.CallCallable(obj, std::move(params));
@@ -27,11 +31,11 @@ std::shared_ptr<Variable> FuncCallExpr::Calculate(Interpreter& interpreter) {
     return result;
   } else if (type == FuncCallType::BUILT_IN_FUNC) {
     interpreter.EnterContext<RuntimeContextType::Function>();
-    auto result = interpreter.CallFunction(func_name_, std::move(params));
+    auto result = interpreter.CallFunction(func_name, std::move(params));
     interpreter.LeaveContext();
     return result;
   } else if (type == FuncCallType::OPERATOR_OVERRIDE) {
-    auto obj = interpreter.FindVariableById<false>(func_name_);
+    auto obj = caller_->Calculate(interpreter);
     assert(obj != nullptr);
     auto method_def = interpreter.GetPackageUnit().FindStruct(obj->GetTypeInfo())->GetMethod(method_name);
     assert(method_def != nullptr);
@@ -49,7 +53,7 @@ std::shared_ptr<Variable> MethodCallExpr::Calculate(Interpreter& interpreter) {
     auto v = each->Calculate(interpreter);
     params.push_back(std::move(v));
   }
-  auto v = interpreter.FindVariableById(id_name_);
+  auto v = caller_->Calculate(interpreter);
   if (IsInnerType(v->GetType())) {
     interpreter.EnterContext<RuntimeContextType::Method>();
     auto result = interpreter.CallMethod(v, method_name_, std::move(params));
@@ -82,7 +86,10 @@ std::shared_ptr<Variable> UnaryExpr::Calculate(Interpreter& interpreter) {
 }
 
 std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
-  if (type_ == Type::Variable) {
+  if (type_ == Type::Invalid) {
+    throw WamonExecption("IdExpr Calculate error, type invalid");
+  }
+  if (type_ == Type::Variable || type_ == Type::Callable) {
     return interpreter.FindVariableById(id_name_);
   } else {
     auto func_def = interpreter.GetPackageUnit().FindFunction(id_name_);

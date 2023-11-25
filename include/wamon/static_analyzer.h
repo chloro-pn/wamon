@@ -8,12 +8,6 @@
 
 namespace wamon {
 
-enum class FindNameResult {
-  OBJECT,
-  FUNCTION,
-  NONE,
-};
-
 // 静态分析器，在词法分析和语法分析之后的第三个阶段，执行上下文相关的语义分析，包括类型诊断、定义声明规则诊断、语句合法性诊断等。
 class StaticAnalyzer {
  public:
@@ -37,25 +31,6 @@ class StaticAnalyzer {
     return pu_.GetDataMemberType(type_name, field_name);
   }
 
-  FindNameResult FindNameAndType(const std::string& name, std::unique_ptr<Type>& type) const {
-    for (auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
-      type = (*it)->GetTypeByName(name);
-      if (type != nullptr) {
-        return FindNameResult::OBJECT;
-      }
-    }
-    type = global_context_.GetTypeByName(name);
-    if (type != nullptr) {
-      return FindNameResult::OBJECT;
-    }
-    const FunctionDef* fd = pu_.FindFunction(name);
-    if (fd == nullptr) {
-      return FindNameResult::NONE;
-    }
-    type = fd->GetType();
-    return FindNameResult::FUNCTION;
-  }
-
   std::unique_ptr<Type> GetTypeByName(const std::string& name, IdExpr::Type& type) const {
     for (auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
       auto result = (*it)->GetTypeByName(name);
@@ -74,9 +49,7 @@ class StaticAnalyzer {
       type = IdExpr::Type::Function;
       return fd->GetType();
     }
-    // 内置函数是多态的，因此无法在类型检测阶段确定具体类型，因此不能作为变量赋值给callable对象
-    // todo ： any type绕过类型检测，运行时错误
-    throw WamonExecption("GetTypeByName error, can't find id's name {} , maybe builtin func name or invalid", name);
+    throw WamonExecption("GetTypeByName error, can't find name {}, maybe builtin function or invalid", name);
   }
 
   void RegisterFuncParamsToContext(const std::vector<std::pair<std::unique_ptr<Type>, std::string>>& params,

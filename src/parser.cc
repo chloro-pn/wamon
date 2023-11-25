@@ -109,7 +109,7 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
 }
 
 /*
- *  ( type1, type2, type3, ..., typen ) -> return_type )
+ *  ( ( type1, type2, type3, ..., typen ) -> return_type )
  * begin                                              end
  */
 void ParseTypeList(const std::vector<WamonToken> &tokens, size_t begin, size_t end,
@@ -240,28 +240,30 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
     } else {
       parse_state = ParseExpressionState::NO_OP;
       // 函数调用表达式
+      // call expression : [method_name] ( param_list )
+      //   i             tmp            tmp2         tmp3
       if (current_token == Token::CALL) {
-        size_t tmp = i + 1;
-        std::string ident = ParseIdentifier(tokens, tmp);
-        if (AssertToken(tokens, tmp, Token::MEMBER_ACCESS) == false) {
+        size_t tmp = FindNextToken<Token::COLON, false, true>(tokens, i + 1);
+        auto caller = ParseExpression(tokens, i + 1, tmp);
+        size_t tmp2 = tmp + 1;
+        if (AssertToken(tokens, tmp2, Token::LEFT_PARENTHESIS)) {
+          size_t tmp3 = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp2 - 1);
+          auto param_list = ParseExprList(tokens, tmp2 - 1, tmp3);
           std::unique_ptr<FuncCallExpr> func_call_expr(new FuncCallExpr());
-          func_call_expr->SetFuncName(ident);
-          size_t tmp_end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp);
-          auto expr_list = ParseExprList(tokens, tmp, tmp_end);
-          func_call_expr->SetParameters(std::move(expr_list));
+          func_call_expr->SetCaller(std::move(caller));
+          func_call_expr->SetParameters(std::move(param_list));
           operands.push(AttachUnaryOperators(std::move(func_call_expr), u_operators));
-          i = tmp_end;
+          i = tmp3;
         } else {
-          // call ident.method_name(params...)
+          auto method_name = ParseIdentifier(tokens, tmp2);
+          size_t tmp3 = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp2);
+          auto param_list = ParseExprList(tokens, tmp2, tmp3);
           std::unique_ptr<MethodCallExpr> method_call_expr(new MethodCallExpr());
-          method_call_expr->SetIdName(ident);
-          std::string method_name = ParseIdentifier(tokens, tmp);
+          method_call_expr->SetCaller(std::move(caller));
           method_call_expr->SetMethodName(method_name);
-          size_t tmp_end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp);
-          auto expr_list = ParseExprList(tokens, tmp, tmp_end);
-          method_call_expr->SetParameters(std::move(expr_list));
+          method_call_expr->SetParameters(std::move(param_list));
           operands.push(AttachUnaryOperators(std::move(method_call_expr), u_operators));
-          i = tmp_end;
+          i = tmp3;
         }
         continue;
       }
