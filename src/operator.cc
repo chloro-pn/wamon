@@ -37,7 +37,7 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
   std::string tmp = OperatorDef::CreateName(Token::PLUS, operands);
   handles[tmp] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
     int v = AsIntVariable(v1)->GetValue() + AsIntVariable(v2)->GetValue();
-    return std::make_shared<IntVariable>(v, "");
+    return std::make_shared<IntVariable>(v, Variable::ValueCategory::RValue, "");
   };
 
   operands.clear();
@@ -46,7 +46,7 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
   tmp = OperatorDef::CreateName(Token::PLUS, operands);
   handles[tmp] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
     double v = AsDoubleVariable(v1)->GetValue() + AsDoubleVariable(v2)->GetValue();
-    return std::make_shared<DoubleVariable>(v, "");
+    return std::make_shared<DoubleVariable>(v, Variable::ValueCategory::RValue, "");
   };
 
   operands.clear();
@@ -55,7 +55,7 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
   tmp = OperatorDef::CreateName(Token::PLUS, operands);
   handles[tmp] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
     std::string v = AsStringVariable(v1)->GetValue() + AsStringVariable(v2)->GetValue();
-    return std::make_shared<StringVariable>(v, "");
+    return std::make_shared<StringVariable>(v, Variable::ValueCategory::RValue, "");
   };
 
   // operator -、*、/ for type int and double
@@ -73,27 +73,27 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
   static Operator::BinaryOperatorType dhandles[6] = {
       [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
         int v = AsIntVariable(v1)->GetValue() - AsIntVariable(v2)->GetValue();
-        return std::make_shared<IntVariable>(v, "");
+        return std::make_shared<IntVariable>(v, Variable::ValueCategory::RValue, "");
       },
       [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
         double v = AsDoubleVariable(v1)->GetValue() - AsDoubleVariable(v2)->GetValue();
-        return std::make_shared<DoubleVariable>(v, "");
+        return std::make_shared<DoubleVariable>(v, Variable::ValueCategory::RValue, "");
       },
       [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
         int v = AsIntVariable(v1)->GetValue() * AsIntVariable(v2)->GetValue();
-        return std::make_shared<IntVariable>(v, "");
+        return std::make_shared<IntVariable>(v, Variable::ValueCategory::RValue, "");
       },
       [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
         double v = AsDoubleVariable(v1)->GetValue() * AsDoubleVariable(v2)->GetValue();
-        return std::make_shared<DoubleVariable>(v, "");
+        return std::make_shared<DoubleVariable>(v, Variable::ValueCategory::RValue, "");
       },
       [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
         int v = AsIntVariable(v1)->GetValue() / AsIntVariable(v2)->GetValue();
-        return std::make_shared<IntVariable>(v, "");
+        return std::make_shared<IntVariable>(v, Variable::ValueCategory::RValue, "");
       },
       [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
         double v = AsDoubleVariable(v1)->GetValue() / AsDoubleVariable(v2)->GetValue();
-        return std::make_shared<DoubleVariable>(v, "");
+        return std::make_shared<DoubleVariable>(v, Variable::ValueCategory::RValue, "");
       },
   };
 
@@ -126,7 +126,7 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
   tmp = OperatorDef::CreateName(Token::AND, operands);
   handles[tmp] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
     double v = AsBoolVariable(v1)->GetValue() && AsBoolVariable(v2)->GetValue();
-    return std::make_shared<BoolVariable>(v, "");
+    return std::make_shared<BoolVariable>(v, Variable::ValueCategory::RValue, "");
   };
 
   operands.clear();
@@ -135,7 +135,7 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
   tmp = OperatorDef::CreateName(Token::OR, operands);
   handles[tmp] = [](std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
     double v = AsBoolVariable(v1)->GetValue() || AsBoolVariable(v2)->GetValue();
-    return std::make_shared<BoolVariable>(v, "");
+    return std::make_shared<BoolVariable>(v, Variable::ValueCategory::RValue, "");
   };
 
   // operator ==、=
@@ -143,7 +143,7 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
   handles[GetTokenStr(Token::COMPARE)] = [](std::shared_ptr<Variable> v1,
                                             std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> {
     bool ret = v1->Compare(v2);
-    return std::make_shared<BoolVariable>(ret, "");
+    return std::make_shared<BoolVariable>(ret, Variable::ValueCategory::RValue, "");
   };
 
   operands.clear();
@@ -166,7 +166,7 @@ static void register_buildin_uoperator_handles(std::unordered_map<std::string, O
     return AsPointerVariable(v)->GetHoldVariable();
   };
   handles[GetTokenStr(Token::ADDRESS_OF)] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
-    auto ret = std::make_shared<PointerVariable>(v->GetType(), "");
+    auto ret = std::make_shared<PointerVariable>(v->GetType(), Variable::ValueCategory::RValue, "");
     ret->SetHoldVariable(v);
     return ret;
   };
@@ -174,7 +174,7 @@ static void register_buildin_uoperator_handles(std::unordered_map<std::string, O
   auto tmp = OperatorDef::CreateName(Token::NOT, operands);
   handles[tmp] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
     bool tmp = AsBoolVariable(v)->GetValue();
-    return std::make_shared<BoolVariable>(!tmp, "");
+    return std::make_shared<BoolVariable>(!tmp, Variable::ValueCategory::RValue, "");
   };
 
   operands.clear();
@@ -182,7 +182,7 @@ static void register_buildin_uoperator_handles(std::unordered_map<std::string, O
   tmp = OperatorDef::CreateName(Token::MINUS, operands);
   handles[tmp] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
     int tmp = AsIntVariable(v)->GetValue();
-    return std::make_shared<IntVariable>(-tmp, "");
+    return std::make_shared<IntVariable>(-tmp, Variable::ValueCategory::RValue, "");
   };
 
   operands.clear();
@@ -190,7 +190,7 @@ static void register_buildin_uoperator_handles(std::unordered_map<std::string, O
   tmp = OperatorDef::CreateName(Token::MINUS, operands);
   handles[tmp] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
     double tmp = AsDoubleVariable(v)->GetValue();
-    return std::make_shared<DoubleVariable>(-tmp, "");
+    return std::make_shared<DoubleVariable>(-tmp, Variable::ValueCategory::RValue, "");
   };
 }
 

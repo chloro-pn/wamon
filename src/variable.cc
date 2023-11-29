@@ -5,48 +5,48 @@
 
 namespace wamon {
 
-std::unique_ptr<Variable> VariableFactory(std::unique_ptr<Type> type, const std::string& name,
-                                          Interpreter& interpreter) {
+std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
+                                          const std::string& name, Interpreter& interpreter) {
   if (IsBuiltInType(type)) {
     std::string typeinfo = type->GetTypeInfo();
     if (typeinfo == "string") {
-      return std::make_unique<StringVariable>("", name);
+      return std::make_unique<StringVariable>("", vc, name);
     }
     if (typeinfo == "void") {
       return std::make_unique<VoidVariable>();
     }
     if (typeinfo == "bool") {
-      return std::make_unique<BoolVariable>(true, name);
+      return std::make_unique<BoolVariable>(true, vc, name);
     }
     if (typeinfo == "int") {
-      return std::make_unique<IntVariable>(0, name);
+      return std::make_unique<IntVariable>(0, vc, name);
     }
     if (typeinfo == "double") {
-      return std::make_unique<DoubleVariable>(0.0, name);
+      return std::make_unique<DoubleVariable>(0.0, vc, name);
     }
     if (typeinfo == "byte") {
-      return std::make_unique<ByteVariable>(0, name);
+      return std::make_unique<ByteVariable>(0, vc, name);
     }
   }
   if (type->IsBasicType() == true) {
     auto struct_def = interpreter.GetPackageUnit().FindStruct(type->GetTypeInfo());
     assert(struct_def != nullptr);
-    return std::make_unique<StructVariable>(struct_def, interpreter, name);
+    return std::make_unique<StructVariable>(struct_def, vc, interpreter, name);
   }
   if (IsPtrType(type)) {
-    return std::make_unique<PointerVariable>(GetHoldType(type), name);
+    return std::make_unique<PointerVariable>(GetHoldType(type), vc, name);
   }
   if (IsListType(type)) {
-    return std::make_unique<ListVariable>(GetElementType(type), name);
+    return std::make_unique<ListVariable>(GetElementType(type), vc, name);
   }
   if (IsFuncType(type)) {
-    return std::make_unique<FunctionVariable>(GetParamType(type), GetReturnType(type), name);
+    return std::make_unique<FunctionVariable>(GetParamType(type), GetReturnType(type), vc, name);
   }
   throw WamonExecption("VariableFactory error, not implement now.");
 }
 
-StructVariable::StructVariable(const StructDef* sd, Interpreter& i, const std::string& name)
-    : Variable(std::make_unique<BasicType>(sd->GetStructName()), name), def_(sd), interpreter_(i) {}
+StructVariable::StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& i, const std::string& name)
+    : Variable(std::make_unique<BasicType>(sd->GetStructName()), vc, name), def_(sd), interpreter_(i) {}
 
 std::shared_ptr<Variable> StructVariable::GetDataMemberByName(const std::string& name) {
   for (auto& each : data_members_) {
@@ -67,23 +67,34 @@ void StructVariable::ConstructByFields(const std::vector<std::shared_ptr<Variabl
       throw WamonExecption("StructVariable's ConstructByFields method error : {}th type dismatch : {} != {}", i,
                            fields[i]->GetTypeInfo(), members[i].second->GetTypeInfo());
     }
-    data_members_.push_back({members[i].first, fields[i]->Clone()});
+    if (fields[i]->IsRValue()) {
+      data_members_.push_back({members[i].first, std::move(fields[i])});
+    } else {
+      data_members_.push_back({members[i].first, fields[i]->Clone()});
+    }
+    data_members_.back().data->ChangeTo(vc_);
   }
 }
 
 void StructVariable::DefaultConstruct() {
   auto& members = def_->GetDataMembers();
   for (auto& each : members) {
-    data_members_.push_back({each.first, VariableFactory(each.second->Clone(), each.first, interpreter_)});
+    data_members_.push_back({each.first, VariableFactory(each.second, vc_, each.first, interpreter_)});
   }
 }
 
 std::unique_ptr<Variable> StructVariable::Clone() {
   std::vector<std::shared_ptr<Variable>> variables;
   for (auto& each : data_members_) {
-    variables.push_back(each.data->Clone());
+    if (each.data->IsRValue()) {
+      variables.push_back(std::move(each.data));
+    } else {
+      variables.push_back(each.data->Clone());
+      variables.back()->ChangeTo(ValueCategory::RValue);
+    }
   }
-  auto ret = std::make_unique<StructVariable>(def_, interpreter_, GetName());
+  // all variable in variable is rvalue now
+  auto ret = std::make_unique<StructVariable>(def_, ValueCategory::RValue, interpreter_, GetName());
   ret->ConstructByFields(variables);
   return ret;
 }
@@ -112,12 +123,19 @@ void PointerVariable::ConstructByFields(const std::vector<std::shared_ptr<Variab
 void PointerVariable::DefaultConstruct() { obj_.reset(); }
 
 std::unique_ptr<Variable> PointerVariable::Clone() {
-  auto ret = std::make_unique<PointerVariable>(obj_.lock()->GetType(), "");
+  auto ret = std::make_unique<PointerVariable>(obj_.lock()->GetType(), ValueCategory::RValue, "");
   ret->SetHoldVariable(obj_.lock());
   return ret;
 }
 
-void ListVariable::PushBack(std::shared_ptr<Variable> element) { elements_.push_back(std::move(element)); }
+void ListVariable::PushBack(std::shared_ptr<Variable> element) {
+  if (element->IsRValue()) {
+    elements_.push_back(std::move(element));
+  } else {
+    elements_.push_back(element->Clone());
+  }
+  elements_.back()->ChangeTo(vc_);
+}
 
 void ListVariable::PopBack() {
   if (elements_.empty()) {
@@ -132,8 +150,13 @@ void ListVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>
       throw WamonExecption("ListVariable::ConstructByFields error, type dismatch : {} != {}", each->GetTypeInfo(),
                            element_type_->GetTypeInfo());
     }
+    if (each->IsRValue()) {
+      elements_.push_back(std::move(each));
+    } else {
+      elements_.push_back(each->Clone());
+    }
+    elements_.back()->ChangeTo(vc_);
   }
-  elements_ = std::move(fields);
 }
 
 void ListVariable::DefaultConstruct() {}
@@ -141,9 +164,14 @@ void ListVariable::DefaultConstruct() {}
 std::unique_ptr<Variable> ListVariable::Clone() {
   std::vector<std::shared_ptr<Variable>> elements;
   for (auto& each : elements_) {
-    elements.push_back(each->Clone());
+    if (each->IsRValue()) {
+      elements.push_back(std::move(each));
+    } else {
+      elements.push_back(each->Clone());
+      elements.back()->ChangeTo(ValueCategory::RValue);
+    }
   }
-  auto ret = std::make_unique<ListVariable>(element_type_->Clone(), "");
+  auto ret = std::make_unique<ListVariable>(element_type_->Clone(), ValueCategory::RValue, "");
   ret->elements_ = std::move(elements);
   return ret;
 }
@@ -154,7 +182,12 @@ void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Varia
   }
   if (IsBasicType(fields[0]->GetType()) && !IsBuiltInType(fields[0]->GetType())) {
     // structtype
-    obj_ = fields[0]->Clone();
+    if (fields[0]->IsRValue()) {
+      obj_ = std::move(fields[0]);
+    } else {
+      obj_ = fields[0]->Clone();
+    }
+    obj_->ChangeTo(vc_);
     return;
   }
   if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
@@ -173,9 +206,17 @@ std::unique_ptr<Variable> FunctionVariable::Clone() {
   for (auto&& each : fun_type->GetParamType()) {
     param_type.push_back(each->Clone());
   }
-  auto obj = std::make_unique<FunctionVariable>(std::move(param_type), fun_type->GetReturnType()->Clone(), "");
+  auto obj = std::make_unique<FunctionVariable>(std::move(param_type), fun_type->GetReturnType()->Clone(),
+                                                ValueCategory::RValue, "");
   obj->SetFuncName(func_name_);
-  obj->SetObj(obj_ == nullptr ? nullptr : obj_->Clone());
+  if (obj_) {
+    if (IsRValue()) {
+      obj->SetObj(std::move(obj_));
+    } else {
+      obj->SetObj(obj_->Clone());
+    }
+    obj->ChangeTo(ValueCategory::RValue);
+  }
   return obj;
 }
 

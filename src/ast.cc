@@ -73,7 +73,8 @@ std::shared_ptr<Variable> BinaryExpr::Calculate(Interpreter& interpreter) {
   // 数据成员访问运算符特殊处理，因为第二个操作数的计算完全依赖于第一个操作数的计算，因此这里我们仅仅将其转换为string的Variable
   // right_的动态类型为IdExpr指针需要类型检测阶段保证
   if (op_ == Token::MEMBER_ACCESS) {
-    rightop = std::make_shared<StringVariable>(dynamic_cast<IdExpr*>(right_.get())->GetId(), "");
+    rightop = std::make_shared<StringVariable>(dynamic_cast<IdExpr*>(right_.get())->GetId(),
+                                               Variable::ValueCategory::RValue, "");
   } else {
     rightop = right_->Calculate(interpreter);
   }
@@ -94,7 +95,8 @@ std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
   } else {
     auto func_def = interpreter.GetPackageUnit().FindFunction(id_name_);
     auto type = func_def->GetType();
-    auto ret = std::make_shared<FunctionVariable>(GetParamType(type), GetReturnType(type), "");
+    auto ret = std::make_shared<FunctionVariable>(GetParamType(type), GetReturnType(type),
+                                                  Variable::ValueCategory::RValue, "");
     ret->SetFuncName(id_name_);
     return ret;
   }
@@ -209,7 +211,7 @@ ExecuteResult ExpressionStmt::Execute(Interpreter& interpreter) {
 
 ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   auto& context = interpreter.GetCurrentContext();
-  auto v = VariableFactory(type_->Clone(), var_name_, interpreter);
+  auto v = VariableFactory(type_, Variable::ValueCategory::LValue, var_name_, interpreter);
   std::vector<std::shared_ptr<Variable>> fields;
   for (auto& each : constructors_) {
     fields.push_back(each->Calculate(interpreter));

@@ -450,8 +450,10 @@ TEST(interpreter, operator) {
 
   wamon::Interpreter interpreter(pu);
   std::vector<std::shared_ptr<wamon::Variable>> params;
-  params.push_back(std::shared_ptr<wamon::StringVariable>(new wamon::StringVariable("hello ", "")));
-  params.push_back(std::shared_ptr<wamon::StringVariable>(new wamon::StringVariable("world", "")));
+  params.push_back(std::shared_ptr<wamon::StringVariable>(
+      new wamon::StringVariable("hello ", wamon::Variable::ValueCategory::RValue, "")));
+  params.push_back(std::shared_ptr<wamon::StringVariable>(
+      new wamon::StringVariable("world", wamon::Variable::ValueCategory::RValue, "")));
   interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   auto ret = interpreter.CallFunctionByName("stradd", std::move(params));
   interpreter.LeaveContext();
@@ -459,8 +461,10 @@ TEST(interpreter, operator) {
   EXPECT_EQ(wamon::AsStringVariable(ret)->GetValue(), "hello world");
 
   params.clear();
-  params.push_back(std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(10, "")));
-  params.push_back(std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(5, "")));
+  params.push_back(
+      std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(10, wamon::Variable::ValueCategory::RValue, "")));
+  params.push_back(
+      std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(5, wamon::Variable::ValueCategory::RValue, "")));
   auto tmp_params = params;
   interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("intminus", std::move(tmp_params));
@@ -483,7 +487,8 @@ TEST(interpreter, operator) {
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 2);
 
   tmp_params.clear();
-  tmp_params.push_back(std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(10, "")));
+  tmp_params.push_back(
+      std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(10, wamon::Variable::ValueCategory::RValue, "")));
   interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("intuoperator", std::move(tmp_params));
   interpreter.LeaveContext();
@@ -491,7 +496,8 @@ TEST(interpreter, operator) {
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), -10);
 
   tmp_params.clear();
-  tmp_params.push_back(std::shared_ptr<wamon::BoolVariable>(new wamon::BoolVariable(true, "")));
+  tmp_params.push_back(
+      std::shared_ptr<wamon::BoolVariable>(new wamon::BoolVariable(true, wamon::Variable::ValueCategory::RValue, "")));
   interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("boolnot", std::move(tmp_params));
   interpreter.LeaveContext();
@@ -581,7 +587,7 @@ TEST(interpreter, register_cpp_function) {
       },
       [](std::vector<std::shared_ptr<wamon::Variable>>&& params) -> std::shared_ptr<wamon::Variable> {
         auto len = wamon::AsStringVariable(params[0])->GetValue().size();
-        return std::make_shared<wamon::IntVariable>(static_cast<int>(len), "");
+        return std::make_shared<wamon::IntVariable>(static_cast<int>(len), wamon::Variable::ValueCategory::RValue, "");
       });
 
   wamon::StaticAnalyzer sa(pu);

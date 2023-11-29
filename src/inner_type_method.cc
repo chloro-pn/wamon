@@ -60,7 +60,7 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
                                         std::vector<std::shared_ptr<Variable>>&& params) -> std::shared_ptr<Variable> {
     assert(params.empty());
     int ret = AsStringVariable(obj)->GetValue().size();
-    return std::make_shared<IntVariable>(ret, "");
+    return std::make_shared<IntVariable>(ret, Variable::ValueCategory::RValue, "");
   };
 
   handles[concat("string", "at")] = [](std::shared_ptr<Variable>& obj,
@@ -71,21 +71,21 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
     if (static_cast<size_t>(index) >= v.size()) {
       throw WamonExecption("string.at error, index out of range : {} >= {}", index, v.size());
     }
-    return std::make_shared<ByteVariable>(v[index], "");
+    return std::make_shared<ByteVariable>(v[index], Variable::ValueCategory::RValue, "");
   };
 
   handles[concat("double", "to_int")] =
       [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params) -> std::shared_ptr<Variable> {
     assert(params.empty());
     double ret = AsDoubleVariable(obj)->GetValue();
-    return std::make_shared<IntVariable>(static_cast<int>(ret), "");
+    return std::make_shared<IntVariable>(static_cast<int>(ret), Variable::ValueCategory::RValue, "");
   };
 
   handles[concat("list", "size")] = [](std::shared_ptr<Variable>& obj,
                                        std::vector<std::shared_ptr<Variable>>&& params) -> std::shared_ptr<Variable> {
     assert(params.empty());
     int ret = AsListVariable(obj)->Size();
-    return std::make_shared<IntVariable>(ret, "");
+    return std::make_shared<IntVariable>(ret, Variable::ValueCategory::RValue, "");
   };
 
   handles[concat("list", "at")] = [](std::shared_ptr<Variable>& obj,

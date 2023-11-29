@@ -13,10 +13,17 @@ class StructDef;
 /*
  * Variable为运行时变量类型的基类，每个Variable一定包含一个type成员标识其类型
  * 以及一个变量名字，当其为空的时候标识匿名变量
+ * 每个Variable都具有值型别(like c++)，左值或者右值
  */
 class Variable {
  public:
-  explicit Variable(std::unique_ptr<Type>&& t, const std::string& name = "") : type_(std::move(t)), name_(name) {}
+  enum class ValueCategory {
+    LValue,
+    RValue,
+  };
+
+  explicit Variable(std::unique_ptr<Type>&& t, ValueCategory vc, const std::string& name = "")
+      : type_(std::move(t)), name_(name), vc_(vc) {}
 
   virtual void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) = 0;
 
@@ -38,6 +45,10 @@ class Variable {
 
   const std::string& GetName() const { return name_; }
 
+  virtual void ChangeTo(ValueCategory vc) { vc_ = vc; }
+
+  bool IsRValue() const noexcept { return vc_ == ValueCategory::RValue; }
+
  protected:
   void check_compare_type_match(const std::shared_ptr<Variable>& other) {
     if (GetTypeInfo() == other->GetTypeInfo()) {
@@ -49,15 +60,18 @@ class Variable {
  private:
   std::unique_ptr<Type> type_;
   std::string name_;
+
+ protected:
+  ValueCategory vc_;
 };
 
 class Interpreter;
-std::unique_ptr<Variable> VariableFactory(std::unique_ptr<Type> type, const std::string& name,
-                                          Interpreter& interpreter);
+std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
+                                          const std::string& name, Interpreter& interpreter);
 
 class VoidVariable : public Variable {
  public:
-  VoidVariable() : Variable(TypeFactory<void>::Get()) {}
+  VoidVariable() : Variable(TypeFactory<void>::Get(), ValueCategory::RValue) {}
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     throw WamonExecption("VoidVariable should not call ConstructByFields method");
@@ -81,8 +95,8 @@ class VoidVariable : public Variable {
 
 class StringVariable : public Variable {
  public:
-  StringVariable(const std::string& v, const std::string& name)
-      : Variable(TypeFactory<std::string>::Get(), name), value_(v) {}
+  StringVariable(const std::string& v, ValueCategory vc, const std::string& name)
+      : Variable(TypeFactory<std::string>::Get(), vc, name), value_(v) {}
 
   const std::string& GetValue() const { return value_; }
 
@@ -95,12 +109,24 @@ class StringVariable : public Variable {
                            fields[0]->GetTypeInfo(), GetTypeInfo());
     }
     StringVariable* ptr = static_cast<StringVariable*>(fields[0].get());
-    value_ = ptr->GetValue();
+    if (ptr->IsRValue()) {
+      value_ = std::move(ptr->value_);
+    } else {
+      value_ = ptr->GetValue();
+    }
   }
 
   void DefaultConstruct() override { value_.clear(); }
 
-  std::unique_ptr<Variable> Clone() override { return std::make_unique<StringVariable>(GetValue(), ""); }
+  std::unique_ptr<Variable> Clone() override {
+    std::unique_ptr<StringVariable> ret;
+    if (IsRValue()) {
+      ret = std::make_unique<StringVariable>(std::move(value_), ValueCategory::RValue, "");
+    } else {
+      ret = std::make_unique<StringVariable>(GetValue(), ValueCategory::RValue, "");
+    }
+    return ret;
+  }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -109,7 +135,11 @@ class StringVariable : public Variable {
 
   void Assign(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
-    value_ = static_cast<StringVariable*>(other.get())->value_;
+    if (other->IsRValue()) {
+      value_ = std::move(static_cast<StringVariable*>(other.get())->value_);
+    } else {
+      value_ = static_cast<StringVariable*>(other.get())->value_;
+    }
   }
 
   void Print(Output& output) override { output.OutPutString(value_); }
@@ -124,7 +154,8 @@ inline StringVariable* AsStringVariable(const std::shared_ptr<Variable>& v) {
 
 class BoolVariable : public Variable {
  public:
-  BoolVariable(bool v, const std::string& name) : Variable(TypeFactory<bool>::Get(), name), value_(v) {}
+  BoolVariable(bool v, ValueCategory vc, const std::string& name)
+      : Variable(TypeFactory<bool>::Get(), vc, name), value_(v) {}
 
   bool GetValue() const { return value_; }
 
@@ -142,7 +173,10 @@ class BoolVariable : public Variable {
 
   void DefaultConstruct() override { value_ = true; }
 
-  std::unique_ptr<Variable> Clone() override { return std::make_unique<BoolVariable>(GetValue(), ""); }
+  std::unique_ptr<Variable> Clone() override {
+    auto ret = std::make_unique<BoolVariable>(GetValue(), ValueCategory::RValue, "");
+    return ret;
+  }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -165,7 +199,8 @@ inline BoolVariable* AsBoolVariable(const std::shared_ptr<Variable>& v) { return
 
 class IntVariable : public Variable {
  public:
-  IntVariable(int v, const std::string& name) : Variable(TypeFactory<int>::Get(), name), value_(v) {}
+  IntVariable(int v, ValueCategory vc, const std::string& name)
+      : Variable(TypeFactory<int>::Get(), vc, name), value_(v) {}
 
   int GetValue() const { return value_; }
 
@@ -183,7 +218,10 @@ class IntVariable : public Variable {
 
   void DefaultConstruct() override { value_ = 0; }
 
-  std::unique_ptr<Variable> Clone() override { return std::make_unique<IntVariable>(GetValue(), ""); }
+  std::unique_ptr<Variable> Clone() override {
+    auto ret = std::make_unique<IntVariable>(GetValue(), ValueCategory::RValue, "");
+    return ret;
+  }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -207,7 +245,8 @@ inline IntVariable* AsIntVariable(Variable* v) { return static_cast<IntVariable*
 
 class DoubleVariable : public Variable {
  public:
-  DoubleVariable(double v, const std::string& name) : Variable(TypeFactory<double>::Get(), name), value_(v) {}
+  DoubleVariable(double v, ValueCategory vc, const std::string& name)
+      : Variable(TypeFactory<double>::Get(), vc, name), value_(v) {}
 
   double GetValue() const { return value_; }
 
@@ -225,7 +264,10 @@ class DoubleVariable : public Variable {
 
   void DefaultConstruct() override { value_ = 0.0; }
 
-  std::unique_ptr<Variable> Clone() override { return std::make_unique<DoubleVariable>(GetValue(), ""); }
+  std::unique_ptr<Variable> Clone() override {
+    auto ret = std::make_unique<DoubleVariable>(GetValue(), ValueCategory::RValue, "");
+    return ret;
+  }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -249,8 +291,8 @@ inline DoubleVariable* AsDoubleVariable(const std::shared_ptr<Variable>& v) {
 
 class ByteVariable : public Variable {
  public:
-  ByteVariable(unsigned char v, const std::string& name)
-      : Variable(TypeFactory<unsigned char>::Get(), name), value_(v) {}
+  ByteVariable(unsigned char v, ValueCategory vc, const std::string& name)
+      : Variable(TypeFactory<unsigned char>::Get(), vc, name), value_(v) {}
 
   unsigned char GetValue() const { return value_; }
 
@@ -268,7 +310,10 @@ class ByteVariable : public Variable {
 
   void DefaultConstruct() override { value_ = 0; }
 
-  std::unique_ptr<Variable> Clone() override { return std::make_unique<ByteVariable>(GetValue(), ""); }
+  std::unique_ptr<Variable> Clone() override {
+    auto ret = std::make_unique<ByteVariable>(GetValue(), ValueCategory::RValue, "");
+    return ret;
+  }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -290,7 +335,7 @@ inline ByteVariable* AsByteVariable(const std::shared_ptr<Variable>& v) { return
 
 class StructVariable : public Variable {
  public:
-  StructVariable(const StructDef* sd, Interpreter& i, const std::string& name);
+  StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& i, const std::string& name);
 
   std::shared_ptr<Variable> GetDataMemberByName(const std::string& name);
 
@@ -314,8 +359,23 @@ class StructVariable : public Variable {
   void Assign(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
     StructVariable* other_struct = static_cast<StructVariable*>(other.get());
-    for (size_t index = 0; index < data_members_.size(); ++index) {
-      data_members_[index].data->Assign(other_struct->data_members_[index].data);
+    if (other_struct->IsRValue()) {
+      for (size_t index = 0; index < data_members_.size(); ++index) {
+        data_members_[index].data = std::move(other_struct->data_members_[index].data);
+        data_members_[index].data->ChangeTo(vc_);
+      }
+    } else {
+      for (size_t index = 0; index < data_members_.size(); ++index) {
+        data_members_[index].data->Assign(other_struct->data_members_[index].data);
+        data_members_[index].data->ChangeTo(vc_);
+      }
+    }
+  }
+
+  void ChangeTo(ValueCategory vc) override {
+    vc_ = vc;
+    for (auto& each : data_members_) {
+      each.data->ChangeTo(vc);
     }
   }
 
@@ -337,13 +397,14 @@ inline StructVariable* AsStructVariable(const std::shared_ptr<Variable>& v) {
 
 class CompoundVariable : public Variable {
  public:
-  CompoundVariable(std::unique_ptr<Type>&& t, const std::string& name) : Variable(std::move(t), name) {}
+  CompoundVariable(std::unique_ptr<Type>&& t, ValueCategory vc, const std::string& name)
+      : Variable(std::move(t), vc, name) {}
 };
 
 class PointerVariable : public CompoundVariable {
  public:
-  PointerVariable(std::unique_ptr<Type>&& hold_type, const std::string& name)
-      : CompoundVariable(std::make_unique<PointerType>(std::move(hold_type)), name) {}
+  PointerVariable(std::unique_ptr<Type>&& hold_type, ValueCategory vc, const std::string& name)
+      : CompoundVariable(std::make_unique<PointerType>(std::move(hold_type)), vc, name) {}
 
   std::shared_ptr<Variable> GetHoldVariable() { return obj_.lock(); }
 
@@ -387,8 +448,8 @@ inline PointerVariable* AsPointerVariable(const std::shared_ptr<Variable>& v) {
 
 class ListVariable : public CompoundVariable {
  public:
-  ListVariable(std::unique_ptr<Type>&& element_type, const std::string& name)
-      : CompoundVariable(std::make_unique<ListType>(element_type->Clone()), name),
+  ListVariable(std::unique_ptr<Type>&& element_type, ValueCategory vc, const std::string& name)
+      : CompoundVariable(std::make_unique<ListType>(element_type->Clone()), vc, name),
         element_type_(std::move(element_type)) {}
 
   void PushBack(std::shared_ptr<Variable> element);
@@ -433,6 +494,13 @@ class ListVariable : public CompoundVariable {
     }
   }
 
+  void ChangeTo(ValueCategory vc) override {
+    vc_ = vc;
+    for (auto& each : elements_) {
+      each->ChangeTo(vc);
+    }
+  }
+
   void Print(Output& output) override {
     output.OutputFormat("list ({}) size : {}", element_type_->GetTypeInfo(), elements_.size());
   }
@@ -446,8 +514,9 @@ inline ListVariable* AsListVariable(const std::shared_ptr<Variable>& v) { return
 
 class FunctionVariable : public CompoundVariable {
  public:
-  FunctionVariable(std::vector<std::unique_ptr<Type>>&& param, std::unique_ptr<Type>&& ret, const std::string& name)
-      : CompoundVariable(std::make_unique<FuncType>(std::move(param), std::move(ret)), name) {}
+  FunctionVariable(std::vector<std::unique_ptr<Type>>&& param, std::unique_ptr<Type>&& ret, ValueCategory vc,
+                   const std::string& name)
+      : CompoundVariable(std::make_unique<FuncType>(std::move(param), std::move(ret)), vc, name) {}
 
   void SetFuncName(const std::string& func_name) { func_name_ = func_name; }
 
@@ -465,12 +534,25 @@ class FunctionVariable : public CompoundVariable {
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
+    if (obj_) {
+      return obj_->Compare(other);
+    }
     return func_name_ == static_cast<FunctionVariable*>(other.get())->GetFuncName();
   }
 
   void Assign(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
+    if (obj_) {
+      return obj_->Assign(other);
+    }
     func_name_ = static_cast<FunctionVariable*>(other.get())->GetFuncName();
+  }
+
+  void ChangeTo(ValueCategory vc) {
+    vc_ = vc;
+    if (obj_ != nullptr) {
+      obj_->ChangeTo(vc);
+    }
   }
 
   void Print(Output& output) override {
