@@ -34,6 +34,8 @@ class Type {
   virtual std::unique_ptr<Type> Clone() const = 0;
 };
 
+inline bool operator==(const Type& t1, const Type& t2) { return t1.GetTypeInfo() == t2.GetTypeInfo(); }
+
 class BasicType : public Type {
  public:
   explicit BasicType(const std::string& type_name) : type_name_(type_name) {}
@@ -136,9 +138,7 @@ class FuncType : public CompoundType {
   std::vector<std::unique_ptr<Type>> param_type_;
 };
 
-inline bool IsSameType(const std::unique_ptr<Type>& lt, const std::unique_ptr<Type>& rt) {
-  return lt->GetTypeInfo() == rt->GetTypeInfo();
-}
+inline bool IsSameType(const std::unique_ptr<Type>& lt, const std::unique_ptr<Type>& rt) { return (*lt) == (*rt); }
 
 inline bool IsPtrType(const std::unique_ptr<Type>& type) { return dynamic_cast<PointerType*>(type.get()) != nullptr; }
 
@@ -155,6 +155,8 @@ inline bool IsBoolType(const std::unique_ptr<Type>& type) { return type->GetType
 inline bool IsIntType(const std::unique_ptr<Type>& type) { return type->GetTypeInfo() == "int"; }
 
 inline bool IsDoubleType(const std::unique_ptr<Type>& type) { return type->GetTypeInfo() == "double"; }
+
+inline bool IsByteType(const std::unique_ptr<Type>& type) { return type->GetTypeInfo() == "byte"; }
 
 inline bool IsVoidType(const std::unique_ptr<Type>& type) { return type->GetTypeInfo() == "void"; }
 
@@ -247,6 +249,28 @@ struct TypeFactory<T*> {
   static std::unique_ptr<Type> Get() {
     auto tmp = std::make_unique<PointerType>(TypeFactory<T>::Get());
     return tmp;
+  }
+};
+
+namespace detail {
+
+template <typename container_type>
+void elements_append_to(container_type& container) {}
+
+template <typename container_type, typename head_element, typename... remain_element>
+void elements_append_to(container_type& container, head_element&& head, remain_element&&... remain) {
+  container.emplace_back(std::forward<head_element>(head));
+  elements_append_to(container, std::forward<remain_element>(remain)...);
+}
+}  // namespace detail
+
+template <typename ReturnType, typename... ArgsType>
+struct TypeFactory<ReturnType(ArgsType...)> {
+  static std::unique_ptr<Type> Get() {
+    // std::vector<std::unique_ptr<Type>> param_type { TypeFactory<ArgsType>::Get()... };
+    std::vector<std::unique_ptr<Type>> param_type;
+    detail::elements_append_to(param_type, TypeFactory<ArgsType>::Get()...);
+    return std::make_unique<FuncType>(std::move(param_type), TypeFactory<ReturnType>::Get());
   }
 };
 
