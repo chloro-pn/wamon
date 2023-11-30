@@ -355,7 +355,7 @@ std::unique_ptr<Type> CheckAndGetUnaryOperatorResultType(Token op, std::unique_p
   }
   if (op == Token::NOT) {
     return CheckAndGetUnaryNotResultType(std::move(operand_type));
-  } 
+  }
   if (op == Token::MOVE) {
     return CheckAndGetUnaryMoveResultType(std::move(operand_type));
   }
