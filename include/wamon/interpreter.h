@@ -32,6 +32,13 @@ struct RuntimeContext {
       throw WamonExecption("runtimeContext symbol_table get dumplicate variable name {}", name);
     }
   }
+
+  void check_exist(const std::string& name) {
+    if (symbol_table_.find(name) == symbol_table_.end()) {
+      throw WamonExecption("runtimeContext symbol_table get not exist variable name {}", name);
+    }
+  }
+
   void RegisterVariable(std::shared_ptr<Variable> variable) {
     const auto& name = variable->GetName();
     check_not_exist(name);
@@ -48,6 +55,12 @@ struct RuntimeContext {
     std::string name = variable->GetName();
     check_not_exist(name);
     symbol_table_.insert({name, std::shared_ptr<Variable>(std::move(variable))});
+  }
+
+  void UpdateVariable(std::shared_ptr<Variable> variable) {
+    const std::string& name = variable->GetName();
+    check_exist(name);
+    symbol_table_[name] = variable;
   }
 
   std::shared_ptr<Variable> FindVariable(const std::string& id_name) {
@@ -140,6 +153,35 @@ class Interpreter {
       throw WamonExecption("Interpreter.FindVariableById error, not found {}", id_name);
     }
     return result;
+  }
+
+  void DefaultConstructVarialeById(const std::string& id_name) {
+    std::shared_ptr<Variable> v;
+    RuntimeContext* ctx{nullptr};
+    for (auto it = runtime_stack_.begin(); it != runtime_stack_.end(); ++it) {
+      // 对于函数和方法栈，如果找不到则直接在全局作用域中查找，而不是继续向上查找
+      if ((*it)->type_ == RuntimeContextType::Method || (*it)->type_ == RuntimeContextType::Function) {
+        v = (*it)->FindVariable(id_name);
+        ctx = it->get();
+        break;
+      }
+      v = (*it)->FindVariable(id_name);
+      if (v != nullptr) {
+        ctx = it->get();
+        break;
+      }
+    }
+    if (v == nullptr) {
+      v = package_context_.FindVariable(id_name);
+      ctx = &package_context_;
+    }
+    if (v == nullptr) {
+      throw WamonExecption("Interpreter.DefaultConstructVarialeById error, not found {}", id_name);
+    }
+    auto type = v->GetType();
+    auto new_v = VariableFactory(type, Variable::ValueCategory::LValue, id_name, *this);
+    new_v->DefaultConstruct();
+    ctx->UpdateVariable(std::move(new_v));
   }
 
   std::shared_ptr<Variable> CallFunction(const FunctionDef* function_def,

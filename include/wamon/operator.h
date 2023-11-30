@@ -36,7 +36,7 @@ class Operator {
   std::shared_ptr<Variable> Calculate(Token op, std::shared_ptr<Variable> v) {
     std::string handle_name;
     // &和*对所有类型适用，因此特殊处理
-    if (op == Token::ADDRESS_OF || op == Token::MULTIPLY) {
+    if (op == Token::ADDRESS_OF || op == Token::MULTIPLY || op == Token::MOVE) {
       handle_name = GetTokenStr(op);
     } else {
       std::vector<std::unique_ptr<Type>> operands;

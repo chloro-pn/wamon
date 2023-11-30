@@ -83,7 +83,15 @@ std::shared_ptr<Variable> BinaryExpr::Calculate(Interpreter& interpreter) {
 
 std::shared_ptr<Variable> UnaryExpr::Calculate(Interpreter& interpreter) {
   auto childop = operand_->Calculate(interpreter);
-  return interpreter.CalculateOperator(op_, childop);
+  std::string lvalue_name;
+  if (op_ == Token::MOVE && childop->GetValueCategory() == Variable::ValueCategory::LValue) {
+    lvalue_name = childop->GetName();
+  }
+  auto ret = interpreter.CalculateOperator(op_, childop);
+  if (op_ == Token::MOVE && lvalue_name.empty() == false) {
+    interpreter.DefaultConstructVarialeById(lvalue_name);
+  }
+  return ret;
 }
 
 std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {

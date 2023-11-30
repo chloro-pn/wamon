@@ -604,3 +604,29 @@ TEST(interpreter, register_cpp_function) {
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 }
+
+TEST(interpreter, move) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    let a : int = (2);
+    let b : int = (move a);
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+
+  wamon::StaticAnalyzer sa(pu);
+  wamon::TypeChecker tc(sa);
+  tc.CheckTypes();
+  tc.CheckAndRegisterGlobalVariable();
+  tc.CheckStructs();
+  tc.CheckFunctions();
+  tc.CheckMethods();
+
+  wamon::Interpreter interpreter(pu);
+  auto a = interpreter.FindVariableById("a");
+  EXPECT_EQ(wamon::AsIntVariable(a)->GetValueCategory(), wamon::Variable::ValueCategory::LValue);
+  EXPECT_EQ(wamon::AsIntVariable(a)->GetValue(), 0);
+}

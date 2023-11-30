@@ -330,6 +330,11 @@ std::unique_ptr<Type> CheckAndGetUnaryAddrOfResultType(std::unique_ptr<Type> ope
   return ret;
 }
 
+std::unique_ptr<Type> CheckAndGetUnaryMoveResultType(std::unique_ptr<Type> operand) {
+  // any type can be moved from now on
+  return operand;
+}
+
 std::unique_ptr<Type> CheckAndGetUnaryNotResultType(std::unique_ptr<Type> operand) {
   // 目前的实现只有布尔类型支持逻辑非运算符
   if (operand->GetTypeInfo() == "bool") {
@@ -350,6 +355,9 @@ std::unique_ptr<Type> CheckAndGetUnaryOperatorResultType(Token op, std::unique_p
   }
   if (op == Token::NOT) {
     return CheckAndGetUnaryNotResultType(std::move(operand_type));
+  } 
+  if (op == Token::MOVE) {
+    return CheckAndGetUnaryMoveResultType(std::move(operand_type));
   }
   throw WamonExecption("operator {} is not support now", GetTokenStr(op));
 }

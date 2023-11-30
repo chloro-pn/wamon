@@ -45,6 +45,8 @@ class Variable {
 
   const std::string& GetName() const { return name_; }
 
+  ValueCategory GetValueCategory() const { return vc_; }
+
   virtual void ChangeTo(ValueCategory vc) { vc_ = vc; }
 
   bool IsRValue() const noexcept { return vc_ == ValueCategory::RValue; }
