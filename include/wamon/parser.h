@@ -13,7 +13,7 @@
 
 namespace wamon {
 
-void AssertTokenOrThrow(const std::vector<WamonToken> &tokens, size_t &begin, Token token);
+void AssertTokenOrThrow(const std::vector<WamonToken> &tokens, size_t &begin, Token token, const char *, int);
 
 /*
  * @brief 需要匹配的token，tokens[begin]必须合法，并且tokens[begin] == left。
@@ -21,7 +21,7 @@ void AssertTokenOrThrow(const std::vector<WamonToken> &tokens, size_t &begin, To
  */
 template <Token left, Token right>
 size_t FindMatchedToken(const std::vector<WamonToken> &tokens, size_t begin) {
-  AssertTokenOrThrow(tokens, begin, left);
+  AssertTokenOrThrow(tokens, begin, left, __FILE__, __LINE__);
   size_t counter = 1;
   size_t index = begin;
   while (index < tokens.size()) {

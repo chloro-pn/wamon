@@ -80,6 +80,7 @@ enum class Token {
   OPERATOR,
   // 结构体定义
   STRUCT,
+  TRAIT,
   // 变量定义
   LET,
   // 方法定义
@@ -211,6 +212,8 @@ inline const char *GetTokenStr(Token token) {
       return "operator";
     case Token::STRUCT:
       return "struct";
+    case Token::TRAIT:
+      return "trait";
     case Token::LET:
       return "let";
     case Token::METHOD:

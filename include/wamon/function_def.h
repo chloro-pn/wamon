@@ -49,6 +49,8 @@ class FunctionDef {
 
   void SetBlockStmt(std::unique_ptr<BlockStmt>&& block_stmt) { block_stmt_ = std::move(block_stmt); }
 
+  bool IsDeclaration() const { return block_stmt_ == nullptr; }
+
  private:
   std::string name_;
   std::vector<std::pair<std::unique_ptr<Type>, std::string>> param_list_;

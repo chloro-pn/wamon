@@ -51,6 +51,8 @@ class MethodDef {
 
   void SetBlockStmt(std::unique_ptr<BlockStmt>&& block_stmt) { block_stmt_ = std::move(block_stmt); }
 
+  bool IsDeclaration() const { return block_stmt_ == nullptr; }
+
  private:
   std::string type_name_;
   std::string method_name_;

@@ -9,16 +9,17 @@
 
 #include "wamon/exception.h"
 #include "wamon/method_def.h"
-#include "wamon/operator_def.h"
 #include "wamon/type.h"
 
 namespace wamon {
 
 class StructDef {
  public:
-  explicit StructDef(const std::string& name) : name_(name) {}
+  explicit StructDef(const std::string& name, bool is_trait) : name_(name), is_trait_(is_trait) {}
 
   const std::string& GetStructName() const { return name_; }
+
+  bool IsTrait() const { return is_trait_; }
 
   void AddDataMember(const std::string& name, std::unique_ptr<Type>&& type) {
     if (std::find_if(data_members_.begin(), data_members_.end(),
@@ -30,6 +31,10 @@ class StructDef {
 
   void AddMethods(std::unique_ptr<methods_def>&& ms) {
     for (auto&& each : *ms) {
+      if ((IsTrait() && !each->IsDeclaration()) || (!IsTrait() && each->IsDeclaration())) {
+        throw WamonExecption(
+            "StructDef.AddMethods error, struct trait only need method declaration and struct must get method declare");
+      }
       methods_.emplace_back(std::move(each));
     }
   }
@@ -84,9 +89,9 @@ class StructDef {
 
  private:
   std::string name_;
+  bool is_trait_;
   // 这里需要是有序的，并且按照定义时的顺序
   std::vector<std::pair<std::string, std::unique_ptr<Type>>> data_members_;
   methods_def methods_;
-  std::unique_ptr<OperatorDef> call_operator_;
 };
 }  // namespace wamon

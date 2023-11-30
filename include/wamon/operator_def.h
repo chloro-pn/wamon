@@ -79,6 +79,8 @@ class OperatorDef {
     return std::string("__op_") + op->GetOpStr() + op->GetTypeListId();
   }
 
+  bool IsDeclaration() const { return block_stmt_ == nullptr; }
+
  private:
   // 注意，因为允许()重载，而()并不作为二元运算符，因此这里使用(的token代替，这并不会引起歧义
   Token op_;

@@ -25,9 +25,10 @@ bool AssertToken(const std::vector<WamonToken> &tokens, size_t &begin, Token tok
  * @brief 判断tokens[begin]处的token值 == token，如果索引不合法，或者token值不相同，抛出runtime_error异常，否则递增索引
  * @todo 具化异常信息
  */
-void AssertTokenOrThrow(const std::vector<WamonToken> &tokens, size_t &begin, Token token) {
+void AssertTokenOrThrow(const std::vector<WamonToken> &tokens, size_t &begin, Token token, const char *file, int line) {
   if (tokens.size() <= begin || tokens[begin].token != token) {
-    throw WamonExecption("assert token error, assert {}, but {}", GetTokenStr(token), GetTokenStr(tokens[begin].token));
+    throw WamonExecption("assert token error, assert {}, but {}, file : {}, line {}", GetTokenStr(token),
+                         GetTokenStr(tokens[begin].token), file, line);
   }
   begin += 1;
 }
@@ -123,7 +124,7 @@ void ParseTypeList(const std::vector<WamonToken> &tokens, size_t begin, size_t e
       break;
     }
   }
-  AssertTokenOrThrow(tokens, begin, Token::RIGHT_PARENTHESIS);
+  AssertTokenOrThrow(tokens, begin, Token::RIGHT_PARENTHESIS, __FILE__, __LINE__);
   if (AssertToken(tokens, begin, Token::ARROW) == true) {
     return_type = ParseType(tokens, begin);
   } else {
@@ -426,11 +427,11 @@ std::unique_ptr<Statement> TryToParseSkipStmt(const std::vector<WamonToken> &tok
   std::unique_ptr<Statement> ret(nullptr);
   if (AssertToken(tokens, begin, Token::CONTINUE)) {
     ret.reset(new ContinueStmt());
-    AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
+    AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
     next = begin;
   } else if (AssertToken(tokens, begin, Token::BREAK)) {
     ret.reset(new BreakStmt());
-    AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
+    AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
     next = begin;
   } else if (AssertToken(tokens, begin, Token::RETURN)) {
     ret.reset(new ReturnStmt());
@@ -494,14 +495,14 @@ std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken> &tokens,
 
 std::unique_ptr<BlockStmt> ParseStmtBlock(const std::vector<WamonToken> &tokens, size_t begin, size_t end) {
   std::vector<std::unique_ptr<Statement>> ret;
-  AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACE);
+  AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACE, __FILE__, __LINE__);
   while (begin < end) {
     size_t next = 0;
     auto stmt = ParseStatement(tokens, begin, next);
     ret.push_back(std::move(stmt));
     begin = next;
   }
-  AssertTokenOrThrow(tokens, begin, Token::RIGHT_BRACE);
+  AssertTokenOrThrow(tokens, begin, Token::RIGHT_BRACE, __FILE__, __LINE__);
   auto tmp = std::unique_ptr<BlockStmt>(new BlockStmt());
   tmp->SetBlock(std::move(ret));
   return tmp;
@@ -524,7 +525,7 @@ std::unique_ptr<Statement> TryToParseBlockStmt(const std::vector<WamonToken> &to
 std::vector<std::pair<std::string, std::unique_ptr<Type>>> ParseParameterList(const std::vector<WamonToken> &tokens,
                                                                               size_t begin, size_t end) {
   std::vector<std::pair<std::string, std::unique_ptr<Type>>> ret;
-  AssertTokenOrThrow(tokens, begin, Token::LEFT_PARENTHESIS);
+  AssertTokenOrThrow(tokens, begin, Token::LEFT_PARENTHESIS, __FILE__, __LINE__);
   if (AssertToken(tokens, begin, Token::RIGHT_PARENTHESIS)) {
     return ret;
   }
@@ -534,7 +535,7 @@ std::vector<std::pair<std::string, std::unique_ptr<Type>>> ParseParameterList(co
     ret.push_back(std::pair<std::string, std::unique_ptr<Type>>(id, std::move(type)));
     bool succ = AssertToken(tokens, begin, Token::COMMA);
     if (succ == false) {
-      AssertTokenOrThrow(tokens, begin, Token::RIGHT_PARENTHESIS);
+      AssertTokenOrThrow(tokens, begin, Token::RIGHT_PARENTHESIS, __FILE__, __LINE__);
       break;
     }
   }
@@ -577,17 +578,19 @@ std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(const std::vector<Wam
     ret->AddParamList(std::move(each.second), each.first);
   }
   begin = end + 1;
-  AssertTokenOrThrow(tokens, begin, Token::ARROW);
+  AssertTokenOrThrow(tokens, begin, Token::ARROW, __FILE__, __LINE__);
   auto return_type = ParseType(tokens, begin);
   //
   ret->SetReturnType(std::move(return_type));
-  end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
-  auto stmt_block = ParseStmtBlock(tokens, begin, end);
-
-  //
-  ret->SetBlockStmt(std::move(stmt_block));
-
-  begin = end + 1;
+  if (AssertToken(tokens, begin, Token::SEMICOLON)) {
+    ret->SetBlockStmt(nullptr);
+  } else {
+    end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
+    auto stmt_block = ParseStmtBlock(tokens, begin, end);
+    //
+    ret->SetBlockStmt(std::move(stmt_block));
+    begin = end + 1;
+  }
   return ret;
 }
 
@@ -604,7 +607,7 @@ std::unique_ptr<OperatorDef> TryToParseOperatorOverride(const std::vector<WamonT
   }
   if (AssertToken(tokens, begin, Token::LEFT_PARENTHESIS)) {
     token = Token::LEFT_PARENTHESIS;
-    AssertTokenOrThrow(tokens, begin, Token::RIGHT_PARENTHESIS);
+    AssertTokenOrThrow(tokens, begin, Token::RIGHT_PARENTHESIS, __FILE__, __LINE__);
     ret.reset(new OperatorDef(Token::LEFT_PARENTHESIS));
   } else {
     if (begin >= tokens.size()) {
@@ -626,17 +629,20 @@ std::unique_ptr<OperatorDef> TryToParseOperatorOverride(const std::vector<WamonT
     ret->AddParamList(std::move(each.second), each.first);
   }
   begin = end + 1;
-  AssertTokenOrThrow(tokens, begin, Token::ARROW);
+  AssertTokenOrThrow(tokens, begin, Token::ARROW, __FILE__, __LINE__);
   auto return_type = ParseType(tokens, begin);
   //
   ret->SetReturnType(std::move(return_type));
-  end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
-  auto stmt_block = ParseStmtBlock(tokens, begin, end);
 
-  //
-  ret->SetBlockStmt(std::move(stmt_block));
-
-  begin = end + 1;
+  if (AssertToken(tokens, begin, Token::SEMICOLON)) {
+    ret->SetBlockStmt(nullptr);
+  } else {
+    end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
+    auto stmt_block = ParseStmtBlock(tokens, begin, end);
+    //
+    ret->SetBlockStmt(std::move(stmt_block));
+    begin = end + 1;
+  }
   return ret;
 }
 
@@ -702,7 +708,7 @@ std::unique_ptr<methods_def> TryToParseMethodDeclaration(const std::vector<Wamon
     }
   }
   assert(begin == end);
-  AssertTokenOrThrow(tokens, begin, Token::RIGHT_BRACE);
+  AssertTokenOrThrow(tokens, begin, Token::RIGHT_BRACE, __FILE__, __LINE__);
   return ret;
 }
 
@@ -712,13 +718,17 @@ std::unique_ptr<StructDef> TryToParseStructDeclaration(const std::vector<WamonTo
   if (succ == false) {
     return ret;
   }
+  bool is_trait = false;
+  if (AssertToken(tokens, begin, Token::TRAIT)) {
+    is_trait = true;
+  }
   std::string struct_name = ParseIdentifier(tokens, begin);
-  ret.reset(new StructDef(struct_name));
-  AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACE);
+  ret.reset(new StructDef(struct_name, is_trait));
+  AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACE, __FILE__, __LINE__);
   while (AssertToken(tokens, begin, Token::RIGHT_BRACE) == false) {
     auto type = ParseType(tokens, begin);
     auto field_name = ParseIdentifier(tokens, begin);
-    AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
+    AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
     ret->AddDataMember(field_name, std::move(type));
   }
   return ret;
@@ -733,14 +743,14 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vec
     return ret;
   }
   std::string var_name = ParseIdentifier(tokens, begin);
-  AssertTokenOrThrow(tokens, begin, Token::COLON);
+  AssertTokenOrThrow(tokens, begin, Token::COLON, __FILE__, __LINE__);
   auto type = ParseType(tokens, begin);
-  AssertTokenOrThrow(tokens, begin, Token::ASSIGN);
+  AssertTokenOrThrow(tokens, begin, Token::ASSIGN, __FILE__, __LINE__);
   // parse expr list.
   size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
   auto expr_list = ParseExprList(tokens, begin, end);
   begin = end + 1;
-  AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
+  AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
   ret.reset(new VariableDefineStmt());
   ret->SetType(std::move(type));
   ret->SetVarName(var_name);
@@ -749,9 +759,9 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vec
 }
 
 std::string ParsePackageName(const std::vector<WamonToken> &tokens, size_t &begin) {
-  AssertTokenOrThrow(tokens, begin, Token::PACKAGE);
+  AssertTokenOrThrow(tokens, begin, Token::PACKAGE, __FILE__, __LINE__);
   std::string package_name = ParseIdentifier(tokens, begin);
-  AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
+  AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
   return package_name;
 }
 
@@ -763,7 +773,7 @@ std::vector<std::string> ParseImportPackages(const std::vector<WamonToken> &toke
       break;
     }
     std::string package_name = ParseIdentifier(tokens, begin);
-    AssertTokenOrThrow(tokens, begin, Token::SEMICOLON);
+    AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
     packages.push_back(package_name);
   }
   return packages;

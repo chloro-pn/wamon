@@ -136,6 +136,34 @@ TEST(parser, operator_priority) {
   EXPECT_NO_THROW(wamon::ParseExpression(tokens, 0, tokens.size() - 2));
 }
 
+TEST(parser, struct_trait) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    struct trait my_trait {
+      int a;
+      double b;
+      string c;
+    }
+
+    method my_trait {
+      operator () (string x, double xx) -> int;
+      func get_a() -> int;
+      func get_c() -> string;
+    }
+  )";
+  auto tokens = scan.Scan(str);
+  auto pu = wamon::Parse(tokens);
+  EXPECT_EQ(pu.GetStructs().size(), 1);
+  bool is_trait = pu.GetStructs().find("my_trait")->second->IsTrait();
+  EXPECT_EQ(is_trait, true);
+  const auto& methods_def = pu.GetStructs().find("my_trait")->second->GetMethods();
+  EXPECT_EQ(methods_def.size(), 3);
+  EXPECT_EQ(methods_def[1]->GetMethodName(), "get_a");
+  EXPECT_EQ(methods_def[1]->IsDeclaration(), true);
+}
+
 TEST(parser, parse_stmt) {
   wamon::Scanner scan;
   std::string str = "if (a.b) { call myfunc:(b, c, d[3]); break; } else { \"string_iter\"; }";
