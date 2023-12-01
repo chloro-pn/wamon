@@ -10,4 +10,5 @@
 * 支持包管理
 * 为解释器实例提供更多的功能（执行表达式，打印当前运行栈、支持增量parse功能）
 * 重构，将operator运算的类型检测从type_checker移动到operator类中
-* 支持trait(参考rust)
+* [doing] 支持trait(参考rust)
+* 变量ConstructByFields成员支持复制构造，目前检测阶段可以通过但是运行时不支持，会抛出异常

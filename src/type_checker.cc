@@ -35,7 +35,8 @@ void TypeChecker::CheckTypes() {
                                          param.first->GetTypeInfo()));
     }
     CheckType(each.second->return_type_,
-              fmt::format("check function {} return type {}", each.first, each.second->return_type_->GetTypeInfo()));
+              fmt::format("check function {} return type {}", each.first, each.second->return_type_->GetTypeInfo()),
+              true);
   }
   for (auto& each : pu.GetStructs()) {
     for (auto& member : each.second->GetDataMembers()) {
@@ -47,8 +48,10 @@ void TypeChecker::CheckTypes() {
         CheckType(param.first, fmt::format("check struct {} method {} param {}'s type {}", each.first,
                                            member->GetMethodName(), param.second, param.first->GetTypeInfo()));
       }
-      CheckType(member->GetReturnType(), fmt::format("check struct {} method {} return type {}", each.first,
-                                                     member->GetMethodName(), member->GetReturnType()->GetTypeInfo()));
+      CheckType(member->GetReturnType(),
+                fmt::format("check struct {} method {} return type {}", each.first, member->GetMethodName(),
+                            member->GetReturnType()->GetTypeInfo()),
+                true);
     }
   }
 }
@@ -92,6 +95,9 @@ void TypeChecker::CheckAndRegisterGlobalVariable() {
 
 void TypeChecker::CheckFunctions() {
   for (auto& each : static_analyzer_.GetFunctions()) {
+    if (each.second->IsDeclaration()) {
+      continue;
+    }
     // 首先进行上下文相关的检测、表达式类型检测、语句合法性检测
     auto func_context = std::make_unique<Context>(each.second->name_);
     static_analyzer_.RegisterFuncParamsToContext(each.second->param_list_, func_context.get());
@@ -132,6 +138,9 @@ void TypeChecker::CheckMethods() {
   const auto& structs = pu.GetStructs();
   for (const auto& each : structs) {
     for (const auto& method : each.second->GetMethods()) {
+      if (method->IsDeclaration()) {
+        continue;
+      }
       std::unique_ptr<Context> ctx = std::make_unique<Context>(each.first, method->GetMethodName());
       static_analyzer_.RegisterFuncParamsToContext(method->GetParamList(), ctx.get());
       static_analyzer_.Enter(std::move(ctx));

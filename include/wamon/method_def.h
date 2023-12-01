@@ -37,6 +37,14 @@ class MethodDef {
 
   const std::string& GetTypeName() const { return type_name_; }
 
+  std::unique_ptr<Type> GetType() const {
+    std::vector<std::unique_ptr<Type>> param_types;
+    for (auto& each : param_list_) {
+      param_types.push_back(each.first->Clone());
+    }
+    return std::make_unique<FuncType>(std::move(param_types), return_type_->Clone());
+  }
+
   const std::unique_ptr<Type>& GetReturnType() const { return return_type_; }
 
   const std::vector<std::pair<std::unique_ptr<Type>, std::string>>& GetParamList() const { return param_list_; }

@@ -60,7 +60,12 @@ std::shared_ptr<Variable> MethodCallExpr::Calculate(Interpreter& interpreter) {
     interpreter.LeaveContext();
     return result;
   }
-  auto methoddef = interpreter.GetPackageUnit().FindTypeMethod(v->GetTypeInfo(), method_name_);
+  auto structdef = interpreter.GetPackageUnit().FindStruct(v->GetTypeInfo());
+  while (structdef->IsTrait() == true) {
+    v = AsStructVariable(v)->GetTraitObj();
+    structdef = interpreter.GetPackageUnit().FindStruct(v->GetTypeInfo());
+  }
+  auto methoddef = structdef->GetMethod(method_name_);
   interpreter.EnterContext<RuntimeContextType::Method>();
   auto result = interpreter.CallMethod(v, methoddef, std::move(params));
   interpreter.LeaveContext();

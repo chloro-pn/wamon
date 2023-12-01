@@ -50,13 +50,18 @@ class StructDef {
     return nullptr;
   }
 
-  const methods_def& GetMethods() { return methods_; }
+  const methods_def& GetMethods() const { return methods_; }
 
-  std::unique_ptr<Type> GetDataMemberType(const std::string& field_name) {
+  template <bool throw_if_not_found = true>
+  std::unique_ptr<Type> GetDataMemberType(const std::string& field_name) const {
     auto it = std::find_if(data_members_.begin(), data_members_.end(),
                            [&field_name](const auto& member) -> bool { return field_name == member.first; });
     if (it == data_members_.end()) {
-      throw WamonExecption("get data member' type error, field {} not exist", field_name);
+      if constexpr (throw_if_not_found) {
+        throw WamonExecption("get data member' type error, field {} not exist", field_name);
+      } else {
+        return nullptr;
+      }
     }
     return it->second->Clone();
   }

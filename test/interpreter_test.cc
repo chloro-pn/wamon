@@ -383,6 +383,97 @@ TEST(interpreter, callable) {
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 31);
 }
 
+TEST(interpreter, trait) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    struct s1 {
+      int a;
+      double b;
+    }
+
+    method s1 {
+      func get_age() -> int {
+        return self.a + 10;
+      }
+    }
+
+    struct s2 {
+      int a;
+      string c;
+    }
+
+    method s2 {
+      func get_age() -> int {
+        return self.a;
+      }
+
+      func get_name() -> string {
+        return self.c;
+      }
+    }
+
+    struct trait have_age {
+      int a;
+    }
+
+    method have_age {
+      func get_age() -> int;
+    }
+
+    struct trait have_age_and_name {
+      int a;
+    }
+
+    method have_age_and_name {
+      func get_age() -> int;
+      func get_name() -> string;
+    }
+
+    let t1 : s1 = (0, 3.4);
+    let t2 : s2 = (0, "bob");
+
+    let v0 : have_age_and_name = (move t2);
+
+    let v1 : have_age = (move t1);
+    let v2 : have_age = (move v0);
+
+    func test() -> bool {
+      return v1 == v2;
+    }
+
+    func call_trait_get_age(have_age v) -> int {
+      return call v:get_age();
+    }
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+
+  wamon::StaticAnalyzer sa(pu);
+  wamon::TypeChecker tc(sa);
+  tc.CheckTypes();
+  tc.CheckAndRegisterGlobalVariable();
+  tc.CheckStructs();
+  tc.CheckFunctions();
+  tc.CheckMethods();
+
+  wamon::Interpreter interpreter(pu);
+  auto v = interpreter.FindVariableById("v1");
+  EXPECT_EQ(wamon::AsStructVariable(v)->GetDataMemberByName("a")->GetTypeInfo(), "int");
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  auto ret = interpreter.CallFunctionByName("test", {});
+  EXPECT_EQ(ret->GetTypeInfo(), "bool");
+  EXPECT_EQ(wamon::AsBoolVariable(ret)->GetValue(), true);
+  interpreter.LeaveContext();
+
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  ret = interpreter.CallFunctionByName("call_trait_get_age", {v});
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 10);
+  interpreter.LeaveContext();
+}
+
 TEST(interpreter, operator) {
   wamon::Scanner scan;
   std::string str = R"(

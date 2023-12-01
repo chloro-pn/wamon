@@ -49,6 +49,10 @@ StructVariable::StructVariable(const StructDef* sd, ValueCategory vc, Interprete
     : Variable(std::make_unique<BasicType>(sd->GetStructName()), vc, name), def_(sd), interpreter_(i) {}
 
 std::shared_ptr<Variable> StructVariable::GetDataMemberByName(const std::string& name) {
+  if (def_->IsTrait()) {
+    check_trait_not_null(__FILE__, __LINE__);
+    return AsStructVariable(trait_proxy_)->GetDataMemberByName(name);
+  }
   for (auto& each : data_members_) {
     if (each.name == name) {
       return each.data;
@@ -57,7 +61,29 @@ std::shared_ptr<Variable> StructVariable::GetDataMemberByName(const std::string&
   return nullptr;
 }
 
+void StructVariable::UpdateDataMemberByName(const std::string& name, std::shared_ptr<Variable> data) {
+  if (def_->IsTrait()) {
+    check_trait_not_null(__FILE__, __LINE__);
+    AsStructVariable(trait_proxy_)->UpdateDataMemberByName(name, data);
+    return;
+  }
+  data->ChangeTo(vc_);
+  auto it =
+      std::find_if(data_members_.begin(), data_members_.end(), [&](auto& each) -> bool { return each.name == name; });
+  assert(it != data_members_.end());
+  it->data = data;
+}
+
 void StructVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
+  if (def_->IsTrait()) {
+    if (fields[0]->IsRValue()) {
+      trait_proxy_ = fields[0];
+    } else {
+      trait_proxy_ = fields[0]->Clone();
+    }
+    trait_proxy_->ChangeTo(vc_);
+    return;
+  }
   auto& members = def_->GetDataMembers();
   if (fields.size() != members.size()) {
     throw WamonExecption("StructVariable's ConstructByFields method error : fields.size() == {}", fields.size());
@@ -77,6 +103,10 @@ void StructVariable::ConstructByFields(const std::vector<std::shared_ptr<Variabl
 }
 
 void StructVariable::DefaultConstruct() {
+  if (def_->IsTrait()) {
+    trait_proxy_ = nullptr;
+    return;
+  }
   auto& members = def_->GetDataMembers();
   for (auto& each : members) {
     data_members_.push_back({each.first, VariableFactory(each.second, vc_, each.first, interpreter_)});
@@ -84,6 +114,19 @@ void StructVariable::DefaultConstruct() {
 }
 
 std::unique_ptr<Variable> StructVariable::Clone() {
+  if (def_->IsTrait()) {
+    std::shared_ptr<Variable> proxy{nullptr};
+    if (trait_proxy_ == nullptr) {
+      ;  // do nothing
+    } else if (IsRValue()) {
+      proxy = trait_proxy_;
+    } else {
+      proxy = trait_proxy_->Clone();
+    }
+    auto ret = std::make_unique<StructVariable>(def_, ValueCategory::RValue, interpreter_, GetName());
+    ret->ConstructByFields({proxy});
+    return ret;
+  }
   std::vector<std::shared_ptr<Variable>> variables;
   for (auto& each : data_members_) {
     if (each.data->IsRValue()) {
@@ -99,8 +142,101 @@ std::unique_ptr<Variable> StructVariable::Clone() {
   return ret;
 }
 
+bool StructVariable::trait_compare(StructVariable* lv, StructVariable* rv) {
+  if (lv->trait_proxy_ == nullptr && rv->trait_proxy_ == nullptr) {
+    return true;
+  }
+  if (lv->trait_proxy_ == nullptr || rv->trait_proxy_ == nullptr) {
+    return false;
+  }
+  // 类型分析阶段保证
+  assert(lv->def_ == rv->def_);
+  for (auto& each : lv->def_->GetDataMembers()) {
+    auto tmp = lv->GetDataMemberByName(each.first);
+    auto tmp2 = rv->GetDataMemberByName(each.first);
+    if (tmp->Compare(tmp2) == false) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void StructVariable::trait_assign(StructVariable* lv, StructVariable* rv) {
+  // 类型分析阶段保证
+  assert(lv->def_ == rv->def_);
+  if (lv->trait_proxy_ == nullptr && rv->trait_proxy_ == nullptr) {
+    return;
+  }
+  if (rv->trait_proxy_ == nullptr) {
+    lv->trait_proxy_ = nullptr;
+    return;
+  }
+  if (lv->trait_proxy_ == nullptr) {
+    lv->trait_proxy_ = rv->trait_proxy_->Clone();
+    lv->trait_proxy_->ChangeTo(lv->vc_);
+  }
+  for (auto& each : lv->def_->GetDataMembers()) {
+    auto tmp = rv->GetDataMemberByName(each.first);
+    if (rv->IsRValue()) {
+      lv->UpdateDataMemberByName(each.first, tmp);
+    } else {
+      lv->UpdateDataMemberByName(each.first, tmp->Clone());
+    }
+  }
+}
+
+// 目前仅支持相同类型的trait间的比较和赋值
+bool StructVariable::Compare(const std::shared_ptr<Variable>& other) {
+  check_compare_type_match(other);
+  if (def_->IsTrait()) {
+    return trait_compare(this, AsStructVariable(other));
+  }
+  // trait compare todo
+  StructVariable* other_struct = static_cast<StructVariable*>(other.get());
+  for (size_t index = 0; index < data_members_.size(); ++index) {
+    if (data_members_[index].data->Compare(other_struct->data_members_[index].data) == false) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void StructVariable::Assign(const std::shared_ptr<Variable>& other) {
+  check_compare_type_match(other);
+  if (def_->IsTrait()) {
+    return trait_assign(this, AsStructVariable(other));
+  }
+  StructVariable* other_struct = static_cast<StructVariable*>(other.get());
+  if (other_struct->IsRValue()) {
+    for (size_t index = 0; index < data_members_.size(); ++index) {
+      data_members_[index].data = std::move(other_struct->data_members_[index].data);
+      data_members_[index].data->ChangeTo(vc_);
+    }
+  } else {
+    for (size_t index = 0; index < data_members_.size(); ++index) {
+      data_members_[index].data->Assign(other_struct->data_members_[index].data);
+      data_members_[index].data->ChangeTo(vc_);
+    }
+  }
+}
+
+void StructVariable::ChangeTo(ValueCategory vc) {
+  vc_ = vc;
+  if (def_->IsTrait()) {
+    trait_proxy_->ChangeTo(vc);
+    return;
+  }
+  for (auto& each : data_members_) {
+    each.data->ChangeTo(vc);
+  }
+}
+
 void StructVariable::Print(Output& output) {
   assert(def_ != nullptr);
+  if (def_->IsTrait()) {
+    output.OutputFormat("struct trait {}", def_->GetStructName());
+    return;
+  }
   output.OutputFormat("struct {} : [ ", def_->GetStructName());
   for (size_t index = 0; index < data_members_.size(); ++index) {
     data_members_[index].data->Print(output);

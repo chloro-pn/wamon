@@ -31,6 +31,38 @@ std::unique_ptr<Type> FuncType::Clone() const {
   return std::make_unique<FuncType>(std::move(params), std::move(ret));
 }
 
+void CheckTraitConstraint(const PackageUnit& pu, const std::unique_ptr<Type>& trait_type,
+                          const std::unique_ptr<Type>& param_type) {
+  const std::string trait_name = trait_type->GetTypeInfo();
+  const std::string param_name = param_type->GetTypeInfo();
+  auto trait_def = pu.FindStruct(trait_name);
+  auto param_def = pu.FindStruct(param_name);
+  if (trait_def == nullptr || param_def == nullptr) {
+    throw WamonExecption("CheckTraitConstraint, trait_type or param_type not exist");
+  }
+  // 在param_type中查找trait_type中约定的数据成员和方法，根据名字查找，匹配类型
+  for (auto& each : trait_def->GetDataMembers()) {
+    auto data_type = param_def->GetDataMemberType<false>(each.first);
+    if (data_type == nullptr) {
+      throw WamonExecption("CheckTraitConstraint error, data_type {} not found", each.first);
+    }
+    if (!IsSameType(data_type, each.second)) {
+      throw WamonExecption("CheckTraitConstraint error, data member {}'s type mismatch : {} != {}", each.first,
+                           each.second->GetTypeInfo(), data_type->GetTypeInfo());
+    }
+  }
+  for (auto& each : trait_def->GetMethods()) {
+    auto method_def = param_def->GetMethod(each->GetMethodName());
+    if (method_def == nullptr) {
+      throw WamonExecption("CheckTraitConstraint error, method {} not found", each->GetMethodName());
+    }
+    if (!IsSameType(method_def->GetType(), each->GetType())) {
+      throw WamonExecption("CheckTraitConstraint error, method {} type mismatch : {} != {}", each->GetMethodName(),
+                           method_def->GetType()->GetTypeInfo(), each->GetType()->GetTypeInfo());
+    }
+  }
+}
+
 // todo : 支持重载了operator()的类型初始化callable_object
 void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var_type,
                          const std::vector<std::unique_ptr<Type>>& param_types) {
@@ -68,7 +100,7 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
     }
     return;
   }
-  // ptr
+  // 所有相同类型的单个对象均可以执行构造（复制操作）
   if (param_types.size() == 1 && IsSameType(var_type, param_types[0])) {
     return;
   }
@@ -87,6 +119,14 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
     auto struct_def = pu.FindStruct(var_type->GetTypeInfo());
     if (struct_def == nullptr) {
       throw WamonExecption("construct check error, invalid struct name {}", var_type->GetTypeInfo());
+    }
+    // struct trait
+    if (struct_def->IsTrait()) {
+      if (param_types.size() != 1) {
+        throw WamonExecption("struct trait construct check error, params should be only 1 but {}", param_types.size());
+      }
+      CheckTraitConstraint(pu, var_type, param_types[0]);
+      return;
     }
     const auto& dms = struct_def->GetDataMembers();
     if (dms.size() != param_types.size()) {

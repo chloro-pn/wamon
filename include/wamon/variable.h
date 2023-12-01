@@ -341,45 +341,33 @@ class StructVariable : public Variable {
 
   std::shared_ptr<Variable> GetDataMemberByName(const std::string& name);
 
+  std::shared_ptr<Variable> GetTraitObj() const { return trait_proxy_; }
+
+  void UpdateDataMemberByName(const std::string& name, std::shared_ptr<Variable> data);
+
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
 
   void DefaultConstruct() override;
 
   std::unique_ptr<Variable> Clone() override;
 
-  bool Compare(const std::shared_ptr<Variable>& other) override {
-    check_compare_type_match(other);
-    StructVariable* other_struct = static_cast<StructVariable*>(other.get());
-    for (size_t index = 0; index < data_members_.size(); ++index) {
-      if (data_members_[index].data->Compare(other_struct->data_members_[index].data) == false) {
-        return false;
-      }
-    }
-    return true;
-  }
+ private:
+  static bool trait_compare(StructVariable* lv, StructVariable* rv);
 
-  void Assign(const std::shared_ptr<Variable>& other) override {
-    check_compare_type_match(other);
-    StructVariable* other_struct = static_cast<StructVariable*>(other.get());
-    if (other_struct->IsRValue()) {
-      for (size_t index = 0; index < data_members_.size(); ++index) {
-        data_members_[index].data = std::move(other_struct->data_members_[index].data);
-        data_members_[index].data->ChangeTo(vc_);
-      }
-    } else {
-      for (size_t index = 0; index < data_members_.size(); ++index) {
-        data_members_[index].data->Assign(other_struct->data_members_[index].data);
-        data_members_[index].data->ChangeTo(vc_);
-      }
+  static void trait_assign(StructVariable* lv, StructVariable* rv);
+
+  void check_trait_not_null(const char* file, int line) {
+    if (trait_proxy_ == nullptr) {
+      throw WamonExecption("check trait not null feiled, {} {}", file, line);
     }
   }
 
-  void ChangeTo(ValueCategory vc) override {
-    vc_ = vc;
-    for (auto& each : data_members_) {
-      each.data->ChangeTo(vc);
-    }
-  }
+  // 目前仅支持相同类型的trait间的比较和赋值
+  bool Compare(const std::shared_ptr<Variable>& other) override;
+
+  void Assign(const std::shared_ptr<Variable>& other) override;
+
+  void ChangeTo(ValueCategory vc) override;
 
   void Print(Output& output) override;
 
@@ -391,6 +379,8 @@ class StructVariable : public Variable {
     std::shared_ptr<Variable> data;
   };
   std::vector<member> data_members_;
+  // only valid when def_ is struct trait.
+  std::shared_ptr<Variable> trait_proxy_;
 };
 
 inline StructVariable* AsStructVariable(const std::shared_ptr<Variable>& v) {
