@@ -526,6 +526,25 @@ TEST(interpreter, operator) {
     func op_override2() -> int {
       return (v1 + v2).a;
     }
+
+    func as_test(int a) -> double {
+      return a as double;
+    }
+
+    struct s1 {
+      int a;
+      string b;
+    }
+
+    struct trait st {
+      int a;
+    }
+
+    let s1v : s1 = (2, "bob");
+    
+    func as_test_2() -> st {
+      return s1v as st;
+    }
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -610,6 +629,24 @@ TEST(interpreter, operator) {
   interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
+
+  tmp_params.clear();
+  auto int_v =
+      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", interpreter);
+  wamon::AsIntVariable(int_v)->SetValue(2);
+  tmp_params.push_back(std::move(int_v));
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  ret = interpreter.CallFunctionByName("as_test", std::move(tmp_params));
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "double");
+  EXPECT_DOUBLE_EQ(wamon::AsDoubleVariable(ret)->GetValue(), 2.0);
+
+  tmp_params.clear();
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  ret = interpreter.CallFunctionByName("as_test_2", std::move(tmp_params));
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "st");
+  EXPECT_DOUBLE_EQ(wamon::AsIntVariable(wamon::AsStructVariable(ret)->GetDataMemberByName("a"))->GetValue(), 2);
 }
 
 TEST(interpreter, fibonacci) {

@@ -61,6 +61,7 @@ enum class Token {
   ADDRESS_OF,
   PIPE,
   MEMBER_ACCESS,  // a.b == a MEMBER_ACCESS b
+  AS,
 
   // 特殊的TOKEN，不会在词法分析阶段出现，而是将一些语法等价为二元运算符
   SUBSCRIPT,  // a[b] == a SUBSCRIPT b
@@ -192,6 +193,8 @@ inline const char *GetTokenStr(Token token) {
       return "[]";
     case Token::MEMBER_ACCESS:
       return ".";
+    case Token::AS:
+      return "as";
     case Token::ID:
       return "id";
     case Token::STRING_ITERAL:

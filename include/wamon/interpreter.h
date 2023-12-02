@@ -115,7 +115,7 @@ class Interpreter {
 
   template <typename... VariableType>
   std::shared_ptr<Variable> CalculateOperator(Token op, const std::shared_ptr<VariableType>&... operand) {
-    auto ret = Operator::Instance().Calculate(op, operand...);
+    auto ret = Operator::Instance().Calculate(*this, op, operand...);
     if (ret == nullptr) {
       auto override_name = OperatorDef::CreateName(op, {operand...});
       auto func_def = GetPackageUnit().FindFunction(override_name);

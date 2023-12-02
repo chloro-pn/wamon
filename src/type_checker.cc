@@ -272,6 +272,18 @@ std::unique_ptr<Type> CheckAndGetAssignResultType(std::unique_ptr<Type> lt, std:
   return lt->Clone();
 }
 
+// as运算符支持内置的类型转换，包括基础类型int到double类型的转换，以及struct到相容的struct trait的转换
+std::unique_ptr<Type> CheckAndGetAsResultType(std::unique_ptr<Type> lt, std::unique_ptr<Type> rt,
+                                              const PackageUnit& pu) {
+  if (IsIntType(lt) && IsDoubleType(rt)) {
+    return rt;
+  }
+  if (CheckTraitConstraint(pu, rt, lt)) {
+    return rt;
+  }
+  throw WamonExecption("CheckAndGetAsResutlType error, lt : {}, rt : {}", lt->GetTypeInfo(), rt->GetTypeInfo());
+}
+
 // 首先尝试内置支持的运算符类型，如果失败则尝试自定义运算符重载
 std::unique_ptr<Type> CheckAndGetBinaryOperatorResultType(Token op, std::unique_ptr<Type> lt, std::unique_ptr<Type> rt,
                                                           const PackageUnit& pu) {
@@ -292,6 +304,9 @@ std::unique_ptr<Type> CheckAndGetBinaryOperatorResultType(Token op, std::unique_
   }
   if (op == Token::ASSIGN) {
     ret = CheckAndGetAssignResultType(std::move(lt), std::move(rt));
+  }
+  if (op == Token::AS) {
+    ret = CheckAndGetAsResultType(std::move(lt), std::move(rt), pu);
   }
   if (ret == nullptr) {
     std::vector<std::unique_ptr<Type>*> tmp = {&lt_copy, &rt_copy};
@@ -545,6 +560,9 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   }
   if (auto tmp = dynamic_cast<MethodCallExpr*>(expr)) {
     return CheckParamTypeAndGetResultTypeForMethod(*this, tmp);
+  }
+  if (auto tmp = dynamic_cast<TypeExpr*>(expr)) {
+    return tmp->GetType()->Clone();
   }
   auto tmp = dynamic_cast<IdExpr*>(expr);
   if (tmp == nullptr) {

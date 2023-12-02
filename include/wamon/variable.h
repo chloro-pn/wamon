@@ -73,13 +73,14 @@ std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
 
 class VoidVariable : public Variable {
  public:
-  VoidVariable() : Variable(TypeFactory<void>::Get(), ValueCategory::RValue) {}
+  explicit VoidVariable(std::unique_ptr<Type> type = TypeFactory<void>::Get())
+      : Variable(std::move(type), ValueCategory::RValue) {}
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     throw WamonExecption("VoidVariable should not call ConstructByFields method");
   }
 
-  void DefaultConstruct() override {}
+  void DefaultConstruct() override { throw WamonExecption("VoidVariable should not call DefaultConstruct method"); }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -94,6 +95,17 @@ class VoidVariable : public Variable {
 
   std::unique_ptr<Variable> Clone() override { return std::make_unique<VoidVariable>(); }
 };
+
+class TypeVariable : public VoidVariable {
+ public:
+  TypeVariable(std::unique_ptr<Type>&& type) : VoidVariable(std::move(type)) {}
+
+  bool Compare(const std::shared_ptr<Variable>& other) override { return GetTypeInfo() == other->GetTypeInfo(); }
+
+  std::unique_ptr<Variable> Clone() override { return std::make_unique<TypeVariable>(GetType()->Clone()); }
+};
+
+inline TypeVariable* AsTypeVariable(const std::shared_ptr<Variable>& v) { return static_cast<TypeVariable*>(v.get()); }
 
 class StringVariable : public Variable {
  public:
@@ -206,6 +218,8 @@ class IntVariable : public Variable {
 
   int GetValue() const { return value_; }
 
+  void SetValue(int v) { value_ = v; }
+
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     if (fields.size() != 1) {
       throw WamonExecption("IntVariable's ConstructByFields method error : fields.size() == {}", fields.size());
@@ -243,6 +257,8 @@ class IntVariable : public Variable {
 
 inline IntVariable* AsIntVariable(const std::shared_ptr<Variable>& v) { return static_cast<IntVariable*>(v.get()); }
 
+inline IntVariable* AsIntVariable(const std::unique_ptr<Variable>& v) { return static_cast<IntVariable*>(v.get()); }
+
 inline IntVariable* AsIntVariable(Variable* v) { return static_cast<IntVariable*>(v); }
 
 class DoubleVariable : public Variable {
@@ -251,6 +267,8 @@ class DoubleVariable : public Variable {
       : Variable(TypeFactory<double>::Get(), vc, name), value_(v) {}
 
   double GetValue() const { return value_; }
+
+  void SetValue(double d) { value_ = d; }
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     if (fields.size() != 1) {
@@ -288,6 +306,10 @@ class DoubleVariable : public Variable {
 };
 
 inline DoubleVariable* AsDoubleVariable(const std::shared_ptr<Variable>& v) {
+  return static_cast<DoubleVariable*>(v.get());
+}
+
+inline DoubleVariable* AsDoubleVariable(const std::unique_ptr<Variable>& v) {
   return static_cast<DoubleVariable*>(v.get());
 }
 

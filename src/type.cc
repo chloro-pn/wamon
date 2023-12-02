@@ -31,7 +31,7 @@ std::unique_ptr<Type> FuncType::Clone() const {
   return std::make_unique<FuncType>(std::move(params), std::move(ret));
 }
 
-void CheckTraitConstraint(const PackageUnit& pu, const std::unique_ptr<Type>& trait_type,
+bool CheckTraitConstraint(const PackageUnit& pu, const std::unique_ptr<Type>& trait_type,
                           const std::unique_ptr<Type>& param_type) {
   const std::string trait_name = trait_type->GetTypeInfo();
   const std::string param_name = param_type->GetTypeInfo();
@@ -44,23 +44,28 @@ void CheckTraitConstraint(const PackageUnit& pu, const std::unique_ptr<Type>& tr
   for (auto& each : trait_def->GetDataMembers()) {
     auto data_type = param_def->GetDataMemberType<false>(each.first);
     if (data_type == nullptr) {
-      throw WamonExecption("CheckTraitConstraint error, data_type {} not found", each.first);
+      return false;
+      // throw WamonExecption("CheckTraitConstraint error, data_type {} not found", each.first);
     }
     if (!IsSameType(data_type, each.second)) {
-      throw WamonExecption("CheckTraitConstraint error, data member {}'s type mismatch : {} != {}", each.first,
-                           each.second->GetTypeInfo(), data_type->GetTypeInfo());
+      return false;
+      // throw WamonExecption("CheckTraitConstraint error, data member {}'s type mismatch : {} != {}", each.first,
+      //                     each.second->GetTypeInfo(), data_type->GetTypeInfo());
     }
   }
   for (auto& each : trait_def->GetMethods()) {
     auto method_def = param_def->GetMethod(each->GetMethodName());
     if (method_def == nullptr) {
-      throw WamonExecption("CheckTraitConstraint error, method {} not found", each->GetMethodName());
+      return false;
+      // throw WamonExecption("CheckTraitConstraint error, method {} not found", each->GetMethodName());
     }
     if (!IsSameType(method_def->GetType(), each->GetType())) {
-      throw WamonExecption("CheckTraitConstraint error, method {} type mismatch : {} != {}", each->GetMethodName(),
-                           method_def->GetType()->GetTypeInfo(), each->GetType()->GetTypeInfo());
+      // throw WamonExecption("CheckTraitConstraint error, method {} type mismatch : {} != {}", each->GetMethodName(),
+      //                     method_def->GetType()->GetTypeInfo(), each->GetType()->GetTypeInfo());
+      return false;
     }
   }
+  return true;
 }
 
 // todo : 支持重载了operator()的类型初始化callable_object
@@ -123,9 +128,13 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
     // struct trait
     if (struct_def->IsTrait()) {
       if (param_types.size() != 1) {
-        throw WamonExecption("struct trait construct check error, params should be only 1 but {}", param_types.size());
+        throw WamonExecption("struct trait {} construct check error, params should be only 1 but {}",
+                             var_type->GetTypeInfo(), param_types.size());
       }
-      CheckTraitConstraint(pu, var_type, param_types[0]);
+      if (CheckTraitConstraint(pu, var_type, param_types[0]) == false) {
+        throw WamonExecption("struct trait {} construct check error, trait constraint check failed",
+                             var_type->GetTypeInfo());
+      }
       return;
     }
     const auto& dms = struct_def->GetDataMembers();

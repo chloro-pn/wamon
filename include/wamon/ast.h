@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "wamon/token.h"
+#include "wamon/type.h"
 #include "wamon/variable.h"
 
 namespace wamon {
@@ -21,6 +22,20 @@ class Variable;
 class Expression : public AstNode {
  public:
   virtual std::shared_ptr<Variable> Calculate(Interpreter& interpreter) = 0;
+};
+
+class CompilationStageExpr : public Expression {};
+
+class TypeExpr : public CompilationStageExpr {
+ public:
+  std::shared_ptr<Variable> Calculate(Interpreter&) override;
+
+  void SetType(std::unique_ptr<Type>&& type) { type_ = std::move(type); }
+
+  const std::unique_ptr<Type>& GetType() const { return type_; }
+
+ private:
+  std::unique_ptr<Type> type_;
 };
 
 class TypeChecker;

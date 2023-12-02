@@ -1,9 +1,14 @@
 #include "wamon/ast.h"
 
+#include "wamon/exception.h"
 #include "wamon/inner_type_method.h"
 #include "wamon/interpreter.h"
 
 namespace wamon {
+
+std::shared_ptr<Variable> TypeExpr::Calculate(Interpreter&) {
+  return std::make_shared<TypeVariable>(GetType()->Clone());
+}
 
 std::shared_ptr<Variable> FuncCallExpr::Calculate(Interpreter& interpreter) {
   // callable or function

@@ -12,3 +12,4 @@
 * 重构，将operator运算的类型检测从type_checker移动到operator类中
 * [doing] 支持trait(参考rust)
 * 变量ConstructByFields成员支持复制构造，目前检测阶段可以通过但是运行时不支持，会抛出异常
+* CheckTraitConstraint失败时，返回具体的失败原因

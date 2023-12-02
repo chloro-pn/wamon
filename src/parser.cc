@@ -227,6 +227,15 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
     if (canParseBinaryOperator(parse_state) && Operator::Instance().FindBinary(current_token) == true) {
       PushBoperators(b_operators, operands, current_token);
       parse_state = ParseExpressionState::B_OP;
+      if (current_token == Token::AS) {
+        ++i;
+        auto type = ParseType(tokens, i);
+        std::unique_ptr<TypeExpr> type_expr(new TypeExpr());
+        type_expr->SetType(std::move(type));
+        operands.push(AttachUnaryOperators(std::move(type_expr), u_operators));
+        i -= 1;
+        parse_state = ParseExpressionState::NO_OP;
+      }
     } else if (canParseBinaryOperator(parse_state) && current_token == Token::LEFT_BRACKETS) {
       // var_name [ nested_expr ]
       //                        i

@@ -9,6 +9,8 @@
 
 namespace wamon {
 
+class Interpreter;
+
 class Operator {
  public:
   static Operator& Instance() {
@@ -31,27 +33,13 @@ class Operator {
     return false;
   }
 
-  std::shared_ptr<Variable> Calculate(Token op, std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2);
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter, Token op, std::shared_ptr<Variable> v1,
+                                      std::shared_ptr<Variable> v2);
 
-  std::shared_ptr<Variable> Calculate(Token op, std::shared_ptr<Variable> v) {
-    std::string handle_name;
-    // &和*对所有类型适用，因此特殊处理
-    if (op == Token::ADDRESS_OF || op == Token::MULTIPLY || op == Token::MOVE) {
-      handle_name = GetTokenStr(op);
-    } else {
-      std::vector<std::unique_ptr<Type>> operands;
-      operands.push_back(v->GetType());
-      handle_name = OperatorDef::CreateName(op, operands);
-    }
-    auto handle = uoperator_handles_.find(handle_name);
-    if (handle == uoperator_handles_.end()) {
-      return nullptr;
-    }
-    return (*handle).second(v);
-  }
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter, Token op, std::shared_ptr<Variable> v);
 
   using BinaryOperatorType =
-      std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>, std::shared_ptr<Variable>)>;
+      std::function<std::shared_ptr<Variable>(Interpreter&, std::shared_ptr<Variable>, std::shared_ptr<Variable>)>;
 
   using UnaryOperatorType = std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>)>;
 

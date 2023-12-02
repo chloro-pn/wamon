@@ -76,12 +76,16 @@ void StructVariable::UpdateDataMemberByName(const std::string& name, std::shared
 
 void StructVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
   if (def_->IsTrait()) {
-    if (fields[0]->IsRValue()) {
+    if (fields[0] == nullptr) {
+      trait_proxy_ = nullptr;
+    } else if (fields[0]->IsRValue()) {
       trait_proxy_ = fields[0];
     } else {
       trait_proxy_ = fields[0]->Clone();
     }
-    trait_proxy_->ChangeTo(vc_);
+    if (trait_proxy_ != nullptr) {
+      trait_proxy_->ChangeTo(vc_);
+    }
     return;
   }
   auto& members = def_->GetDataMembers();

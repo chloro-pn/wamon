@@ -138,6 +138,11 @@ class FuncType : public CompoundType {
   std::vector<std::unique_ptr<Type>> param_type_;
 };
 
+class PackageUnit;
+
+inline bool CheckTraitConstraint(const PackageUnit& pu, const std::unique_ptr<Type>& trait_type,
+                                 const std::unique_ptr<Type>& param_type);
+
 inline bool IsSameType(const std::unique_ptr<Type>& lt, const std::unique_ptr<Type>& rt) { return (*lt) == (*rt); }
 
 inline bool IsPtrType(const std::unique_ptr<Type>& type) { return dynamic_cast<PointerType*>(type.get()) != nullptr; }
