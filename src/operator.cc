@@ -176,6 +176,10 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
     if (IsIntType(from_type) && IsDoubleType(to_type)) {
       return std::make_shared<DoubleVariable>(AsIntVariable(v1)->GetValue(), Variable::ValueCategory::RValue, "");
     }
+    if (IsIntType(from_type) && IsBoolType(to_type)) {
+      return std::make_shared<BoolVariable>(AsIntVariable(v1)->GetValue() == 0 ? false : true,
+                                            Variable::ValueCategory::RValue, "");
+    }
     // struct to struct trait
     auto v = VariableFactory(to_type, Variable::ValueCategory::RValue, "", interpreter);
     v->ConstructByFields({v1});

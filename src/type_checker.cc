@@ -278,6 +278,9 @@ std::unique_ptr<Type> CheckAndGetAsResultType(std::unique_ptr<Type> lt, std::uni
   if (IsIntType(lt) && IsDoubleType(rt)) {
     return rt;
   }
+  if (IsIntType(lt) && IsBoolType(rt)) {
+    return rt;
+  }
   if (CheckTraitConstraint(pu, rt, lt)) {
     return rt;
   }
