@@ -137,6 +137,63 @@ void ParseTypeList(const std::vector<WamonToken> &tokens, size_t begin, size_t e
 }
 
 /*
+ * [ id1, id2, ... , idn ]
+ */
+void ParseCaptureIdList(const std::vector<WamonToken> &tokens, size_t begin, size_t end,
+                        std::unordered_set<std::string> &ids) {
+  AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACKETS, __FILE__, __LINE__);
+  while (true) {
+    if (begin == end) {
+      AssertTokenOrThrow(tokens, begin, Token::RIGHT_BRACKETS, __FILE__, __LINE__);
+      break;
+    }
+    auto id = ParseIdentifier(tokens, begin);
+    if (ids.find(id) != ids.end()) {
+      throw WamonExecption("ParseCpatureIdList error, duplicate id {}", id);
+    }
+    ids.insert(id);
+    if (begin < end) {
+      AssertTokenOrThrow(tokens, begin, Token::COMMA, __FILE__, __LINE__);
+    }
+  }
+}
+
+/*
+ * lambda [id1, id2, ...] ( type1 param1, type2 param2, ...) -> return_type {
+ *     block_stmt
+ * }
+ * parser解析一个lambda并将其注册为一个全局函数，返回该函数的名字
+ * PackageUnit需要传递进parser中，不然无法注册
+ */
+std::string ParseLambda(const std::vector<WamonToken> &tokens, size_t &begin) {
+  auto name = LambdaExpr::CreateUniqueLambdaName();
+  std::unique_ptr<FunctionDef> lambda_def(new FunctionDef(name));
+
+  AssertTokenOrThrow(tokens, begin, Token::LAMBDA, __FILE__, __LINE__);
+  size_t capture_end = FindMatchedToken<Token::LEFT_BRACKETS, Token::RIGHT_BRACKETS>(tokens, begin);
+  std::unordered_set<std::string> capture_ids;
+  ParseCaptureIdList(tokens, begin, capture_end, capture_ids);
+  lambda_def->SetCaptureIds(std::move(capture_ids));
+
+  begin = capture_end + 1;
+  size_t param_end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
+  auto param_list = ParseParameterList(tokens, begin, param_end);
+  for (auto &&each : param_list) {
+    lambda_def->AddParamList(std::move(each.second), each.first);
+  }
+  AssertTokenOrThrow(tokens, begin, Token::ARROW, __FILE__, __LINE__);
+  auto return_type = ParseType(tokens, begin);
+  lambda_def->SetReturnType(std::move(return_type));
+
+  auto end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
+  auto stmt_block = ParseStmtBlock(tokens, begin, end);
+  lambda_def->SetBlockStmt(std::move(stmt_block));
+
+  begin = end + 1;
+  return name;
+}
+
+/*
  * 这个enum标识了在ParseExpression循环中，上一次解析的情况，如果：
  * 这是解析的第一个token，BEGIN，
  * 上一个解析的token是二元运算符， B_OP，
@@ -198,6 +255,7 @@ static void PushBoperators(std::stack<Token> &b_operators, std::stack<std::uniqu
 //  - 字面量表达式（5种基本类型）
 //  - 方法调用表达式
 //  - 成员调用表达式
+//  - lambda表达式
 //  - id表达式
 //  - 表达式嵌套（二元运算，括号）
 std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &tokens, size_t begin, size_t end) {
@@ -315,6 +373,14 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
       if (current_token == Token::SELF) {
         std::unique_ptr<SelfExpr> self_expr(new SelfExpr());
         operands.push(AttachUnaryOperators(std::move(self_expr), u_operators));
+        continue;
+      }
+      if (current_token == Token::LAMBDA) {
+        std::unique_ptr<LambdaExpr> lambda_expr(new LambdaExpr());
+        std::string lambda_func_name = ParseLambda(tokens, i);
+        lambda_expr->SetLambdaFuncName(lambda_func_name);
+        i -= 1;
+        operands.push(AttachUnaryOperators(std::move(lambda_expr), u_operators));
         continue;
       }
       size_t tmp = i;

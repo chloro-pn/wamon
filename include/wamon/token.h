@@ -87,6 +87,8 @@ enum class Token {
   // 方法定义
   METHOD,
   SELF,
+  // lambda
+  LAMBDA,
 
   // 复合类型声明
   PTR,
@@ -223,6 +225,8 @@ inline const char *GetTokenStr(Token token) {
       return "method";
     case Token::SELF:
       return "self";
+    case Token::LAMBDA:
+      return "lambda";
     case Token::PTR:
       return "ptr";
     case Token::LIST:

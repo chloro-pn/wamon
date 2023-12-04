@@ -2,10 +2,10 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
-#include "wamon/ast.h"
 #include "wamon/type.h"
 
 namespace wamon {
@@ -13,6 +13,7 @@ namespace wamon {
 class TypeChecker;
 class FuncCallExpr;
 class OperatorDef;
+class BlockStmt;
 
 class FunctionDef {
  public:
@@ -47,7 +48,11 @@ class FunctionDef {
 
   void SetReturnType(std::unique_ptr<Type>&& type) { return_type_ = std::move(type); }
 
-  void SetBlockStmt(std::unique_ptr<BlockStmt>&& block_stmt) { block_stmt_ = std::move(block_stmt); }
+  void SetBlockStmt(std::unique_ptr<BlockStmt>&& block_stmt);
+
+  void SetCaptureIds(std::unordered_set<std::string>&& ids) { capture_ids_ = std::move(ids); }
+
+  const std::unordered_set<std::string>& GetCaptureIds() const { return capture_ids_; }
 
   bool IsDeclaration() const { return block_stmt_ == nullptr; }
 
@@ -56,6 +61,8 @@ class FunctionDef {
   std::vector<std::pair<std::unique_ptr<Type>, std::string>> param_list_;
   std::unique_ptr<Type> return_type_;
   std::unique_ptr<BlockStmt> block_stmt_;
+  // 目前只有lambda用到
+  std::unordered_set<std::string> capture_ids_;
 };
 
 }  // namespace wamon

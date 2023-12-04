@@ -2,8 +2,10 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
+#include "wamon/function_def.h"
 #include "wamon/token.h"
 #include "wamon/type.h"
 #include "wamon/variable.h"
@@ -233,6 +235,24 @@ class VoidIteralExpr : public Expression {
 class SelfExpr : public Expression {
  public:
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
+};
+
+class LambdaExpr : public Expression {
+ public:
+  static std::string CreateUniqueLambdaName() {
+    static size_t lambda_count = 0;
+    auto ret = "__lambda_" + std::to_string(lambda_count);
+    lambda_count += 1;
+    return ret;
+  }
+
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
+
+  void SetLambdaFuncName(const std::string& lfn) { lambda_func_name_ = lfn; }
+
+ private:
+  // parser在解析到一个lambda时，会生成一个唯一的名字并将lambda注册为一个全局函数
+  std::string lambda_func_name_;
 };
 
 enum class ExecuteState {
