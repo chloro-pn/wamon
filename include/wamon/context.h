@@ -19,7 +19,7 @@ namespace wamon {
  */
 class Context {
  public:
-  enum class ContextType { GLOBAL, FUNC, BLOCK, METHOD, WHILE_BLOCK, FOR_BLOCK, LAMBDA };
+  enum class ContextType { GLOBAL, FUNC, BLOCK, METHOD, WHILE_BLOCK, FOR_BLOCK };
 
   explicit Context(ContextType type) : type_(type) {
     // method and func context使用其他构造函数

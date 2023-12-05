@@ -176,7 +176,7 @@ bool TypeChecker::IsDeterministicReturn(BlockStmt* basic_block) {
   return false;
 }
 
-void TypeChecker::CheckDeterministicReturn(FunctionDef* func) {
+void TypeChecker::CheckDeterministicReturn(const FunctionDef* func) {
   if (IsSameType(func->GetReturnType(), GetVoidType())) {
     return;
   }
@@ -185,7 +185,7 @@ void TypeChecker::CheckDeterministicReturn(FunctionDef* func) {
   }
 }
 
-void TypeChecker::CheckDeterministicReturn(MethodDef* method) {
+void TypeChecker::CheckDeterministicReturn(const MethodDef* method) {
   if (IsSameType(method->GetReturnType(), GetVoidType())) {
     return;
   }
@@ -521,9 +521,16 @@ std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker&
   return CheckAndGetMethodReturnType(tc, methoddef, method_call_expr);
 }
 
-std::unique_ptr<Type> CheckAndGetTypeForLambda(const TypeChecker& tc, LambdaExpr* lambda_expr) {
+std::unique_ptr<Type> CheckAndGetTypeForLambda(TypeChecker& tc, LambdaExpr* lambda_expr) {
   auto def = tc.GetStaticAnalyzer().FindFunction(lambda_expr->GetLambdaName());
   // 需要在这里对lambda进行静态检测，包括类型分析以及其他的静态检测
+  auto lambda_context = std::make_unique<Context>(def->GetFunctionName());
+  tc.GetStaticAnalyzer().RegisterFuncParamsToContext(def->GetParamList(), lambda_context.get());
+  tc.GetStaticAnalyzer().RegisterCaptureIdsToContext(def->GetCaptureIds(), lambda_context.get());
+  tc.GetStaticAnalyzer().Enter(std::move(lambda_context));
+  CheckBlockStatement(tc, def->GetBlockStmt().get());
+  tc.GetStaticAnalyzer().Leave();
+  tc.CheckDeterministicReturn(def);
   return def->GetType();
 }
 
@@ -579,7 +586,7 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
     return tmp->GetType()->Clone();
   }
   if (auto tmp = dynamic_cast<LambdaExpr*>(expr)) {
-    return CheckAndGetTypeForLambda(*this, tmp);
+    return CheckAndGetTypeForLambda(*const_cast<TypeChecker*>(this), tmp);
   }
   auto tmp = dynamic_cast<IdExpr*>(expr);
   if (tmp == nullptr) {

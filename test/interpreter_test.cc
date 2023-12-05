@@ -773,6 +773,11 @@ TEST(interpreter, lambda) {
       v = 20;
       return call a:();
     }
+
+    func test2() -> int {
+      let v : int = (2);
+      return call lambda [v] (int a) -> int  { return v + a; }:(10);
+    }
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -793,4 +798,10 @@ TEST(interpreter, lambda) {
   interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
+
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  ret = interpreter.CallFunctionByName("test2", {});
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 12);
 }

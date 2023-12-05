@@ -64,13 +64,21 @@ class StaticAnalyzer {
     }
   }
 
+  void RegisterCaptureIdsToContext(const std::vector<std::string>& ids, Context* func_context) {
+    for (auto& each : ids) {
+      IdExpr::Type type = IdExpr::Type::Invalid;
+      auto id_type = GetTypeByName(each, type);
+      if (type == IdExpr::Type::Invalid || type == IdExpr::Type::Function) {
+        throw WamonExecption("StaticAnalyzer.RegisterFuncParamsToContext, invalid or function id name {}", each);
+      }
+      func_context->RegisterVariable(each, std::move(id_type));
+    }
+  }
+
+  // 由于lambda的存在，函数作用域是可以嵌套的，因此这里不做限制，只需要解析的时候不在非全局作用域解析函数定义即可
   void Enter(std::unique_ptr<Context>&& c) {
     if (c->GetType() == Context::ContextType::GLOBAL) {
       throw WamonExecption("enter context error, the global context should be unique");
-    }
-    if ((c->GetType() == Context::ContextType::FUNC || c->GetType() == Context::ContextType::METHOD) &&
-        context_stack_.empty() == false) {
-      throw WamonExecption("the func and method context can only appear in global context");
     }
     context_stack_.push_back(std::move(c));
   }

@@ -49,6 +49,8 @@ class FunctionDef {
 
   void SetBlockStmt(std::unique_ptr<BlockStmt>&& block_stmt);
 
+  const std::unique_ptr<BlockStmt>& GetBlockStmt() const { return block_stmt_; }
+
   void SetCaptureIds(std::vector<std::string>&& ids) { capture_ids_ = std::move(ids); }
 
   const std::vector<std::string>& GetCaptureIds() const { return capture_ids_; }

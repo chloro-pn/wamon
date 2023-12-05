@@ -66,26 +66,9 @@ class TypeChecker {
   // 基于以上原因，将方法检测与函数检测分开实现，尽管目前它们并无太大区别
   void CheckMethods();
 
-  // 检测运算符重载是否合法，包括参数和返回值类型是否合法，块内每条语句是否合法，以及确定性返回的检测
-  // 此外还有运算符重载相关的特别规定，比如：
-  //    重载函数的参数不应该都是内置类型；
-  //    目前仅支持为基本类型提供运算符重载（函数类型、数组类型和指针类型均不支持重载）；
-  //    除了调用运算符之外的重载，最多只应该有两个参数（二元运算符）,并且不能没有参数；
-  //    某些运算符不支持重载（例如赋值运算符，我们总是希望它按照内置逻辑进行不应该由用户重载）；
-  // 这应该是类型检测的第四个阶段
-  void CheckOperatorOverride();
-
   const StaticAnalyzer& GetStaticAnalyzer() const { return static_analyzer_; }
 
   StaticAnalyzer& GetStaticAnalyzer() { return static_analyzer_; }
-
- private:
-  StaticAnalyzer& static_analyzer_;
-
-  // 对表达式树进行后序遍历，根据子节点的情况检测每个节点的类型是否合法
-  std::unique_ptr<Type> GetExpressionType(Expression* expr) const;
-
-  void CheckStatement(Statement* stmt);
 
   // 对函数体进行确定性返回分析
   // 定义 基本块：
@@ -99,9 +82,17 @@ class TypeChecker {
   //   由于循环语句可能是运行时不执行的，因此其对决定性返回这一性质没有影响（循环语句内可以包含return语句也可以不包含）
   //   对于最基本的BlockStmt，仅影响局部变量的定义域而不改变执行流，因此可以直接合并到上级BlockStmt中进行分析，当然为了实现间接也可以作为独立的基本块进行分析
   //   如果分支语句只有if分支而没有else分支，则其对决定性返回性质没有影响（因为它也可能是运行时不执行的）
-  void CheckDeterministicReturn(FunctionDef* func);
+  void CheckDeterministicReturn(const FunctionDef* func);
 
-  void CheckDeterministicReturn(MethodDef* method);
+  void CheckDeterministicReturn(const MethodDef* method);
+
+ private:
+  StaticAnalyzer& static_analyzer_;
+
+  // 对表达式树进行后序遍历，根据子节点的情况检测每个节点的类型是否合法
+  std::unique_ptr<Type> GetExpressionType(Expression* expr) const;
+
+  void CheckStatement(Statement* stmt);
 
   bool IsDeterministicReturn(BlockStmt* basic_block);
 };
