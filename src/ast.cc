@@ -122,6 +122,24 @@ std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
 
 std::shared_ptr<Variable> SelfExpr::Calculate(Interpreter& interpreter) { return interpreter.GetSelfObject(); }
 
+std::shared_ptr<Variable> LambdaExpr::Calculate(Interpreter& interpreter) {
+  auto func_def = interpreter.GetPackageUnit().FindFunction(lambda_func_name_);
+  std::vector<std::shared_ptr<Variable>> capture_variables;
+  auto& ids = func_def->GetCaptureIds();
+  for (auto& each : ids) {
+    auto v = interpreter.FindVariableById(each);
+    if (!v->IsRValue()) {
+      v = v->Clone();
+      v->SetName(each);
+    }
+    capture_variables.push_back(v);
+  }
+  auto call_obj = VariableFactory(func_def->GetType(), Variable::ValueCategory::RValue, "", interpreter);
+  AsFunctionVariable(call_obj.get())->SetFuncName(lambda_func_name_);
+  AsFunctionVariable(call_obj.get())->SetCaptureVariables(std::move(capture_variables));
+  return call_obj;
+}
+
 ExecuteResult BlockStmt::Execute(Interpreter& interpreter) {
   interpreter.EnterContext<RuntimeContextType::Block>();
   for (auto& each : block_) {
@@ -228,7 +246,7 @@ ExecuteResult ExpressionStmt::Execute(Interpreter& interpreter) {
 }
 
 ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
-  auto& context = interpreter.GetCurrentContext();
+  auto context = interpreter.GetCurrentContext();
   auto v = VariableFactory(type_, Variable::ValueCategory::LValue, var_name_, interpreter);
   std::vector<std::shared_ptr<Variable>> fields;
   for (auto& each : constructors_) {
@@ -239,7 +257,7 @@ ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   } else {
     v->ConstructByFields(fields);
   }
-  context.RegisterVariable(std::move(v));
+  context->RegisterVariable(std::move(v));
   return ExecuteResult::Next();
 }
 

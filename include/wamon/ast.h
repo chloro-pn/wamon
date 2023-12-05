@@ -248,6 +248,8 @@ class LambdaExpr : public Expression {
 
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
 
+  const std::string& GetLambdaName() const { return lambda_func_name_; }
+
   void SetLambdaFuncName(const std::string& lfn) { lambda_func_name_ = lfn; }
 
  private:

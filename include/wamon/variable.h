@@ -43,6 +43,8 @@ class Variable {
 
   std::unique_ptr<Type> GetType() const { return type_->Clone(); }
 
+  void SetName(const std::string& name) { name_ = name; }
+
   const std::string& GetName() const { return name_; }
 
   ValueCategory GetValueCategory() const { return vc_; }
@@ -536,9 +538,15 @@ class FunctionVariable : public CompoundVariable {
 
   void SetObj(std::shared_ptr<Variable> obj) { obj_ = obj; }
 
+  void SetCaptureVariables(std::vector<std::shared_ptr<Variable>>&& variables) {
+    capture_variables_ = std::move(variables);
+  }
+
   const std::string& GetFuncName() const { return func_name_; }
 
   std::shared_ptr<Variable> GetObj() const { return obj_; }
+
+  std::vector<std::shared_ptr<Variable>>& GetCaptureVariables() { return capture_variables_; }
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
 
@@ -559,13 +567,25 @@ class FunctionVariable : public CompoundVariable {
     if (obj_) {
       return obj_->Assign(other);
     }
-    func_name_ = static_cast<FunctionVariable*>(other.get())->GetFuncName();
+    auto real_other = static_cast<FunctionVariable*>(other.get());
+    func_name_ = real_other->GetFuncName();
+    if (other->IsRValue()) {
+      capture_variables_ = std::move(real_other->capture_variables_);
+    } else {
+      capture_variables_.clear();
+      for (auto& each : real_other->capture_variables_) {
+        capture_variables_.push_back(each->Clone());
+      }
+    }
   }
 
   void ChangeTo(ValueCategory vc) {
     vc_ = vc;
     if (obj_ != nullptr) {
       obj_->ChangeTo(vc);
+    }
+    for (auto& each : capture_variables_) {
+      each->ChangeTo(vc);
     }
   }
 
@@ -581,10 +601,13 @@ class FunctionVariable : public CompoundVariable {
  private:
   std::string func_name_;
   std::shared_ptr<Variable> obj_;
+  std::vector<std::shared_ptr<Variable>> capture_variables_;
 };
 
 inline FunctionVariable* AsFunctionVariable(const std::shared_ptr<Variable>& v) {
   return static_cast<FunctionVariable*>(v.get());
 }
+
+inline FunctionVariable* AsFunctionVariable(Variable* v) { return static_cast<FunctionVariable*>(v); }
 
 }  // namespace wamon

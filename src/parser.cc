@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include "fmt/format.h"
+#include "wamon/lambda_function_set.h"
 #include "wamon/method_def.h"
 #include "wamon/operator.h"
 #include "wamon/package_unit.h"
@@ -140,7 +141,7 @@ void ParseTypeList(const std::vector<WamonToken> &tokens, size_t begin, size_t e
  * [ id1, id2, ... , idn ]
  */
 void ParseCaptureIdList(const std::vector<WamonToken> &tokens, size_t begin, size_t end,
-                        std::unordered_set<std::string> &ids) {
+                        std::vector<std::string> &ids) {
   AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACKETS, __FILE__, __LINE__);
   while (true) {
     if (begin == end) {
@@ -148,10 +149,11 @@ void ParseCaptureIdList(const std::vector<WamonToken> &tokens, size_t begin, siz
       break;
     }
     auto id = ParseIdentifier(tokens, begin);
-    if (ids.find(id) != ids.end()) {
+    auto it = std::find(ids.begin(), ids.end(), id);
+    if (it != ids.end()) {
       throw WamonExecption("ParseCpatureIdList error, duplicate id {}", id);
     }
-    ids.insert(id);
+    ids.push_back(id);
     if (begin < end) {
       AssertTokenOrThrow(tokens, begin, Token::COMMA, __FILE__, __LINE__);
     }
@@ -171,7 +173,7 @@ std::string ParseLambda(const std::vector<WamonToken> &tokens, size_t &begin) {
 
   AssertTokenOrThrow(tokens, begin, Token::LAMBDA, __FILE__, __LINE__);
   size_t capture_end = FindMatchedToken<Token::LEFT_BRACKETS, Token::RIGHT_BRACKETS>(tokens, begin);
-  std::unordered_set<std::string> capture_ids;
+  std::vector<std::string> capture_ids;
   ParseCaptureIdList(tokens, begin, capture_end, capture_ids);
   lambda_def->SetCaptureIds(std::move(capture_ids));
 
@@ -181,6 +183,7 @@ std::string ParseLambda(const std::vector<WamonToken> &tokens, size_t &begin) {
   for (auto &&each : param_list) {
     lambda_def->AddParamList(std::move(each.second), each.first);
   }
+  begin = param_end + 1;
   AssertTokenOrThrow(tokens, begin, Token::ARROW, __FILE__, __LINE__);
   auto return_type = ParseType(tokens, begin);
   lambda_def->SetReturnType(std::move(return_type));
@@ -189,6 +192,7 @@ std::string ParseLambda(const std::vector<WamonToken> &tokens, size_t &begin) {
   auto stmt_block = ParseStmtBlock(tokens, begin, end);
   lambda_def->SetBlockStmt(std::move(stmt_block));
 
+  LambdaFunctionSet::Instance().RegisterLambdaFunction(name, std::move(lambda_def));
   begin = end + 1;
   return name;
 }
@@ -909,6 +913,9 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
       throw WamonExecption("parse error, invalid token {}", GetTokenStr(token.token));
     }
   }
+
+  package_unit.AddAllLambdaFunction(LambdaFunctionSet::Instance().GetAllLambdas());
+
   return package_unit;
 }
 

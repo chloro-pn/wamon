@@ -103,11 +103,11 @@ class Interpreter {
     runtime_stack_.pop_back();
   }
 
-  RuntimeContext& GetCurrentContext() {
+  RuntimeContext* GetCurrentContext() {
     if (runtime_stack_.empty() == true) {
-      return package_context_;
+      return &package_context_;
     }
-    return *runtime_stack_.back();
+    return runtime_stack_.back().get();
   }
 
   // 获取当前调用栈上最近的方法调用对象

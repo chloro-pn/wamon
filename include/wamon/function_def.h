@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <string>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -50,9 +49,9 @@ class FunctionDef {
 
   void SetBlockStmt(std::unique_ptr<BlockStmt>&& block_stmt);
 
-  void SetCaptureIds(std::unordered_set<std::string>&& ids) { capture_ids_ = std::move(ids); }
+  void SetCaptureIds(std::vector<std::string>&& ids) { capture_ids_ = std::move(ids); }
 
-  const std::unordered_set<std::string>& GetCaptureIds() const { return capture_ids_; }
+  const std::vector<std::string>& GetCaptureIds() const { return capture_ids_; }
 
   bool IsDeclaration() const { return block_stmt_ == nullptr; }
 
@@ -62,7 +61,7 @@ class FunctionDef {
   std::unique_ptr<Type> return_type_;
   std::unique_ptr<BlockStmt> block_stmt_;
   // 目前只有lambda用到
-  std::unordered_set<std::string> capture_ids_;
+  std::vector<std::string> capture_ids_;
 };
 
 }  // namespace wamon

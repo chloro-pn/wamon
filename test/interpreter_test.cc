@@ -758,3 +758,39 @@ TEST(interpreter, move) {
   EXPECT_EQ(wamon::AsIntVariable(a)->GetValueCategory(), wamon::Variable::ValueCategory::LValue);
   EXPECT_EQ(wamon::AsIntVariable(a)->GetValue(), 0);
 }
+
+TEST(interpreter, lambda) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    let v : int = (3);
+
+    func test() -> int {
+      let v2 : int  = (2);
+      let a : f(() -> int) = (lambda [v, v2] () -> int { return v + v2; });
+      v2 = 10;
+      v = 20;
+      return call a:();
+    }
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+
+  wamon::StaticAnalyzer sa(pu);
+  wamon::TypeChecker tc(sa);
+  tc.CheckTypes();
+  tc.CheckAndRegisterGlobalVariable();
+  tc.CheckStructs();
+  tc.CheckFunctions();
+  tc.CheckMethods();
+
+  wamon::Interpreter interpreter(pu);
+
+  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
+  auto ret = interpreter.CallFunctionByName("test", {});
+  interpreter.LeaveContext();
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
+}

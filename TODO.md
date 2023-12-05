@@ -7,10 +7,10 @@
 * 将Operator和BuiltinFunction等全局单例对象重构为解释器持有对象，因此不同的解释器实例可以注册不同的运算符重载和cpp函数，在构造的时候可以继承内置的一些重载和函数。这也意味着语法分析和语义分析需要依赖解释器（比如查找某些函数是否被定义：通过源文件或者注册定义）
 * [done] 支持move关键字与move操作
 * [doing] 支持闭包
-  - 闭包的语法 ： lambda [capture_variables] (param_list) { block stmt };
-  - 重构Parser函数，将PackageUnit传递进去以供注册lambda函数
-  - 类型检测阶段，需要根据捕获id查找对应的类型并注册在当前栈顶
-  - 运行阶段，当lambda表达式用于初始化、赋值给一个函数类型的变量时，需要在当前上下文执行捕获操作并保存在变量中，对该变量执行调用操作时需要将捕获的数据注册在运行时栈中。
+  - [done] 闭包的语法 ： lambda [capture_variables] (param_list) { block stmt };
+  - [delete] 重构Parser函数，将PackageUnit传递进去以供注册lambda函数(当前的架构很难改了，转换为将lambda函数注册到全局表中，PackageUnit在parse完后从全局表中获取所有的lambda函数)
+  - [todo] 完成lambda的类型检测阶段分析
+  - [done] 运行阶段，当lambda表达式用于初始化、赋值给一个函数类型的变量时，需要在当前上下文执行捕获操作并保存在变量中，对该变量执行调用操作时需要将捕获的数据注册在运行时栈中。
 * 支持包管理
 * 为解释器实例提供更多的功能（执行表达式，打印当前运行栈、支持增量parse功能）
 * 重构，将operator运算的类型检测从type_checker移动到operator类中

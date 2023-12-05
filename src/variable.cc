@@ -334,6 +334,14 @@ void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Varia
     throw WamonExecption("FunctionVariable's ConstructByFields method error, type dismatch : {} != {}",
                          fields[0]->GetTypeInfo(), GetTypeInfo());
   }
+  auto other = AsFunctionVariable(fields[0]);
+  if (fields[0]->IsRValue()) {
+    capture_variables_ = std::move(other->capture_variables_);
+  } else {
+    for (auto& each : other->capture_variables_) {
+      capture_variables_.push_back(each->Clone());
+    }
+  }
   func_name_ = AsStringVariable(fields[0])->GetValue();
 }
 
@@ -356,6 +364,16 @@ std::unique_ptr<Variable> FunctionVariable::Clone() {
       obj->SetObj(obj_->Clone());
     }
     obj->ChangeTo(ValueCategory::RValue);
+  }
+  if (IsRValue()) {
+    obj->capture_variables_ = std::move(capture_variables_);
+  } else {
+    for (auto& each : capture_variables_) {
+      obj->capture_variables_.push_back(each->Clone());
+    }
+  }
+  for (auto& each : obj->capture_variables_) {
+    each->ChangeTo(ValueCategory::RValue);
   }
   return obj;
 }

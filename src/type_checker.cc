@@ -98,6 +98,11 @@ void TypeChecker::CheckFunctions() {
     if (each.second->IsDeclaration()) {
       continue;
     }
+    // 跳过所有的lambda函数，因为lambda的绑定列表需要在声明时的上下文进行查找
+    auto& capture_ids = each.second->GetCaptureIds();
+    if (capture_ids.empty() == false) {
+      continue;
+    }
     // 首先进行上下文相关的检测、表达式类型检测、语句合法性检测
     auto func_context = std::make_unique<Context>(each.second->name_);
     static_analyzer_.RegisterFuncParamsToContext(each.second->param_list_, func_context.get());
@@ -516,6 +521,12 @@ std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker&
   return CheckAndGetMethodReturnType(tc, methoddef, method_call_expr);
 }
 
+std::unique_ptr<Type> CheckAndGetTypeForLambda(const TypeChecker& tc, LambdaExpr* lambda_expr) {
+  auto def = tc.GetStaticAnalyzer().FindFunction(lambda_expr->GetLambdaName());
+  // 需要在这里对lambda进行静态检测，包括类型分析以及其他的静态检测
+  return def->GetType();
+}
+
 std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   assert(expr != nullptr);
   if (dynamic_cast<StringIteralExpr*>(expr)) {
@@ -566,6 +577,9 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   }
   if (auto tmp = dynamic_cast<TypeExpr*>(expr)) {
     return tmp->GetType()->Clone();
+  }
+  if (auto tmp = dynamic_cast<LambdaExpr*>(expr)) {
+    return CheckAndGetTypeForLambda(*this, tmp);
   }
   auto tmp = dynamic_cast<IdExpr*>(expr);
   if (tmp == nullptr) {

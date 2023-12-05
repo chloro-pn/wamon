@@ -58,6 +58,15 @@ class PackageUnit {
     structs_[type_name]->AddMethods(std::move(methods));
   }
 
+  void AddAllLambdaFunction(std::unordered_map<std::string, std::unique_ptr<FunctionDef>>&& lambdas) {
+    for (auto& each_lambda : lambdas) {
+      if (funcs_.find(each_lambda.first) != funcs_.end()) {
+        throw WamonExecption("PackageUnit.AddAllLambdaFunction error, duplicate function name {}", each_lambda.first);
+      }
+      funcs_[each_lambda.first] = std::move(each_lambda.second);
+    }
+  }
+
   const StructDef* FindStruct(const std::string& struct_name) const {
     auto it = structs_.find(struct_name);
     if (it == structs_.end()) {
