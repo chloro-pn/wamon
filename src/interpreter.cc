@@ -16,6 +16,7 @@ Interpreter::Interpreter(const PackageUnit& pu) : pu_(pu) {
 // params分类两类，一类是函数调用过程中传入的参数，一类是lambda表达式捕获到的变量
 std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_def,
                                                     std::vector<std::shared_ptr<Variable>>&& params) {
+  EnterContext<RuntimeContextType::Function>();
   auto param_name = function_def->GetParamList().begin();
   auto capture_name = function_def->GetCaptureIds().begin();
   for (auto param : params) {
@@ -35,6 +36,7 @@ std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_
     throw WamonExecption("interpreter call function {} error, diden't end by return stmt",
                          function_def->GetFunctionName());
   }
+  LeaveContext();
   return result.result_;
 }
 
@@ -54,9 +56,7 @@ std::shared_ptr<Variable> Interpreter::CallCallable(std::shared_ptr<Variable> ca
     auto method_name = OperatorDef::CreateName(Token::LEFT_PARENTHESIS, params);
     auto method_def = GetPackageUnit().FindStruct(obj->GetTypeInfo())->GetMethod(method_name);
     assert(method_def != nullptr);
-    EnterContext<RuntimeContextType::Method>();
     auto result = CallMethod(obj, method_def, std::move(params));
-    LeaveContext();
     return result;
   } else {
     return CallFunctionByName(func_name, std::move(params));
@@ -65,6 +65,7 @@ std::shared_ptr<Variable> Interpreter::CallCallable(std::shared_ptr<Variable> ca
 
 std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj, const MethodDef* method_def,
                                                   std::vector<std::shared_ptr<Variable>>&& params) {
+  EnterContext<RuntimeContextType::Method>();
   auto param_name = method_def->GetParamList().begin();
   for (auto param : params) {
     assert(param_name != method_def->GetParamList().end());
@@ -77,6 +78,7 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
     throw WamonExecption("interpreter call method {}.{} error, diden't end by return stmt", obj->GetName(),
                          method_def->GetMethodName());
   }
+  LeaveContext();
   return result.result_;
 }
 

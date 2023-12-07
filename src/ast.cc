@@ -23,30 +23,22 @@ std::shared_ptr<Variable> FuncCallExpr::Calculate(Interpreter& interpreter) {
   }
   if (type == FuncCallType::FUNC) {
     auto funcdef = interpreter.GetPackageUnit().FindFunction(func_name);
-    interpreter.EnterContext<RuntimeContextType::Function>();
     auto result = interpreter.CallFunction(funcdef, std::move(params));
-    interpreter.LeaveContext();
     return result;
   } else if (type == FuncCallType::CALLABLE) {
     auto obj = caller_->Calculate(interpreter);
     assert(obj != nullptr);
-    interpreter.EnterContext<RuntimeContextType::Callable>();
     auto result = interpreter.CallCallable(obj, std::move(params));
-    interpreter.LeaveContext();
     return result;
   } else if (type == FuncCallType::BUILT_IN_FUNC) {
-    interpreter.EnterContext<RuntimeContextType::Function>();
     auto result = interpreter.CallFunction(func_name, std::move(params));
-    interpreter.LeaveContext();
     return result;
   } else if (type == FuncCallType::OPERATOR_OVERRIDE) {
     auto obj = caller_->Calculate(interpreter);
     assert(obj != nullptr);
     auto method_def = interpreter.GetPackageUnit().FindStruct(obj->GetTypeInfo())->GetMethod(method_name);
     assert(method_def != nullptr);
-    interpreter.EnterContext<RuntimeContextType::Method>();
     auto result = interpreter.CallMethod(obj, method_def, std::move(params));
-    interpreter.LeaveContext();
     return result;
   }
   throw WamonExecption("FuncCallExpr calculate error, invalid type");
@@ -60,9 +52,7 @@ std::shared_ptr<Variable> MethodCallExpr::Calculate(Interpreter& interpreter) {
   }
   auto v = caller_->Calculate(interpreter);
   if (IsInnerType(v->GetType())) {
-    interpreter.EnterContext<RuntimeContextType::Method>();
     auto result = interpreter.CallMethod(v, method_name_, std::move(params));
-    interpreter.LeaveContext();
     return result;
   }
   auto structdef = interpreter.GetPackageUnit().FindStruct(v->GetTypeInfo());
@@ -71,9 +61,7 @@ std::shared_ptr<Variable> MethodCallExpr::Calculate(Interpreter& interpreter) {
     structdef = interpreter.GetPackageUnit().FindStruct(v->GetTypeInfo());
   }
   auto methoddef = structdef->GetMethod(method_name_);
-  interpreter.EnterContext<RuntimeContextType::Method>();
   auto result = interpreter.CallMethod(v, methoddef, std::move(params));
-  interpreter.LeaveContext();
   return result;
 }
 

@@ -111,9 +111,7 @@ TEST(interpreter, variable) {
   EXPECT_EQ(v->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 5);
 
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   auto ret = interpreter.CallFunctionByName("update_list", {});
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 6);
 }
@@ -255,9 +253,7 @@ TEST(interpreter, callmethod) {
 
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("ms");
-  interpreter.EnterContext<wamon::RuntimeContextType::Method>();
   auto ret = interpreter.CallMethodByName(v, "get_age", {});
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 25);
 
@@ -300,21 +296,15 @@ TEST(interpreter, inner_type_method) {
   tc.CheckMethods();
 
   wamon::Interpreter interpreter(pu);
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   auto ret = interpreter.CallFunctionByName("func1", {});
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("func2", {});
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "byte");
   EXPECT_EQ(wamon::AsByteVariable(ret)->GetValue(), 'h');
 
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("func3", {});
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 6);
 }
@@ -462,16 +452,12 @@ TEST(interpreter, trait) {
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("v1");
   EXPECT_EQ(wamon::AsStructVariable(v)->GetDataMemberByName("a")->GetTypeInfo(), "int");
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   auto ret = interpreter.CallFunctionByName("test", {});
   EXPECT_EQ(ret->GetTypeInfo(), "bool");
   EXPECT_EQ(wamon::AsBoolVariable(ret)->GetValue(), true);
-  interpreter.LeaveContext();
 
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("call_trait_get_age", {v});
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 10);
-  interpreter.LeaveContext();
 }
 
 TEST(interpreter, operator) {
@@ -564,9 +550,7 @@ TEST(interpreter, operator) {
       new wamon::StringVariable("hello ", wamon::Variable::ValueCategory::RValue, "")));
   params.push_back(std::shared_ptr<wamon::StringVariable>(
       new wamon::StringVariable("world", wamon::Variable::ValueCategory::RValue, "")));
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   auto ret = interpreter.CallFunctionByName("stradd", std::move(params));
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "string");
   EXPECT_EQ(wamon::AsStringVariable(ret)->GetValue(), "hello world");
 
@@ -576,57 +560,43 @@ TEST(interpreter, operator) {
   params.push_back(
       std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(5, wamon::Variable::ValueCategory::RValue, "")));
   auto tmp_params = params;
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("intminus", std::move(tmp_params));
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
   tmp_params = params;
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("intmulti", std::move(tmp_params));
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 50);
 
   tmp_params = params;
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("intdivide", std::move(tmp_params));
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 2);
 
   tmp_params.clear();
   tmp_params.push_back(
       std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(10, wamon::Variable::ValueCategory::RValue, "")));
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("intuoperator", std::move(tmp_params));
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), -10);
 
   tmp_params.clear();
   tmp_params.push_back(
       std::shared_ptr<wamon::BoolVariable>(new wamon::BoolVariable(true, wamon::Variable::ValueCategory::RValue, "")));
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("boolnot", std::move(tmp_params));
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "bool");
   EXPECT_EQ(wamon::AsBoolVariable(ret)->GetValue(), false);
 
   tmp_params.clear();
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("op_override", std::move(tmp_params));
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
   tmp_params.clear();
   auto v1 = interpreter.FindVariableById("v1");
   auto v2 = interpreter.FindVariableById("v2");
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("op_override2", std::move(tmp_params));
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
@@ -635,16 +605,12 @@ TEST(interpreter, operator) {
       wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", interpreter);
   wamon::AsIntVariable(int_v)->SetValue(2);
   tmp_params.push_back(std::move(int_v));
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("as_test", std::move(tmp_params));
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "double");
   EXPECT_DOUBLE_EQ(wamon::AsDoubleVariable(ret)->GetValue(), 2.0);
 
   tmp_params.clear();
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("as_test_2", std::move(tmp_params));
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "st");
   EXPECT_DOUBLE_EQ(wamon::AsIntVariable(wamon::AsStructVariable(ret)->GetDataMemberByName("a"))->GetValue(), 2);
 }
@@ -726,9 +692,7 @@ TEST(interpreter, register_cpp_function) {
   tc.CheckFunctions();
   tc.CheckMethods();
 
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   auto ret = interpreter.CallFunctionByName("testfunc", {});
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 }
@@ -793,15 +757,11 @@ TEST(interpreter, lambda) {
 
   wamon::Interpreter interpreter(pu);
 
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   auto ret = interpreter.CallFunctionByName("test", {});
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
-  interpreter.EnterContext<wamon::RuntimeContextType::Function>();
   ret = interpreter.CallFunctionByName("test2", {});
-  interpreter.LeaveContext();
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 12);
 }

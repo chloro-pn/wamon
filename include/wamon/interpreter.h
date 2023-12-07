@@ -192,7 +192,10 @@ class Interpreter {
                                          std::vector<std::shared_ptr<Variable>>&& params) {
     auto func = BuiltinFunctions::Instance().Get(builtin_name);
     assert(func != nullptr);
-    return (*func)(std::move(params));
+    EnterContext<RuntimeContextType::Function>();
+    auto ret = (*func)(std::move(params));
+    LeaveContext();
+    return ret->IsRValue() ? std::move(ret) : ret->Clone();
   }
 
   // todo : builtin funcs need type check
@@ -213,7 +216,10 @@ class Interpreter {
   std::shared_ptr<Variable> CallMethod(std::shared_ptr<Variable> obj, const std::string& method_name,
                                        std::vector<std::shared_ptr<Variable>>&& params) {
     auto method = InnerTypeMethod::Instance().Get(obj, method_name);
-    return method(obj, std::move(params));
+    EnterContext<RuntimeContextType::Method>();
+    auto ret = method(obj, std::move(params));
+    LeaveContext();
+    return ret->IsRValue() ? std::move(ret) : ret->Clone();
   }
 
   std::shared_ptr<Variable> CallMethodByName(std::shared_ptr<Variable> obj, const std::string& method_name,
