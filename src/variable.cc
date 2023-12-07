@@ -111,9 +111,13 @@ void StructVariable::DefaultConstruct() {
     trait_proxy_ = nullptr;
     return;
   }
+  data_members_.clear();
   auto& members = def_->GetDataMembers();
   for (auto& each : members) {
-    data_members_.push_back({each.first, VariableFactory(each.second, vc_, each.first, interpreter_)});
+    auto member = VariableFactory(each.second, vc_, each.first, interpreter_);
+    member->DefaultConstruct();
+    member->ChangeTo(vc_);
+    data_members_.push_back({each.first, std::move(member)});
   }
 }
 
@@ -227,10 +231,13 @@ void StructVariable::Assign(const std::shared_ptr<Variable>& other) {
 void StructVariable::ChangeTo(ValueCategory vc) {
   vc_ = vc;
   if (def_->IsTrait()) {
-    trait_proxy_->ChangeTo(vc);
+    if (trait_proxy_ != nullptr) {
+      trait_proxy_->ChangeTo(vc);
+    }
     return;
   }
   for (auto& each : data_members_) {
+    assert(each.data != nullptr);
     each.data->ChangeTo(vc);
   }
 }
@@ -299,7 +306,7 @@ void ListVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>
   }
 }
 
-void ListVariable::DefaultConstruct() {}
+void ListVariable::DefaultConstruct() { elements_.clear(); }
 
 std::unique_ptr<Variable> ListVariable::Clone() {
   std::vector<std::shared_ptr<Variable>> elements;
@@ -345,7 +352,11 @@ void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Varia
   func_name_ = AsStringVariable(fields[0])->GetValue();
 }
 
-void FunctionVariable::DefaultConstruct() {}
+void FunctionVariable::DefaultConstruct() {
+  obj_ = nullptr;
+  func_name_.clear();
+  capture_variables_.clear();
+}
 
 std::unique_ptr<Variable> FunctionVariable::Clone() {
   std::vector<std::unique_ptr<Type>> param_type;

@@ -81,14 +81,17 @@ std::shared_ptr<Variable> BinaryExpr::Calculate(Interpreter& interpreter) {
 
 std::shared_ptr<Variable> UnaryExpr::Calculate(Interpreter& interpreter) {
   auto childop = operand_->Calculate(interpreter);
-  std::string lvalue_name;
+  // 如果move应用到一个左值，我们通过将其变换为右值然后使用Clone操作构造一个新的值
+  // 因为Variable的实现遵循以下逻辑：如果Clone一个右值，则会尽可能复用右值的数据成员构造新的对象
+  // 最后调用该左值的DefaultConstruct函数构造其默认状态
   if (op_ == Token::MOVE && childop->GetValueCategory() == Variable::ValueCategory::LValue) {
-    lvalue_name = childop->GetName();
+    childop->ChangeTo(Variable::ValueCategory::RValue);
+    auto new_v = childop->Clone();
+    childop->DefaultConstruct();
+    childop->ChangeTo(Variable::ValueCategory::LValue);
+    return new_v;
   }
   auto ret = interpreter.CalculateOperator(op_, childop);
-  if (op_ == Token::MOVE && lvalue_name.empty() == false) {
-    interpreter.DefaultConstructVarialeById(lvalue_name);
-  }
   return ret;
 }
 

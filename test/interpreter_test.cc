@@ -704,6 +704,19 @@ TEST(interpreter, move) {
 
     let a : int = (2);
     let b : int = (move a);
+
+    struct ms {
+      int a;
+      double b;
+    }
+
+    let v : ms = (2, 3.5);
+    let x : double = (move v.b);
+
+    func test() -> double {
+      x = 4.5;
+      return v.b;
+    }
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -721,6 +734,12 @@ TEST(interpreter, move) {
   auto a = interpreter.FindVariableById("a");
   EXPECT_EQ(wamon::AsIntVariable(a)->GetValueCategory(), wamon::Variable::ValueCategory::LValue);
   EXPECT_EQ(wamon::AsIntVariable(a)->GetValue(), 0);
+
+  auto ret = interpreter.CallFunctionByName("test", {});
+  EXPECT_EQ(ret->GetTypeInfo(), "double");
+  EXPECT_DOUBLE_EQ(wamon::AsDoubleVariable(ret)->GetValue(), 0.0);
+  auto x = interpreter.FindVariableById("x");
+  EXPECT_DOUBLE_EQ(wamon::AsDoubleVariable(x)->GetValue(), 4.5);
 }
 
 TEST(interpreter, lambda) {

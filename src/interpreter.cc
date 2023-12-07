@@ -45,6 +45,9 @@ std::shared_ptr<Variable> Interpreter::CallCallable(std::shared_ptr<Variable> ca
   auto& func_name = AsFunctionVariable(callable)->GetFuncName();
   auto obj = AsFunctionVariable(callable)->GetObj();
   auto& capture_variable = AsFunctionVariable(callable)->GetCaptureVariables();
+  if (func_name.empty() && obj == nullptr) {
+    throw WamonExecption("Interpreter.CallCallable error, the callable is null state, cant not be called");
+  }
   for (auto& each : capture_variable) {
     if (each->IsRValue()) {
       params.push_back(std::move(each));
