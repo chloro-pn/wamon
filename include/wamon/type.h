@@ -141,7 +141,7 @@ class FuncType : public CompoundType {
 class PackageUnit;
 
 inline bool CheckTraitConstraint(const PackageUnit& pu, const std::unique_ptr<Type>& trait_type,
-                                 const std::unique_ptr<Type>& param_type);
+                                 const std::unique_ptr<Type>& param_type, std::string& reason);
 
 inline bool IsSameType(const std::unique_ptr<Type>& lt, const std::unique_ptr<Type>& rt) { return (*lt) == (*rt); }
 

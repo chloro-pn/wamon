@@ -286,10 +286,12 @@ std::unique_ptr<Type> CheckAndGetAsResultType(std::unique_ptr<Type> lt, std::uni
   if (IsIntType(lt) && IsBoolType(rt)) {
     return rt;
   }
-  if (CheckTraitConstraint(pu, rt, lt)) {
+  std::string reason;
+  if (CheckTraitConstraint(pu, rt, lt, reason)) {
     return rt;
   }
-  throw WamonExecption("CheckAndGetAsResutlType error, lt : {}, rt : {}", lt->GetTypeInfo(), rt->GetTypeInfo());
+  throw WamonExecption("CheckAndGetAsResutlType error, lt : {}, rt : {}, reason : {}", lt->GetTypeInfo(),
+                       rt->GetTypeInfo(), reason);
 }
 
 // 首先尝试内置支持的运算符类型，如果失败则尝试自定义运算符重载

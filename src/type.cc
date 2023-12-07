@@ -32,7 +32,7 @@ std::unique_ptr<Type> FuncType::Clone() const {
 }
 
 bool CheckTraitConstraint(const PackageUnit& pu, const std::unique_ptr<Type>& trait_type,
-                          const std::unique_ptr<Type>& param_type) {
+                          const std::unique_ptr<Type>& param_type, std::string& reason) {
   const std::string trait_name = trait_type->GetTypeInfo();
   const std::string param_name = param_type->GetTypeInfo();
   auto trait_def = pu.FindStruct(trait_name);
@@ -44,24 +44,24 @@ bool CheckTraitConstraint(const PackageUnit& pu, const std::unique_ptr<Type>& tr
   for (auto& each : trait_def->GetDataMembers()) {
     auto data_type = param_def->GetDataMemberType<false>(each.first);
     if (data_type == nullptr) {
+      reason = fmt::format("CheckTraitConstraint error, data_type {} not found", each.first);
       return false;
-      // throw WamonExecption("CheckTraitConstraint error, data_type {} not found", each.first);
     }
     if (!IsSameType(data_type, each.second)) {
+      reason = fmt::format("CheckTraitConstraint error, data member {}'s type mismatch : {} != {}", each.first,
+                           each.second->GetTypeInfo(), data_type->GetTypeInfo());
       return false;
-      // throw WamonExecption("CheckTraitConstraint error, data member {}'s type mismatch : {} != {}", each.first,
-      //                     each.second->GetTypeInfo(), data_type->GetTypeInfo());
     }
   }
   for (auto& each : trait_def->GetMethods()) {
     auto method_def = param_def->GetMethod(each->GetMethodName());
     if (method_def == nullptr) {
+      reason = fmt::format("CheckTraitConstraint error, method {} not found", each->GetMethodName());
       return false;
-      // throw WamonExecption("CheckTraitConstraint error, method {} not found", each->GetMethodName());
     }
     if (!IsSameType(method_def->GetType(), each->GetType())) {
-      // throw WamonExecption("CheckTraitConstraint error, method {} type mismatch : {} != {}", each->GetMethodName(),
-      //                     method_def->GetType()->GetTypeInfo(), each->GetType()->GetTypeInfo());
+      reason = fmt::format("CheckTraitConstraint error, method {} type mismatch : {} != {}", each->GetMethodName(),
+                           method_def->GetType()->GetTypeInfo(), each->GetType()->GetTypeInfo());
       return false;
     }
   }
@@ -131,9 +131,10 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
         throw WamonExecption("struct trait {} construct check error, params should be only 1 but {}",
                              var_type->GetTypeInfo(), param_types.size());
       }
-      if (CheckTraitConstraint(pu, var_type, param_types[0]) == false) {
-        throw WamonExecption("struct trait {} construct check error, trait constraint check failed",
-                             var_type->GetTypeInfo());
+      std::string reason;
+      if (CheckTraitConstraint(pu, var_type, param_types[0], reason) == false) {
+        throw WamonExecption("struct trait {} construct check error, trait constraint check failed, reason : {}",
+                             var_type->GetTypeInfo(), reason);
       }
       return;
     }
