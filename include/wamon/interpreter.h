@@ -89,8 +89,14 @@ struct RuntimeContext {
 // 解释器，负责执行ast，维护运行时栈，运算符执行
 class Interpreter {
  public:
+  friend class BlockStmt;
+  friend class IfStmt;
+  friend class ForStmt;
+  friend class WhileStmt;
+
   explicit Interpreter(const PackageUnit& pu);
 
+ private:
   template <RuntimeContextType type>
   void EnterContext() {
     auto rs = std::make_unique<RuntimeContext>();
@@ -103,6 +109,7 @@ class Interpreter {
     runtime_stack_.pop_back();
   }
 
+ public:
   RuntimeContext* GetCurrentContext() {
     if (runtime_stack_.empty() == true) {
       return &package_context_;
