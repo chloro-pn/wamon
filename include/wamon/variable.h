@@ -116,6 +116,8 @@ class StringVariable : public Variable {
 
   const std::string& GetValue() const { return value_; }
 
+  void SetValue(const std::string& v) { value_ = v; }
+
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     if (fields.size() != 1) {
       throw WamonExecption("StringVariable's ConstructByFields method error : fields.size() == {}", fields.size());
@@ -165,6 +167,10 @@ class StringVariable : public Variable {
 };
 
 inline StringVariable* AsStringVariable(const std::shared_ptr<Variable>& v) {
+  return static_cast<StringVariable*>(v.get());
+}
+
+inline StringVariable* AsStringVariable(const std::unique_ptr<Variable>& v) {
   return static_cast<StringVariable*>(v.get());
 }
 

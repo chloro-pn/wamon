@@ -9,6 +9,7 @@
 #include "wamon/exception.h"
 #include "wamon/function_def.h"
 #include "wamon/inner_type_method.h"
+#include "wamon/package_unit.h"
 #include "wamon/static_analyzer.h"
 #include "wamon/token.h"
 #include "wamon/topological_sort.h"
@@ -21,7 +22,22 @@ void CheckBlockStatement(TypeChecker& tc, BlockStmt* stmt) {
   }
 }
 
-TypeChecker::TypeChecker(StaticAnalyzer& sa) : static_analyzer_(sa) {}
+TypeChecker::TypeChecker(const PackageUnit& pu) : static_analyzer_(pu) {}
+
+bool TypeChecker::CheckAll(std::string& reason) {
+  bool type_check_succ = true;
+  try {
+    CheckTypes();
+    CheckAndRegisterGlobalVariable();
+    CheckStructs();
+    CheckFunctions();
+    CheckMethods();
+  } catch (const wamon::WamonExecption& e) {
+    reason = e.what();
+    type_check_succ = false;
+  }
+  return type_check_succ;
+}
 
 void TypeChecker::CheckTypes() {
   const auto& pu = static_analyzer_.GetPackageUnit();

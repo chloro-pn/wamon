@@ -30,9 +30,8 @@ TEST(static_analysis, base) {
   )";
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
-  wamon::StaticAnalyzer sa(pu);
 
-  wamon::TypeChecker tc(sa);
+  wamon::TypeChecker tc(pu);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
   EXPECT_NO_THROW(tc.CheckFunctions());
 }
@@ -48,9 +47,8 @@ TEST(static_analysis, globalvar_dependent) {
   )";
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
-  wamon::StaticAnalyzer sa(pu);
 
-  wamon::TypeChecker tc(sa);
+  wamon::TypeChecker tc(pu);
   EXPECT_THROW(tc.CheckAndRegisterGlobalVariable(), wamon::WamonExecption);
 }
 
@@ -148,8 +146,7 @@ TEST(static_analysis, return_type) {
   for (auto str : strs) {
     auto tokens = scan.Scan(str);
     wamon::PackageUnit pu = wamon::Parse(tokens);
-    wamon::StaticAnalyzer sa(pu);
-    wamon::TypeChecker tc(sa);
+    wamon::TypeChecker tc(pu);
     tc.CheckAndRegisterGlobalVariable();
     EXPECT_THROW(tc.CheckFunctions(), wamon::WamonExecption);
   }
@@ -188,9 +185,8 @@ TEST(static_analysis, call_op_override) {
 
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
-  wamon::StaticAnalyzer sa(pu);
 
-  wamon::TypeChecker tc(sa);
+  wamon::TypeChecker tc(pu);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
   EXPECT_NO_THROW(tc.CheckFunctions());
 }
@@ -209,9 +205,8 @@ TEST(static_analysis, type_dismatch) {
   )";
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
-  wamon::StaticAnalyzer sa(pu);
 
-  wamon::TypeChecker tc(sa);
+  wamon::TypeChecker tc(pu);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
   EXPECT_THROW(tc.CheckFunctions(), wamon::WamonExecption);
 
@@ -222,9 +217,8 @@ TEST(static_analysis, type_dismatch) {
   )";
   tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
-  wamon::StaticAnalyzer sa2(pu);
 
-  wamon::TypeChecker tc2(sa);
+  wamon::TypeChecker tc2(pu);
   EXPECT_THROW(tc2.CheckAndRegisterGlobalVariable(), wamon::WamonExecption);
 }
 
@@ -240,9 +234,8 @@ TEST(static_analysis, builtin_func_check) {
   )";
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
-  wamon::StaticAnalyzer sa(pu);
 
-  wamon::TypeChecker tc(sa);
+  wamon::TypeChecker tc(pu);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
   EXPECT_NO_THROW(tc.CheckTypes());
 }
@@ -266,8 +259,7 @@ TEST(static_analysis, construct_check) {
 
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
+  wamon::TypeChecker tc(pu);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
   std::vector<std::string> strs = {
       R"(
@@ -295,8 +287,7 @@ TEST(static_analysis, construct_check) {
   for (auto str : strs) {
     auto tokens = scan.Scan(str);
     wamon::PackageUnit pu = wamon::Parse(tokens);
-    wamon::StaticAnalyzer sa(pu);
-    wamon::TypeChecker tc(sa);
+    wamon::TypeChecker tc(pu);
     EXPECT_THROW(tc.CheckAndRegisterGlobalVariable(), wamon::WamonExecption);
   }
 }
@@ -350,8 +341,7 @@ TEST(static_analysis, deterministic_return) {
   for (auto str : strs) {
     auto tokens = scan.Scan(str);
     wamon::PackageUnit pu = wamon::Parse(tokens);
-    wamon::StaticAnalyzer sa(pu);
-    wamon::TypeChecker tc(sa);
+    wamon::TypeChecker tc(pu);
     EXPECT_THROW(tc.CheckFunctions(), wamon::WamonDeterministicReturn);
   }
 
@@ -418,8 +408,7 @@ TEST(static_analysis, deterministic_return) {
   for (auto str : strs) {
     auto tokens = scan.Scan(str);
     wamon::PackageUnit pu = wamon::Parse(tokens);
-    wamon::StaticAnalyzer sa(pu);
-    wamon::TypeChecker tc(sa);
+    wamon::TypeChecker tc(pu);
     EXPECT_NO_THROW(tc.CheckFunctions());
   }
 }
@@ -471,9 +460,8 @@ TEST(static_analysis, struct_dependent_check) {
   )";
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
-  wamon::StaticAnalyzer sa(pu);
 
-  wamon::TypeChecker tc(sa);
+  wamon::TypeChecker tc(pu);
   EXPECT_NO_THROW(tc.CheckStructs());
 
   str = R"(
@@ -492,7 +480,6 @@ TEST(static_analysis, struct_dependent_check) {
 
   tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
-  wamon::StaticAnalyzer sa2(pu);
-  wamon::TypeChecker tc2(sa2);
+  wamon::TypeChecker tc2(pu);
   EXPECT_THROW(tc2.CheckStructs(), wamon::WamonExecption);
 }

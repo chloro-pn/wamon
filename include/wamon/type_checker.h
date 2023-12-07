@@ -4,11 +4,12 @@
 
 #include "wamon/ast.h"
 #include "wamon/context.h"
+#include "wamon/static_analyzer.h"
 #include "wamon/type.h"
 
 namespace wamon {
 
-class StaticAnalyzer;
+class PackageUnit;
 
 class TypeChecker {
  public:
@@ -34,7 +35,9 @@ class TypeChecker {
 
   friend class BuiltinFunctions;
 
-  explicit TypeChecker(StaticAnalyzer& sa);
+  explicit TypeChecker(const PackageUnit& sa);
+
+  bool CheckAll(std::string& reason);
 
   // 检测函数、结构体、方法定义中所涉及的所有类型是否合法
   // 因为定义是顺序无关的，因此解析的时候无法判别类型是否被定义，因此需要在解析后的某个阶段进行全局的类型合法性校验
@@ -87,7 +90,7 @@ class TypeChecker {
   void CheckDeterministicReturn(const MethodDef* method);
 
  private:
-  StaticAnalyzer& static_analyzer_;
+  StaticAnalyzer static_analyzer_;
 
   // 对表达式树进行后序遍历，根据子节点的情况检测每个节点的类型是否合法
   std::unique_ptr<Type> GetExpressionType(Expression* expr) const;

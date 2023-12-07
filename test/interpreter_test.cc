@@ -23,13 +23,10 @@ TEST(interpreter, callfunction) {
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
 
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
-  tc.CheckTypes();
-  tc.CheckAndRegisterGlobalVariable();
-  tc.CheckStructs();
-  tc.CheckFunctions();
-  tc.CheckMethods();
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true);
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.CallFunctionByName("my_func", {});
   EXPECT_EQ(v->GetTypeInfo(), "int");
@@ -70,13 +67,10 @@ TEST(interpreter, variable) {
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
 
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
-  tc.CheckTypes();
-  tc.CheckAndRegisterGlobalVariable();
-  tc.CheckStructs();
-  tc.CheckFunctions();
-  tc.CheckMethods();
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true);
   // tc.CheckOperatorOverride();
 
   wamon::Interpreter interpreter(pu);
@@ -139,13 +133,10 @@ TEST(interpreter, variable_compare) {
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
 
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
-  tc.CheckTypes();
-  tc.CheckAndRegisterGlobalVariable();
-  tc.CheckStructs();
-  tc.CheckFunctions();
-  tc.CheckMethods();
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true);
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("a");
   auto v2 = interpreter.FindVariableById("c");
@@ -188,13 +179,10 @@ TEST(interpreter, variable_assign) {
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
 
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
-  tc.CheckTypes();
-  tc.CheckAndRegisterGlobalVariable();
-  tc.CheckStructs();
-  tc.CheckFunctions();
-  tc.CheckMethods();
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true);
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("a");
   auto v2 = interpreter.FindVariableById("c");
@@ -243,13 +231,10 @@ TEST(interpreter, callmethod) {
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
 
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
-  tc.CheckTypes();
-  tc.CheckAndRegisterGlobalVariable();
-  tc.CheckStructs();
-  tc.CheckFunctions();
-  tc.CheckMethods();
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true);
 
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("ms");
@@ -287,13 +272,10 @@ TEST(interpreter, inner_type_method) {
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
 
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
-  tc.CheckTypes();
-  tc.CheckAndRegisterGlobalVariable();
-  tc.CheckStructs();
-  tc.CheckFunctions();
-  tc.CheckMethods();
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true);
 
   wamon::Interpreter interpreter(pu);
   auto ret = interpreter.CallFunctionByName("func1", {});
@@ -351,13 +333,10 @@ TEST(interpreter, callable) {
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
 
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
-  tc.CheckTypes();
-  tc.CheckAndRegisterGlobalVariable();
-  tc.CheckStructs();
-  tc.CheckFunctions();
-  tc.CheckMethods();
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true);
 
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("mycallable");
@@ -441,13 +420,10 @@ TEST(interpreter, trait) {
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
 
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
-  tc.CheckTypes();
-  tc.CheckAndRegisterGlobalVariable();
-  tc.CheckStructs();
-  tc.CheckFunctions();
-  tc.CheckMethods();
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true);
 
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("v1");
@@ -536,13 +512,10 @@ TEST(interpreter, operator) {
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
 
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
-  tc.CheckTypes();
-  tc.CheckAndRegisterGlobalVariable();
-  tc.CheckStructs();
-  tc.CheckFunctions();
-  tc.CheckMethods();
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true);
 
   wamon::Interpreter interpreter(pu);
   std::vector<std::shared_ptr<wamon::Variable>> params;
@@ -636,13 +609,10 @@ TEST(interpreter, fibonacci) {
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
 
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
-  tc.CheckTypes();
-  tc.CheckAndRegisterGlobalVariable();
-  tc.CheckStructs();
-  tc.CheckFunctions();
-  tc.CheckMethods();
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true);
 
   wamon::Interpreter interpreter(pu);
   auto a = interpreter.FindVariableById("v");
@@ -684,13 +654,10 @@ TEST(interpreter, register_cpp_function) {
         return std::make_shared<wamon::IntVariable>(static_cast<int>(len), wamon::Variable::ValueCategory::RValue, "");
       });
 
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
-  tc.CheckTypes();
-  tc.CheckAndRegisterGlobalVariable();
-  tc.CheckStructs();
-  tc.CheckFunctions();
-  tc.CheckMethods();
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true);
 
   auto ret = interpreter.CallFunctionByName("testfunc", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
@@ -722,13 +689,10 @@ TEST(interpreter, move) {
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
 
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
-  tc.CheckTypes();
-  tc.CheckAndRegisterGlobalVariable();
-  tc.CheckStructs();
-  tc.CheckFunctions();
-  tc.CheckMethods();
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true);
 
   wamon::Interpreter interpreter(pu);
   auto a = interpreter.FindVariableById("a");
@@ -766,13 +730,10 @@ TEST(interpreter, lambda) {
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
 
-  wamon::StaticAnalyzer sa(pu);
-  wamon::TypeChecker tc(sa);
-  tc.CheckTypes();
-  tc.CheckAndRegisterGlobalVariable();
-  tc.CheckStructs();
-  tc.CheckFunctions();
-  tc.CheckMethods();
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true);
 
   wamon::Interpreter interpreter(pu);
 

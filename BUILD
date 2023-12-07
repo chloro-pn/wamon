@@ -19,3 +19,19 @@ cc_test(
     "@googletest//:gtest_main",
   ],
 )
+
+cc_binary(
+  name = "hello_world",
+  srcs = ["example/hello_world.cc"],
+  deps = [
+    ":wamon"
+  ],
+)
+
+cc_binary(
+  name = "register_cpp_func",
+  srcs = ["example/register_cpp_function.cc"],
+  deps = [
+    ":wamon"
+  ],
+)

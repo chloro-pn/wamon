@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cassert>
 #include <stack>
 
@@ -95,7 +97,7 @@ class StaticAnalyzer {
     return &global_context_;
   }
 
-  const std::string& CheckMethodContextAndGetTypeName() {
+  const std::string& CheckMethodContextAndGetTypeName() const {
     for (auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
       if ((*it)->GetLevel() == 2) {
         continue;
