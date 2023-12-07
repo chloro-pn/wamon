@@ -79,7 +79,7 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
                          method_def->GetMethodName());
   }
   LeaveContext();
-  return result.result_;
+  return result.result_->IsRValue() ? result.result_ : result.result_->Clone();
 }
 
 }  // namespace wamon

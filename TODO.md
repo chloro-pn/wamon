@@ -17,3 +17,5 @@
 * [done] 支持trait(参考rust)
 * 变量ConstructByFields成员支持复制构造，目前检测阶段可以通过但是运行时不支持，会抛出异常
 * CheckTraitConstraint失败时，返回具体的失败原因
+* 将interpreter的进入退出运行时栈接口改为私有的，不对用户暴露
+* lambda捕获列表支持move
