@@ -232,7 +232,7 @@ ExecuteResult WhileStmt::Execute(Interpreter& interpreter) {
 ExecuteResult ReturnStmt::Execute(Interpreter& interpreter) {
   if (return_ != nullptr) {
     auto v = return_->Calculate(interpreter);
-    return ExecuteResult::Return(std::move(v));
+    return ExecuteResult::Return(v->IsRValue() ? std::move(v) : v->Clone());
   }
   // 如果是return;语句则填充一个void类型返回，简化后续处理
   return ExecuteResult::Return(std::make_shared<VoidVariable>());
