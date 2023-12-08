@@ -3,7 +3,9 @@
 #include <cassert>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "wamon/token.h"
@@ -208,6 +210,42 @@ inline std::unique_ptr<Type> GetReturnType(const std::unique_ptr<Type>& type) {
   return dynamic_cast<FuncType*>(type.get())->GetReturnType()->Clone();
 }
 
+namespace detail {
+
+template <size_t n>
+struct StringLiteral {
+  constexpr StringLiteral(const char (&str)[n]) { std::copy_n(str, n, value); }
+
+  char value[n];
+
+  constexpr static size_t N = n;
+};
+
+template <char... c>
+struct StructName {
+  constexpr static std::size_t n = sizeof...(c);
+  constexpr static const char data[n] = {c...};
+};
+
+template <std::size_t index, std::size_t n>
+consteval char GetCharFromStr(const char (&arr)[n]) {
+  return arr[index < n ? index : n - 1];
+}
+
+template <StringLiteral str, size_t... N>
+auto createStructName(std::index_sequence<N...>) {
+  return StructName<GetCharFromStr<N>(str.value)...>{};
+}
+
+}  // namespace detail
+
+template <detail::StringLiteral str>
+auto CreateStructName() {
+  return detail::createStructName<str>(std::make_index_sequence<str.N>{});
+}
+
+#define WAMON_STRUCT_TYPE(str) decltype(::wamon::CreateStructName<str>())
+
 template <typename T>
 struct TypeFactory;
 
@@ -239,6 +277,11 @@ struct TypeFactory<bool> {
 template <>
 struct TypeFactory<unsigned char> {
   static std::unique_ptr<Type> Get() { return std::make_unique<BasicType>("byte"); }
+};
+
+template <char... C>
+struct TypeFactory<detail::StructName<C...>> {
+  static std::unique_ptr<Type> Get() { return std::make_unique<BasicType>(detail::StructName<C...>{}.data); }
 };
 
 template <typename T>
