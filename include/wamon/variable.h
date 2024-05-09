@@ -487,6 +487,17 @@ class ListVariable : public CompoundVariable {
     return elements_[i];
   }
 
+  std::string get_string_only_for_byte_list() {
+    if (!IsByteType(element_type_)) {
+      throw WamonExecption("ListVariable.get_string_only_for_byte_list can only be called by List(byte) type");
+    }
+    std::string ret;
+    for (auto& each : elements_) {
+      ret.push_back(char(AsByteVariable(each)->GetValue()));
+    }
+    return ret;
+  }
+
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
 
   void DefaultConstruct() override;

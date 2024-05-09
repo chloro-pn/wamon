@@ -293,13 +293,21 @@ std::unique_ptr<Type> CheckAndGetAssignResultType(std::unique_ptr<Type> lt, std:
   return lt->Clone();
 }
 
-// as运算符支持内置的类型转换，包括基础类型int到double类型的转换，以及struct到相容的struct trait的转换
+// as运算符支持内置的类型转换，包括
+// int -> double
+// int -> bool
+// list(byte) -> string
+//
+// 以及struct到相容的struct trait的转换
 std::unique_ptr<Type> CheckAndGetAsResultType(std::unique_ptr<Type> lt, std::unique_ptr<Type> rt,
                                               const PackageUnit& pu) {
   if (IsIntType(lt) && IsDoubleType(rt)) {
     return rt;
   }
   if (IsIntType(lt) && IsBoolType(rt)) {
+    return rt;
+  }
+  if (TypeFactory<std::vector<unsigned char>>::Get()->GetTypeInfo() == lt->GetTypeInfo() && IsStringType(rt)) {
     return rt;
   }
   std::string reason;
@@ -494,6 +502,11 @@ std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const Fun
   return function->return_type_->Clone();
 }
 
+/*
+ * 内置函数具有最高优先级
+ * 检查是不是原生函数
+ * 检查是不是可调用对象or运算符重载
+ */
 std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr) {
   auto id_expr = dynamic_cast<IdExpr*>(call_expr->caller_.get());
   if (id_expr != nullptr && BuiltinFunctions::Instance().Find(id_expr->GetId())) {

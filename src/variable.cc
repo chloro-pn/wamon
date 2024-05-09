@@ -345,7 +345,9 @@ void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Varia
   // 用其他的callable对象构造
   if (other->obj_ != nullptr) {
     if (other->IsRValue()) {
-      obj_ = std::move(other)->obj_;
+      // move other->obj_ to myself
+      obj_ = other->obj_;
+      other->obj_.reset();
     } else {
       obj_ = other->obj_->Clone();
     }

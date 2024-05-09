@@ -95,6 +95,7 @@ std::shared_ptr<Variable> UnaryExpr::Calculate(Interpreter& interpreter) {
   return ret;
 }
 
+// 如果id指向的是变量，则从调用栈中找到该变量返回，如果id指向的是函数，则构造一个右值的FunctionVariable对象返回
 std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
   if (type_ == Type::Invalid) {
     throw WamonExecption("IdExpr Calculate error, type invalid");

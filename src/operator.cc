@@ -180,6 +180,12 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
       return std::make_shared<BoolVariable>(AsIntVariable(v1)->GetValue() == 0 ? false : true,
                                             Variable::ValueCategory::RValue, "");
     }
+    if (TypeFactory<std::vector<unsigned char>>::Get()->GetTypeInfo() == from_type->GetTypeInfo() &&
+        IsStringType(to_type)) {
+      auto tmp = std::make_shared<StringVariable>("", Variable::ValueCategory::RValue, "");
+      tmp->SetValue(AsListVariable(v1)->get_string_only_for_byte_list());
+      return tmp;
+    }
     // struct to struct trait
     auto v = VariableFactory(to_type, Variable::ValueCategory::RValue, "", interpreter);
     v->ConstructByFields({v1});
