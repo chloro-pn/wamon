@@ -325,8 +325,10 @@ TEST(interpreter, callable) {
       let f1 : f((int) -> int) = (test_func);
       // callable对象，持有运算符重载的结构体对象
       let f2 : f((int) -> int) = (ms);
+      // callable对象，通过其他callable对象构造
+      let f3 : f((int) -> int) = (f2);
 
-      return call f1:(0) + call f2:(0) + call ms:(-20);
+      return call f1:(0) + call f2:(0) + call ms:(-20) + call f3:(0);
     }
   )";
   wamon::PackageUnit pu;
@@ -349,7 +351,7 @@ TEST(interpreter, callable) {
   params.clear();
   ret = interpreter.CallFunctionByName("call_test", std::move(params));
   EXPECT_EQ(ret->GetTypeInfo(), "int");
-  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 31);
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 56);
 }
 
 TEST(interpreter, trait) {

@@ -342,6 +342,14 @@ void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Varia
                          fields[0]->GetTypeInfo(), GetTypeInfo());
   }
   auto other = AsFunctionVariable(fields[0]);
+  // 用其他的callable对象构造
+  if (other->obj_ != nullptr) {
+    if (other->IsRValue()) {
+      obj_ = std::move(other)->obj_;
+    } else {
+      obj_ = other->obj_->Clone();
+    }
+  }
   if (fields[0]->IsRValue()) {
     capture_variables_ = std::move(other->capture_variables_);
   } else {
