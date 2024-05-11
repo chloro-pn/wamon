@@ -53,6 +53,16 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
     }
     return GetElementType(builtin_type);
   };
+
+  handles[concat("list", "insert")] =
+      [](const std::unique_ptr<Type>& builtin_type,
+         const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
+    if (params_type.size() != 2 || !IsIntType(params_type[0]) ||
+        static_cast<ListType*>(builtin_type.get())->GetHoldType()->GetTypeInfo() != params_type[1]->GetTypeInfo()) {
+      throw_params_type_check_error_exception("list", "at", "invalid params count or invalid params type");
+    }
+    return GetVoidType();
+  };
 }
 
 static void register_builtin_type_method_handle(std::unordered_map<std::string, InnerTypeMethod::HandleType>& handles) {
@@ -93,6 +103,14 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
     assert(params.size() == 1);
     int index = AsIntVariable(params[0])->GetValue();
     return AsListVariable(obj)->at(index);
+  };
+
+  handles[concat("list", "insert")] = [](std::shared_ptr<Variable>& obj,
+                                         std::vector<std::shared_ptr<Variable>>&& params) -> std::shared_ptr<Variable> {
+    assert(params.size() == 2);
+    int index = AsIntVariable(params[0])->GetValue();
+    AsListVariable(obj)->Insert(index, params[1]);
+    return GetVoidVariable();
   };
 }
 

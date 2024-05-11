@@ -73,6 +73,8 @@ class Interpreter;
 std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
                                           const std::string& name, Interpreter& interpreter);
 
+std::unique_ptr<Variable> GetVoidVariable();
+
 class VoidVariable : public Variable {
  public:
   explicit VoidVariable(std::unique_ptr<Type> type = TypeFactory<void>::Get())
@@ -479,6 +481,30 @@ class ListVariable : public CompoundVariable {
   void PopBack();
 
   size_t Size() const { return elements_.size(); }
+
+  void Resize(size_t new_size, Interpreter& interpreter) {
+    size_t old_size = Size();
+    if (new_size == old_size) {
+      return;
+    } else if (new_size < old_size) {
+      elements_.resize(new_size);
+    } else {
+      for (size_t i = 0; i < (new_size - old_size); ++i) {
+        auto v = VariableFactory(element_type_, Variable::ValueCategory::RValue, "", interpreter);
+        v->DefaultConstruct();
+        elements_.push_back(std::move(v));
+      }
+    }
+  }
+
+  void Insert(size_t index, std::shared_ptr<Variable> v) {
+    if (index > Size()) {
+      throw WamonExecption("List.Insert error, index = {}, size = {}", index, Size());
+    }
+    auto it = elements_.begin();
+    std::advance(it, index);
+    elements_.insert(it, std::move(v));
+  }
 
   std::shared_ptr<Variable> at(size_t i) {
     if (i >= Size()) {

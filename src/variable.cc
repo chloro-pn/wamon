@@ -45,6 +45,8 @@ std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
   throw WamonExecption("VariableFactory error, not implement now.");
 }
 
+std::unique_ptr<Variable> GetVoidVariable() { return std::make_unique<VoidVariable>(); }
+
 StructVariable::StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& i, const std::string& name)
     : Variable(std::make_unique<BasicType>(sd->GetStructName()), vc, name), def_(sd), interpreter_(i) {}
 
