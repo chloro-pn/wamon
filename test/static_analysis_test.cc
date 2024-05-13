@@ -30,6 +30,7 @@ TEST(static_analysis, base) {
   )";
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
@@ -47,6 +48,7 @@ TEST(static_analysis, globalvar_dependent) {
   )";
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   EXPECT_THROW(tc.CheckAndRegisterGlobalVariable(), wamon::WamonExecption);
@@ -185,6 +187,7 @@ TEST(static_analysis, call_op_override) {
 
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
@@ -205,6 +208,7 @@ TEST(static_analysis, type_dismatch) {
   )";
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
@@ -217,6 +221,7 @@ TEST(static_analysis, type_dismatch) {
   )";
   tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc2(pu);
   EXPECT_THROW(tc2.CheckAndRegisterGlobalVariable(), wamon::WamonExecption);
@@ -234,6 +239,7 @@ TEST(static_analysis, builtin_func_check) {
   )";
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
@@ -259,6 +265,8 @@ TEST(static_analysis, construct_check) {
 
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
+
   wamon::TypeChecker tc(pu);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
   std::vector<std::string> strs = {
@@ -287,6 +295,7 @@ TEST(static_analysis, construct_check) {
   for (auto str : strs) {
     auto tokens = scan.Scan(str);
     wamon::PackageUnit pu = wamon::Parse(tokens);
+    pu = wamon::MergePackageUnits(std::move(pu));
     wamon::TypeChecker tc(pu);
     EXPECT_THROW(tc.CheckAndRegisterGlobalVariable(), wamon::WamonExecption);
   }
@@ -341,6 +350,8 @@ TEST(static_analysis, deterministic_return) {
   for (auto str : strs) {
     auto tokens = scan.Scan(str);
     wamon::PackageUnit pu = wamon::Parse(tokens);
+    pu = wamon::MergePackageUnits(std::move(pu));
+
     wamon::TypeChecker tc(pu);
     EXPECT_THROW(tc.CheckFunctions(), wamon::WamonDeterministicReturn);
   }
@@ -408,6 +419,7 @@ TEST(static_analysis, deterministic_return) {
   for (auto str : strs) {
     auto tokens = scan.Scan(str);
     wamon::PackageUnit pu = wamon::Parse(tokens);
+    pu = wamon::MergePackageUnits(std::move(pu));
     wamon::TypeChecker tc(pu);
     EXPECT_NO_THROW(tc.CheckFunctions());
   }
@@ -433,10 +445,12 @@ TEST(static_analysis, struct_dependent_info) {
   )";
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
-  const wamon::StructDef* struct_def = pu.FindStruct("sb");
+  pu = wamon::MergePackageUnits(std::move(pu));
+
+  const wamon::StructDef* struct_def = pu.FindStruct("main$sb");
   auto dependents = struct_def->GetDependent();
   std::set<std::string> should_be = {
-      "sa",
+      "main$sa",
       "byte",
       "bool",
   };
@@ -460,6 +474,7 @@ TEST(static_analysis, struct_dependent_check) {
   )";
   auto tokens = scan.Scan(str);
   wamon::PackageUnit pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   EXPECT_NO_THROW(tc.CheckStructs());
@@ -480,6 +495,7 @@ TEST(static_analysis, struct_dependent_check) {
 
   tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
   wamon::TypeChecker tc2(pu);
   EXPECT_THROW(tc2.CheckStructs(), wamon::WamonExecption);
 }

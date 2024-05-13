@@ -22,15 +22,16 @@ TEST(variable, list) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
   EXPECT_EQ(succ, true);
   wamon::Interpreter interpreter(pu);
-  auto v = interpreter.CallFunctionByName("my_func", {});
+  auto v = interpreter.CallFunctionByName("main$my_func", {});
   EXPECT_EQ(v->GetTypeInfo(), "void");
-  v = interpreter.FindVariableById("a");
+  v = interpreter.FindVariableById("main$a");
   EXPECT_EQ(v->GetTypeInfo(), "list(int)");
   EXPECT_EQ(wamon::AsIntVariable(wamon::AsListVariable(v)->at(0))->GetValue(), 2);
   EXPECT_EQ(wamon::AsIntVariable(wamon::AsListVariable(v)->at(1))->GetValue(), 3);

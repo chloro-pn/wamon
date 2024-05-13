@@ -42,7 +42,14 @@ class BasicType : public Type {
  public:
   explicit BasicType(const std::string& type_name) : type_name_(type_name) {}
 
-  std::string GetTypeInfo() const override { return type_name_; }
+  void SetScope(const std::string& package_name) { package_name_ = package_name; }
+
+  std::string GetTypeInfo() const override {
+    if (package_name_.empty()) {
+      return type_name_;
+    }
+    return package_name_ + "$" + type_name_;
+  }
 
   bool IsBasicType() const override { return true; }
 
@@ -50,6 +57,7 @@ class BasicType : public Type {
 
  private:
   std::string type_name_;
+  std::string package_name_;
 };
 
 class CompoundType : public Type {

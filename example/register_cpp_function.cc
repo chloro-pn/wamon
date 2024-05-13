@@ -12,21 +12,15 @@ int main() {
     package main;
 
     func call_cpp_function(string s) -> int {
-      return call my_cpp_func:(s);
+      return call wamon::my_cpp_func:(s);
     }
   )";
 
   wamon::Scanner scanner;
   auto tokens = scanner.Scan(script);
   wamon::PackageUnit package_unit = wamon::Parse(tokens);
-  wamon::TypeChecker type_checker(package_unit);
+  package_unit = wamon::MergePackageUnits(std::move(package_unit));
 
-  std::string reason;
-  bool succ = type_checker.CheckAll(reason);
-  if (succ == false) {
-    std::cerr << "type check error : " << reason << std::endl;
-    return -1;
-  }
   wamon::Interpreter ip(package_unit);
 
   ip.RegisterCppFunctions(
@@ -45,11 +39,20 @@ int main() {
         return std::make_shared<wamon::IntVariable>(static_cast<int>(len), wamon::Variable::ValueCategory::RValue, "");
       });
 
+  wamon::TypeChecker type_checker(package_unit);
+
+  std::string reason;
+  bool succ = type_checker.CheckAll(reason);
+  if (succ == false) {
+    std::cerr << "type check error : " << reason << std::endl;
+    return -1;
+  }
+
   auto string_v =
       wamon::VariableFactory(wamon::TypeFactory<std::string>::Get(), wamon::Variable::ValueCategory::RValue, "", ip);
   wamon::AsStringVariable(string_v)->SetValue("hello");
 
-  auto ret = ip.CallFunctionByName("call_cpp_function", {std::move(string_v)});
+  auto ret = ip.CallFunctionByName("main$call_cpp_function", {std::move(string_v)});
   std::cout << wamon::AsIntVariable(ret)->GetValue() << std::endl;
   return 0;
 }

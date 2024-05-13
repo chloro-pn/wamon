@@ -19,6 +19,7 @@ int main() {
   wamon::Scanner scanner;
   auto tokens = scanner.Scan(script);
   wamon::PackageUnit package_unit = wamon::Parse(tokens);
+  package_unit = wamon::MergePackageUnits(std::move(package_unit));
   wamon::TypeChecker type_checker(package_unit);
 
   std::string reason;
@@ -28,7 +29,7 @@ int main() {
     return -1;
   }
   wamon::Interpreter ip(package_unit);
-  auto ret = ip.CallFunctionByName("hello", {});
+  auto ret = ip.CallFunctionByName("main$hello", {});
   std::cout << wamon::AsStringVariable(ret)->GetValue() << std::endl;
   return 0;
 }

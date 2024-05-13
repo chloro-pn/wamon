@@ -6,7 +6,11 @@
 
 namespace wamon {
 
-std::unique_ptr<Type> BasicType::Clone() const { return std::make_unique<BasicType>(type_name_); }
+std::unique_ptr<Type> BasicType::Clone() const {
+  auto tmp = std::make_unique<BasicType>(type_name_);
+  tmp->SetScope(package_name_);
+  return tmp;
+}
 
 std::string ListType::GetTypeInfo() const { return "list(" + hold_type_->GetTypeInfo() + ")"; }
 

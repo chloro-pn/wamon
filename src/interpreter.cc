@@ -16,6 +16,9 @@ Interpreter::Interpreter(const PackageUnit& pu) : pu_(pu) {
 // params分类两类，一类是函数调用过程中传入的参数，一类是lambda表达式捕获到的变量
 std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_def,
                                                     std::vector<std::shared_ptr<Variable>>&& params) {
+  if (function_def == nullptr) {
+    throw WamonExecption("Interpreter::CallFunction error, function == nullptr");
+  }
   EnterContext<RuntimeContextType::Function>();
   auto param_name = function_def->GetParamList().begin();
   auto capture_name = function_def->GetCaptureIds().begin();

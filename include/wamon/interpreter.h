@@ -169,7 +169,9 @@ class Interpreter {
   std::shared_ptr<Variable> CallFunction(const std::string& builtin_name,
                                          std::vector<std::shared_ptr<Variable>>&& params) {
     auto func = BuiltinFunctions::Instance().Get(builtin_name);
-    assert(func != nullptr);
+    if (func == nullptr) {
+      throw WamonExecption("CallFunction error, {} not exist", builtin_name);
+    }
     EnterContext<RuntimeContextType::Function>();
     auto ret = (*func)(std::move(params));
     LeaveContext();
@@ -212,7 +214,7 @@ class Interpreter {
 
   std::string RegisterCppFunctions(const std::string& name, BuiltinFunctions::CheckType ct,
                                    BuiltinFunctions::HandleType ht) {
-    return BuiltinFunctions::Instance().Register(name, std::move(ct), std::move(ht));
+    return BuiltinFunctions::Instance().Register("wamon$" + name, std::move(ct), std::move(ht));
   }
 
   const PackageUnit& GetPackageUnit() const { return pu_; }

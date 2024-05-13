@@ -17,6 +17,8 @@ class StructDef {
  public:
   explicit StructDef(const std::string& name, bool is_trait) : name_(name), is_trait_(is_trait) {}
 
+  void SetStructName(const std::string& name) { name_ = name; }
+
   const std::string& GetStructName() const { return name_; }
 
   bool IsTrait() const { return is_trait_; }

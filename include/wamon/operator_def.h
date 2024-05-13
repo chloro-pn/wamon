@@ -79,6 +79,10 @@ class OperatorDef {
     return std::string("__op_") + op->GetOpStr() + op->GetTypeListId();
   }
 
+  static bool IsOperatorOverrideName(const std::string& name) {
+    return name.size() >= 5 && name.substr(0, 5) == "__op_";
+  }
+
   bool IsDeclaration() const { return block_stmt_ == nullptr; }
 
  private:

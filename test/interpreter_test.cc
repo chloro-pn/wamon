@@ -23,12 +23,14 @@ TEST(interpreter, callfunction) {
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
 
+  pu = wamon::MergePackageUnits(std::move(pu));
+
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
-  EXPECT_EQ(succ, true);
+  EXPECT_EQ(succ, true) << reason;
   wamon::Interpreter interpreter(pu);
-  auto v = interpreter.CallFunctionByName("my_func", {});
+  auto v = interpreter.CallFunctionByName("main$my_func", {});
   EXPECT_EQ(v->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 4);
 }
@@ -66,6 +68,7 @@ TEST(interpreter, variable) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   std::string reason;
@@ -74,38 +77,38 @@ TEST(interpreter, variable) {
   // tc.CheckOperatorOverride();
 
   wamon::Interpreter interpreter(pu);
-  auto v = interpreter.FindVariableById("mydata");
-  EXPECT_EQ(v->GetTypeInfo(), "my_struct_name");
+
+  auto v = interpreter.FindVariableById("main$mydata");
+  EXPECT_EQ(v->GetTypeInfo(), "main$my_struct_name");
   auto v2 = dynamic_cast<wamon::StructVariable*>(v.get());
   EXPECT_EQ(wamon::AsIntVariable(v2->GetDataMemberByName("a"))->GetValue(), 2);
-
   auto old_v = v;
-  v = interpreter.FindVariableById("myptr");
-  EXPECT_EQ(v->GetTypeInfo(), "ptr(my_struct_name)");
+  v = interpreter.FindVariableById("main$myptr");
+  EXPECT_EQ(v->GetTypeInfo(), "ptr(main$my_struct_name)");
   auto v3 = dynamic_cast<wamon::PointerVariable*>(v.get());
   EXPECT_EQ(v3->GetHoldVariable(), old_v);
 
-  v = interpreter.FindVariableById("mylen");
+  v = interpreter.FindVariableById("main$mylen");
   EXPECT_EQ(v->GetTypeInfo(), "int");
   auto v4 = dynamic_cast<wamon::IntVariable*>(v.get());
   EXPECT_EQ(v4->GetValue(), 5);
 
-  v = interpreter.FindVariableById("mylist");
+  v = interpreter.FindVariableById("main$mylist");
   EXPECT_EQ(v->GetTypeInfo(), "list(int)");
   auto v5 = dynamic_cast<wamon::ListVariable*>(v.get());
   EXPECT_EQ(v5->Size(), 3);
   EXPECT_EQ(wamon::AsIntVariable(v5->at(0))->GetValue(), 2);
 
-  v = interpreter.FindVariableById("myfunc");
+  v = interpreter.FindVariableById("main$myfunc");
   EXPECT_EQ(v->GetTypeInfo(), "f((int, int) -> int)");
-  v = interpreter.FindVariableById("myfunc2");
+  v = interpreter.FindVariableById("main$myfunc2");
   EXPECT_EQ(v->GetTypeInfo(), "f((int, int) -> int)");
 
-  v = interpreter.FindVariableById("call_ret");
+  v = interpreter.FindVariableById("main$call_ret");
   EXPECT_EQ(v->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 5);
 
-  auto ret = interpreter.CallFunctionByName("update_list", {});
+  auto ret = interpreter.CallFunctionByName("main$update_list", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 6);
 }
@@ -132,26 +135,27 @@ TEST(interpreter, variable_compare) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
   EXPECT_EQ(succ, true);
   wamon::Interpreter interpreter(pu);
-  auto v = interpreter.FindVariableById("a");
-  auto v2 = interpreter.FindVariableById("c");
+  auto v = interpreter.FindVariableById("main$a");
+  auto v2 = interpreter.FindVariableById("main$c");
   EXPECT_EQ(v->Compare(v2), false);
 
-  v = interpreter.FindVariableById("b");
-  v2 = interpreter.FindVariableById("d");
+  v = interpreter.FindVariableById("main$b");
+  v2 = interpreter.FindVariableById("main$d");
   EXPECT_EQ(v->Compare(v2), true);
 
-  v = interpreter.FindVariableById("e");
-  v2 = interpreter.FindVariableById("g");
+  v = interpreter.FindVariableById("main$e");
+  v2 = interpreter.FindVariableById("main$g");
   EXPECT_EQ(v->Compare(v2), false);
 
-  v = interpreter.FindVariableById("h");
-  v2 = interpreter.FindVariableById("i");
+  v = interpreter.FindVariableById("main$h");
+  v2 = interpreter.FindVariableById("main$i");
   EXPECT_EQ(v->Compare(v2), true);
 }
 
@@ -178,29 +182,30 @@ TEST(interpreter, variable_assign) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
   EXPECT_EQ(succ, true);
   wamon::Interpreter interpreter(pu);
-  auto v = interpreter.FindVariableById("a");
-  auto v2 = interpreter.FindVariableById("c");
+  auto v = interpreter.FindVariableById("main$a");
+  auto v2 = interpreter.FindVariableById("main$c");
   v->Assign(v2);
   EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 3);
 
-  v = interpreter.FindVariableById("b");
-  v2 = interpreter.FindVariableById("d");
+  v = interpreter.FindVariableById("main$b");
+  v2 = interpreter.FindVariableById("main$d");
   v->Assign(v2);
   EXPECT_EQ(wamon::AsStringVariable(v)->GetValue(), "bob");
 
-  v = interpreter.FindVariableById("e");
-  v2 = interpreter.FindVariableById("g");
+  v = interpreter.FindVariableById("main$e");
+  v2 = interpreter.FindVariableById("main$g");
   v->Assign(v2);
   EXPECT_EQ(wamon::AsBoolVariable(wamon::AsStructVariable(v)->GetDataMemberByName("b"))->GetValue(), true);
 
-  v = interpreter.FindVariableById("h");
-  v2 = interpreter.FindVariableById("j");
+  v = interpreter.FindVariableById("main$h");
+  v2 = interpreter.FindVariableById("main$j");
   auto list_v2 = wamon::AsListVariable(v2);
   v->Assign(v2);
   EXPECT_EQ(list_v2->Size(), 1);
@@ -230,19 +235,20 @@ TEST(interpreter, callmethod) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
-  EXPECT_EQ(succ, true);
+  EXPECT_EQ(succ, true) << reason;
 
   wamon::Interpreter interpreter(pu);
-  auto v = interpreter.FindVariableById("ms");
+  auto v = interpreter.FindVariableById("main$ms");
   auto ret = interpreter.CallMethodByName(v, "get_age", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 25);
 
-  v = interpreter.FindVariableById("clen");
+  v = interpreter.FindVariableById("main$clen");
   EXPECT_EQ(v->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 3);
 }
@@ -271,6 +277,7 @@ TEST(interpreter, inner_type_method) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   std::string reason;
@@ -278,15 +285,15 @@ TEST(interpreter, inner_type_method) {
   EXPECT_EQ(succ, true);
 
   wamon::Interpreter interpreter(pu);
-  auto ret = interpreter.CallFunctionByName("func1", {});
+  auto ret = interpreter.CallFunctionByName("main$func1", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
-  ret = interpreter.CallFunctionByName("func2", {});
+  ret = interpreter.CallFunctionByName("main$func2", {});
   EXPECT_EQ(ret->GetTypeInfo(), "byte");
   EXPECT_EQ(wamon::AsByteVariable(ret)->GetValue(), 'h');
 
-  ret = interpreter.CallFunctionByName("func3", {});
+  ret = interpreter.CallFunctionByName("main$func3", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 6);
 }
@@ -334,6 +341,7 @@ TEST(interpreter, callable) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   std::string reason;
@@ -341,15 +349,15 @@ TEST(interpreter, callable) {
   EXPECT_EQ(succ, true);
 
   wamon::Interpreter interpreter(pu);
-  auto v = interpreter.FindVariableById("mycallable");
-  auto a = interpreter.FindVariableById("v");
+  auto v = interpreter.FindVariableById("main$mycallable");
+  auto a = interpreter.FindVariableById("main$v");
   std::vector<std::shared_ptr<wamon::Variable>> params;
   params.push_back(a);
   auto ret = interpreter.CallCallable(v, std::move(params));
   EXPECT_EQ(ret->GetTypeInfo(), "int");
 
   params.clear();
-  ret = interpreter.CallFunctionByName("call_test", std::move(params));
+  ret = interpreter.CallFunctionByName("main$call_test", std::move(params));
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 56);
 }
@@ -421,6 +429,7 @@ TEST(interpreter, trait) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   std::string reason;
@@ -428,13 +437,13 @@ TEST(interpreter, trait) {
   EXPECT_EQ(succ, true);
 
   wamon::Interpreter interpreter(pu);
-  auto v = interpreter.FindVariableById("v1");
+  auto v = interpreter.FindVariableById("main$v1");
   EXPECT_EQ(wamon::AsStructVariable(v)->GetDataMemberByName("a")->GetTypeInfo(), "int");
-  auto ret = interpreter.CallFunctionByName("test", {});
+  auto ret = interpreter.CallFunctionByName("main$test", {});
   EXPECT_EQ(ret->GetTypeInfo(), "bool");
   EXPECT_EQ(wamon::AsBoolVariable(ret)->GetValue(), true);
 
-  ret = interpreter.CallFunctionByName("call_trait_get_age", {v});
+  ret = interpreter.CallFunctionByName("main$call_trait_get_age", {v});
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 10);
 }
 
@@ -518,6 +527,7 @@ TEST(interpreter, operator) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   std::string reason;
@@ -530,7 +540,7 @@ TEST(interpreter, operator) {
       new wamon::StringVariable("hello ", wamon::Variable::ValueCategory::RValue, "")));
   params.push_back(std::shared_ptr<wamon::StringVariable>(
       new wamon::StringVariable("world", wamon::Variable::ValueCategory::RValue, "")));
-  auto ret = interpreter.CallFunctionByName("stradd", std::move(params));
+  auto ret = interpreter.CallFunctionByName("main$stradd", std::move(params));
   EXPECT_EQ(ret->GetTypeInfo(), "string");
   EXPECT_EQ(wamon::AsStringVariable(ret)->GetValue(), "hello world");
 
@@ -540,43 +550,43 @@ TEST(interpreter, operator) {
   params.push_back(
       std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(5, wamon::Variable::ValueCategory::RValue, "")));
   auto tmp_params = params;
-  ret = interpreter.CallFunctionByName("intminus", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$intminus", std::move(tmp_params));
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
   tmp_params = params;
-  ret = interpreter.CallFunctionByName("intmulti", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$intmulti", std::move(tmp_params));
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 50);
 
   tmp_params = params;
-  ret = interpreter.CallFunctionByName("intdivide", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$intdivide", std::move(tmp_params));
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 2);
 
   tmp_params.clear();
   tmp_params.push_back(
       std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(10, wamon::Variable::ValueCategory::RValue, "")));
-  ret = interpreter.CallFunctionByName("intuoperator", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$intuoperator", std::move(tmp_params));
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), -10);
 
   tmp_params.clear();
   tmp_params.push_back(
       std::shared_ptr<wamon::BoolVariable>(new wamon::BoolVariable(true, wamon::Variable::ValueCategory::RValue, "")));
-  ret = interpreter.CallFunctionByName("boolnot", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$boolnot", std::move(tmp_params));
   EXPECT_EQ(ret->GetTypeInfo(), "bool");
   EXPECT_EQ(wamon::AsBoolVariable(ret)->GetValue(), false);
 
   tmp_params.clear();
-  ret = interpreter.CallFunctionByName("op_override", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$op_override", std::move(tmp_params));
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
   tmp_params.clear();
-  auto v1 = interpreter.FindVariableById("v1");
-  auto v2 = interpreter.FindVariableById("v2");
-  ret = interpreter.CallFunctionByName("op_override2", std::move(tmp_params));
+  auto v1 = interpreter.FindVariableById("main$v1");
+  auto v2 = interpreter.FindVariableById("main$v2");
+  ret = interpreter.CallFunctionByName("main$op_override2", std::move(tmp_params));
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
@@ -585,17 +595,17 @@ TEST(interpreter, operator) {
       wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", interpreter);
   wamon::AsIntVariable(int_v)->SetValue(2);
   tmp_params.push_back(std::move(int_v));
-  ret = interpreter.CallFunctionByName("as_test", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$as_test", std::move(tmp_params));
   EXPECT_EQ(ret->GetTypeInfo(), "double");
   EXPECT_DOUBLE_EQ(wamon::AsDoubleVariable(ret)->GetValue(), 2.0);
 
   tmp_params.clear();
-  ret = interpreter.CallFunctionByName("as_test_2", std::move(tmp_params));
-  EXPECT_EQ(ret->GetTypeInfo(), "st");
+  ret = interpreter.CallFunctionByName("main$as_test_2", std::move(tmp_params));
+  EXPECT_EQ(ret->GetTypeInfo(), "main$st");
   EXPECT_DOUBLE_EQ(wamon::AsIntVariable(wamon::AsStructVariable(ret)->GetDataMemberByName("a"))->GetValue(), 2);
 
   tmp_params.clear();
-  ret = interpreter.CallFunctionByName("as_test_3", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$as_test_3", std::move(tmp_params));
   EXPECT_EQ(ret->GetTypeInfo(), "string");
   EXPECT_EQ(wamon::AsStringVariable(ret)->GetValue(), "abc");
 }
@@ -620,6 +630,7 @@ TEST(interpreter, fibonacci) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   std::string reason;
@@ -627,10 +638,10 @@ TEST(interpreter, fibonacci) {
   EXPECT_EQ(succ, true);
 
   wamon::Interpreter interpreter(pu);
-  auto a = interpreter.FindVariableById("v");
+  auto a = interpreter.FindVariableById("main$v");
   std::vector<std::shared_ptr<wamon::Variable>> params;
   params.push_back(a);
-  auto ret = interpreter.CallFunctionByName("Fibonacci", std::move(params));
+  auto ret = interpreter.CallFunctionByName("main$Fibonacci", std::move(params));
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 55);
 }
@@ -641,13 +652,14 @@ TEST(interpreter, register_cpp_function) {
     package main;
 
     func testfunc() -> int {
-      let v2 : int = (call func111:("hello"));
+      let v2 : int = (call wamon::func111:("hello"));
       return v2;
     }
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::Interpreter interpreter(pu);
   interpreter.RegisterCppFunctions(
@@ -671,7 +683,7 @@ TEST(interpreter, register_cpp_function) {
   bool succ = tc.CheckAll(reason);
   EXPECT_EQ(succ, true);
 
-  auto ret = interpreter.CallFunctionByName("testfunc", {});
+  auto ret = interpreter.CallFunctionByName("main$testfunc", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 }
@@ -700,6 +712,7 @@ TEST(interpreter, move) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   std::string reason;
@@ -707,14 +720,14 @@ TEST(interpreter, move) {
   EXPECT_EQ(succ, true);
 
   wamon::Interpreter interpreter(pu);
-  auto a = interpreter.FindVariableById("a");
+  auto a = interpreter.FindVariableById("main$a");
   EXPECT_EQ(wamon::AsIntVariable(a)->GetValueCategory(), wamon::Variable::ValueCategory::LValue);
   EXPECT_EQ(wamon::AsIntVariable(a)->GetValue(), 0);
 
-  auto ret = interpreter.CallFunctionByName("test", {});
+  auto ret = interpreter.CallFunctionByName("main$test", {});
   EXPECT_EQ(ret->GetTypeInfo(), "double");
   EXPECT_DOUBLE_EQ(wamon::AsDoubleVariable(ret)->GetValue(), 0.0);
-  auto x = interpreter.FindVariableById("x");
+  auto x = interpreter.FindVariableById("main$x");
   EXPECT_DOUBLE_EQ(wamon::AsDoubleVariable(x)->GetValue(), 4.5);
 }
 
@@ -741,6 +754,7 @@ TEST(interpreter, lambda) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
   std::string reason;
@@ -749,11 +763,11 @@ TEST(interpreter, lambda) {
 
   wamon::Interpreter interpreter(pu);
 
-  auto ret = interpreter.CallFunctionByName("test", {});
+  auto ret = interpreter.CallFunctionByName("main$test", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
-  ret = interpreter.CallFunctionByName("test2", {});
+  ret = interpreter.CallFunctionByName("main$test2", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 12);
 }

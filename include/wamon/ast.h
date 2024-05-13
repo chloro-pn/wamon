@@ -145,10 +145,15 @@ class UnaryExpr : public Expression {
 
 class IdExpr : public Expression {
  public:
-  friend class TypeChecker;
   void SetId(const std::string& id) { id_name_ = id; }
 
+  void SetPackageName(const std::string& name) { package_name_ = name; }
+
   const std::string& GetId() const { return id_name_; }
+
+  const std::string& GetPackageName() const { return package_name_; }
+
+  std::string GenerateIdent() const { return package_name_ + "$" + id_name_; }
 
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
 
@@ -161,8 +166,13 @@ class IdExpr : public Expression {
 
   Type type_ = Type::Invalid;
 
+  Type GetIdType() const { return type_; }
+
+  void SetIdType(Type type) { type_ = type; }
+
  private:
   std::string id_name_;
+  std::string package_name_;
 };
 
 class StringIteralExpr : public Expression {
@@ -430,13 +440,13 @@ class Type;
 // let var_name_ = type_(constructors_)
 class VariableDefineStmt : public Statement {
  public:
-  friend class TypeChecker;
-
   void SetType(std::unique_ptr<Type>&& type) { type_ = std::move(type); }
 
   void SetVarName(const std::string& var_name) { var_name_ = var_name; }
 
   void SetConstructors(std::vector<std::unique_ptr<Expression>>&& cos) { constructors_ = std::move(cos); }
+
+  std::vector<std::unique_ptr<Expression>>& GetConstructors() { return constructors_; }
 
   const std::unique_ptr<Type>& GetType() const { return type_; }
 

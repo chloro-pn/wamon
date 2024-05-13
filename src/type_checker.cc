@@ -509,20 +509,20 @@ std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const Fun
  */
 std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr) {
   auto id_expr = dynamic_cast<IdExpr*>(call_expr->caller_.get());
-  if (id_expr != nullptr && BuiltinFunctions::Instance().Find(id_expr->GetId())) {
+  if (id_expr != nullptr && BuiltinFunctions::Instance().Find(id_expr->GenerateIdent())) {
     call_expr->type = FuncCallExpr::FuncCallType::BUILT_IN_FUNC;
     std::vector<std::unique_ptr<Type>> param_types;
     for (auto& each : call_expr->parameters_) {
       param_types.push_back(tc.GetExpressionType(each.get()));
     }
-    return BuiltinFunctions::Instance().TypeCheck(id_expr->GetId(), param_types);
+    return BuiltinFunctions::Instance().TypeCheck(id_expr->GenerateIdent(), param_types);
   }
   // would calcualte id_expr.type_
   std::unique_ptr<Type> find_type = tc.GetExpressionType(call_expr->caller_.get());
   std::string func_name;
   if (id_expr != nullptr && id_expr->type_ == IdExpr::Type::Function) {
     call_expr->type = FuncCallExpr::FuncCallType::FUNC;
-    func_name = id_expr->GetId();
+    func_name = id_expr->GenerateIdent();
   } else if (IsFuncType(find_type)) {
     call_expr->type = FuncCallExpr::FuncCallType::CALLABLE;
   } else {
@@ -625,7 +625,7 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   }
   // 在上下文栈上向上查找这个id对应的类型并返回
   IdExpr::Type type = IdExpr::Type::Invalid;
-  auto ret = static_analyzer_.GetTypeByName(tmp->id_name_, type);
+  auto ret = static_analyzer_.GetTypeByName(tmp->GenerateIdent(), type);
   tmp->type_ = type;
   if (tmp->type_ == IdExpr::Type::Variable) {
     if (IsFuncType(ret)) {
@@ -705,14 +705,14 @@ void TypeChecker::CheckStatement(Statement* stmt) {
   if (auto tmp = dynamic_cast<VariableDefineStmt*>(stmt)) {
     // 类型检测
     std::vector<std::unique_ptr<Type>> params_type;
-    CheckType(tmp->type_,
+    CheckType(tmp->GetType(),
               fmt::format("check variable {} 's type {}", tmp->GetVarName(), tmp->GetType()->GetTypeInfo()));
-    for (auto& each : tmp->constructors_) {
+    for (auto& each : tmp->GetConstructors()) {
       params_type.push_back(GetExpressionType(each.get()));
     }
-    CheckCanConstructBy(static_analyzer_.GetPackageUnit(), tmp->type_, params_type);
+    CheckCanConstructBy(static_analyzer_.GetPackageUnit(), tmp->GetType(), params_type);
     // 将该语句定义的变量记录到当前Context中
-    static_analyzer_.GetCurrentContext()->RegisterVariable(tmp->var_name_, tmp->type_->Clone());
+    static_analyzer_.GetCurrentContext()->RegisterVariable(tmp->GetVarName(), tmp->GetType()->Clone());
     return;
   }
   throw WamonExecption("invalid stmt type {}, check error", stmt->GetStmtName());

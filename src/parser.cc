@@ -3,12 +3,14 @@
 #include <cassert>
 #include <stack>
 #include <stdexcept>
+#include <utility>
 
 #include "fmt/format.h"
 #include "wamon/lambda_function_set.h"
 #include "wamon/method_def.h"
 #include "wamon/operator.h"
 #include "wamon/package_unit.h"
+#include "wamon/parsing_package.h"
 
 namespace wamon {
 /*
@@ -34,19 +36,30 @@ void AssertTokenOrThrow(const std::vector<WamonToken> &tokens, size_t &begin, To
   begin += 1;
 }
 
-std::string ParseIdentifier(const std::vector<WamonToken> &tokens, size_t &begin) {
+// package_name, var_name
+std::pair<std::string, std::string> ParseIdentifier(const std::vector<WamonToken> &tokens, size_t &begin) {
   if (tokens.size() <= begin || tokens[begin].token != Token::ID || tokens[begin].type != WamonToken::ValueType::STR) {
     throw WamonExecption("parse identifier error : {}", GetTokenStr(tokens[begin].token));
   }
-  std::string ret = tokens[begin].Get<std::string>();
+  std::string v1 = tokens[begin].Get<std::string>();
   begin += 1;
-  return ret;
+  if (tokens.size() <= begin || tokens[begin].token != Token::SCOPE) {
+    return {current_parsing_package, v1};
+  }
+  begin += 1;
+  if (tokens[begin].token != Token::ID || tokens[begin].type != WamonToken::ValueType::STR) {
+    throw WamonExecption("parse identifier error : {}", GetTokenStr(tokens[begin].token));
+  }
+  std::string v2 = tokens[begin].Get<std::string>();
+  begin += 1;
+  return {v1, v2};
 }
 
-std::string ParseBasicType(const std::vector<WamonToken> &tokens, size_t &begin) {
+std::pair<std::string, std::string> ParseBasicType(const std::vector<WamonToken> &tokens, size_t &begin) {
   if (tokens.size() <= begin) {
     throw WamonExecption("parse basic type error, invalid index {}", begin);
   }
+  std::string package_name;
   std::string ret;
   if (tokens[begin].token == Token::STRING) {
     ret = "string";
@@ -67,9 +80,11 @@ std::string ParseBasicType(const std::vector<WamonToken> &tokens, size_t &begin)
     ret = "void";
     begin += 1;
   } else {
-    ret = ParseIdentifier(tokens, begin);
+    auto tmp = ParseIdentifier(tokens, begin);
+    package_name = tmp.first;
+    ret = tmp.second;
   }
-  return ret;
+  return {package_name, ret};
 }
 
 // 从tokens[begin]开始解析一个类型信息，更新begin，并返回解析到的类型
@@ -105,8 +120,9 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
   }
   // parse basic type
   std::unique_ptr<Type> ret;
-  std::string type_name = ParseBasicType(tokens, begin);
+  auto [package_name, type_name] = ParseBasicType(tokens, begin);
   ret = std::make_unique<BasicType>(type_name);
+  static_cast<BasicType *>(ret.get())->SetScope(package_name);
   return ret;
 }
 
@@ -148,7 +164,8 @@ void ParseCaptureIdList(const std::vector<WamonToken> &tokens, size_t begin, siz
       AssertTokenOrThrow(tokens, begin, Token::RIGHT_BRACKETS, __FILE__, __LINE__);
       break;
     }
-    auto id = ParseIdentifier(tokens, begin);
+    auto [package_name, id] = ParseIdentifier(tokens, begin);
+    id = package_name + "$" + id;
     auto it = std::find(ids.begin(), ids.end(), id);
     if (it != ids.end()) {
       throw WamonExecption("ParseCpatureIdList error, duplicate id {}", id);
@@ -327,7 +344,7 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
           operands.push(AttachUnaryOperators(std::move(func_call_expr), u_operators));
           i = tmp3;
         } else {
-          auto method_name = ParseIdentifier(tokens, tmp2);
+          auto [package_name, method_name] = ParseIdentifier(tokens, tmp2);
           size_t tmp3 = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp2);
           auto param_list = ParseExprList(tokens, tmp2, tmp3);
           std::unique_ptr<MethodCallExpr> method_call_expr(new MethodCallExpr());
@@ -388,10 +405,12 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
         continue;
       }
       size_t tmp = i;
-      std::string var_name = ParseIdentifier(tokens, tmp);
+      auto [package_name, var_name] = ParseIdentifier(tokens, tmp);
       // id表达式
       std::unique_ptr<IdExpr> id_expr(new IdExpr());
+      id_expr->SetPackageName(package_name);
       id_expr->SetId(var_name);
+      i = tmp - 1;
       operands.push(AttachUnaryOperators(std::move(id_expr), u_operators));
     }
   }
@@ -496,8 +515,15 @@ std::unique_ptr<Statement> TryToParseWhileStmt(const std::vector<WamonToken> &to
 }
 
 // wrapper for TryToParseVariableDeclaration
+// 全局变量的包前缀会在Merge Package的时候加上
+// 非全局变量在这里加上
 std::unique_ptr<Statement> TryToParseVarDefStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
   std::unique_ptr<Statement> ret = TryToParseVariableDeclaration(tokens, begin);
+  if (ret == nullptr) {
+    return ret;
+  }
+  auto vn = static_cast<VariableDefineStmt *>(ret.get())->GetVarName();
+  static_cast<VariableDefineStmt *>(ret.get())->SetVarName(current_parsing_package + "$" + vn);
   next = begin;
   return ret;
 }
@@ -610,7 +636,8 @@ std::vector<std::pair<std::string, std::unique_ptr<Type>>> ParseParameterList(co
   }
   while (true) {
     auto type = ParseType(tokens, begin);
-    std::string id = ParseIdentifier(tokens, begin);
+    auto [package_name, id] = ParseIdentifier(tokens, begin);
+    id = package_name + "$" + id;
     ret.push_back(std::pair<std::string, std::unique_ptr<Type>>(id, std::move(type)));
     bool succ = AssertToken(tokens, begin, Token::COMMA);
     if (succ == false) {
@@ -647,7 +674,7 @@ std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(const std::vector<Wam
   if (succ == false) {
     return ret;
   }
-  std::string func_name = ParseIdentifier(tokens, begin);
+  auto [package_name, func_name] = ParseIdentifier(tokens, begin);
   //
   ret.reset(new FunctionDef(func_name));
   size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
@@ -760,7 +787,8 @@ std::unique_ptr<methods_def> TryToParseMethodDeclaration(const std::vector<Wamon
   }
   ret.reset(new methods_def());
   // 只允许为结构体类型自定义方法，这里需要判断是否为复合类型以及是否为内置类型。
-  type_name = ParseBasicType(tokens, begin);
+  auto [package_name, typen] = ParseBasicType(tokens, begin);
+  type_name = typen;
   size_t end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
   begin += 1;
   while (begin < end) {
@@ -801,12 +829,12 @@ std::unique_ptr<StructDef> TryToParseStructDeclaration(const std::vector<WamonTo
   if (AssertToken(tokens, begin, Token::TRAIT)) {
     is_trait = true;
   }
-  std::string struct_name = ParseIdentifier(tokens, begin);
+  auto [package_name, struct_name] = ParseIdentifier(tokens, begin);
   ret.reset(new StructDef(struct_name, is_trait));
   AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACE, __FILE__, __LINE__);
   while (AssertToken(tokens, begin, Token::RIGHT_BRACE) == false) {
     auto type = ParseType(tokens, begin);
-    auto field_name = ParseIdentifier(tokens, begin);
+    auto [pack_name, field_name] = ParseIdentifier(tokens, begin);
     AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
     ret->AddDataMember(field_name, std::move(type));
   }
@@ -821,7 +849,7 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vec
   if (succ == false) {
     return ret;
   }
-  std::string var_name = ParseIdentifier(tokens, begin);
+  auto [package_name, var_name] = ParseIdentifier(tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::COLON, __FILE__, __LINE__);
   auto type = ParseType(tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::ASSIGN, __FILE__, __LINE__);
@@ -839,7 +867,7 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vec
 
 std::string ParsePackageName(const std::vector<WamonToken> &tokens, size_t &begin) {
   AssertTokenOrThrow(tokens, begin, Token::PACKAGE, __FILE__, __LINE__);
-  std::string package_name = ParseIdentifier(tokens, begin);
+  auto [nothing, package_name] = ParseIdentifier(tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
   return package_name;
 }
@@ -851,7 +879,7 @@ std::vector<std::string> ParseImportPackages(const std::vector<WamonToken> &toke
     if (succ == false) {
       break;
     }
-    std::string package_name = ParseIdentifier(tokens, begin);
+    auto [pack_name, package_name] = ParseIdentifier(tokens, begin);
     AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
     packages.push_back(package_name);
   }
@@ -871,6 +899,7 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
   size_t current_index = 0;
   std::string package_name = ParsePackageName(tokens, current_index);
   package_unit.SetName(package_name);
+  current_parsing_package = package_name;
 
   std::vector<std::string> import_packages = ParseImportPackages(tokens, current_index);
   package_unit.SetImportPackage(import_packages);
@@ -914,8 +943,10 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
     }
   }
 
-  package_unit.AddAllLambdaFunction(LambdaFunctionSet::Instance().GetAllLambdas());
+  // 这一步需要放到合并package之后再进行，lambda不需要添加前缀。
+  // package_unit.AddAllLambdaFunction(LambdaFunctionSet::Instance().GetAllLambdas());
 
+  current_parsing_package.clear();
   return package_unit;
 }
 

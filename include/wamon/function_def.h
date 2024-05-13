@@ -27,6 +27,8 @@ class FunctionDef {
 
   explicit FunctionDef(const std::string& name) : name_(name) {}
 
+  void SetFunctionName(const std::string& name) { name_ = name; }
+
   const std::string& GetFunctionName() const { return name_; }
 
   const std::unique_ptr<Type>& GetReturnType() const { return return_type_; }

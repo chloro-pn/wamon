@@ -13,11 +13,14 @@
 #include "wamon/method_def.h"
 #include "wamon/operator_def.h"
 #include "wamon/struct_def.h"
+#include "wamon/type.h"
 
 namespace wamon {
 
 class PackageUnit {
  public:
+  static PackageUnit _MergePackageUnits(std::vector<PackageUnit>&& packages);
+
   PackageUnit() = default;
 
   PackageUnit(PackageUnit&&) = default;
@@ -113,5 +116,12 @@ class PackageUnit {
   std::unordered_map<std::string, std::unique_ptr<FunctionDef>> funcs_;
   std::unordered_map<std::string, std::unique_ptr<StructDef>> structs_;
 };
+
+template <typename... T>
+PackageUnit MergePackageUnits(T&&... package) {
+  std::vector<PackageUnit> tmp;
+  detail::elements_append_to(tmp, std::forward<T>(package)...);
+  return PackageUnit::_MergePackageUnits(std::move(tmp));
+}
 
 }  // namespace wamon
