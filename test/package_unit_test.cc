@@ -1,9 +1,11 @@
 #include "gtest/gtest.h"
 // just for test
 #define private public
+#include "wamon/interpreter.h"
 #include "wamon/package_unit.h"
 #include "wamon/parser.h"
 #include "wamon/scanner.h"
+#include "wamon/type_checker.h"
 
 TEST(package_unit, basic) {
   wamon::Scanner scan;
@@ -49,4 +51,44 @@ TEST(package_unit, basic) {
   EXPECT_EQ(find, true);
   const auto& tmp = pu.var_define_[0]->GetType();
   EXPECT_EQ(wamon::IsBoolType(tmp), true);
+}
+
+TEST(package_unit, multi_package) {
+  wamon::Scanner scan;
+
+  std::string str = R"(
+    package main;
+
+    import math;
+
+    func calculate() -> int {
+      return call math::add:(1);
+    }
+  )";
+
+  std::string math_str = R"(
+    package math;
+
+    func add(int i) -> int {
+      return i + 10;
+    }
+  )";
+  wamon::PackageUnit pu;
+  wamon::PackageUnit math_pu;
+  auto tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+
+  tokens = scan.Scan(math_str);
+  math_pu = wamon::Parse(tokens);
+
+  pu = wamon::MergePackageUnits(std::move(pu), std::move(math_pu));
+
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true) << reason;
+  wamon::Interpreter ip(pu);
+  auto v = ip.CallFunctionByName("main$calculate", {});
+  EXPECT_EQ(v->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 11);
 }
