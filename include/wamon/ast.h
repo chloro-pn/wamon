@@ -446,6 +446,11 @@ class VariableDefineStmt : public Statement {
 
   void SetConstructors(std::vector<std::unique_ptr<Expression>>&& cos) { constructors_ = std::move(cos); }
 
+  void SetConstructors(std::unique_ptr<Expression>&& cos) {
+    constructors_.clear();
+    constructors_.push_back(std::move(cos));
+  }
+
   std::vector<std::unique_ptr<Expression>>& GetConstructors() { return constructors_; }
 
   const std::unique_ptr<Type>& GetType() const { return type_; }

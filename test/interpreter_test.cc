@@ -413,7 +413,7 @@ TEST(interpreter, trait) {
     let t1 : s1 = (0, 3.4);
     let t2 : s2 = (0, "bob");
 
-    let v0 : have_age_and_name = (move t2);
+    let v0 : have_age_and_name = move t2;
 
     let v1 : have_age = (move t1);
     let v2 : have_age = (move v0);
@@ -488,8 +488,8 @@ TEST(interpreter, operator) {
       int a;
     }
 
-    let v1 : myint = (2);
-    let v2 : myint = (3);
+    let v1 : myint = 2;
+    let v2 : myint = 3;
 
     operator + (myint a, myint b) -> myint {
       let tmp : myint = (a.a + b.a);
@@ -652,7 +652,7 @@ TEST(interpreter, register_cpp_function) {
     package main;
 
     func testfunc() -> int {
-      let v2 : int = (call wamon::func111:("hello"));
+      let v2 : int = call wamon::func111:("hello");
       return v2;
     }
   )";

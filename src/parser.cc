@@ -841,7 +841,8 @@ std::unique_ptr<StructDef> TryToParseStructDeclaration(const std::vector<WamonTo
   return ret;
 }
 
-// let var_name : type = (expr_list);
+// let var_name : type = (expr_list); or
+// let var_name : type = expr;
 std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens,
                                                                   size_t &begin) {
   std::unique_ptr<VariableDefineStmt> ret(nullptr);
@@ -853,14 +854,23 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vec
   AssertTokenOrThrow(tokens, begin, Token::COLON, __FILE__, __LINE__);
   auto type = ParseType(tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::ASSIGN, __FILE__, __LINE__);
+  ret.reset(new VariableDefineStmt());
+  ret->SetType(std::move(type));
+  ret->SetVarName(var_name);
+  // parse expr.
+  if (!AssertToken(tokens, begin, Token::LEFT_PARENTHESIS)) {
+    size_t end = FindNextToken<Token::SEMICOLON>(tokens, begin);
+    auto expr = ParseExpression(tokens, begin, end);
+    begin = end + 1;
+    ret->SetConstructors(std::move(expr));
+    return ret;
+  }
   // parse expr list.
+  begin -= 1;
   size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
   auto expr_list = ParseExprList(tokens, begin, end);
   begin = end + 1;
   AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
-  ret.reset(new VariableDefineStmt());
-  ret->SetType(std::move(type));
-  ret->SetVarName(var_name);
   ret->SetConstructors(std::move(expr_list));
   return ret;
 }
