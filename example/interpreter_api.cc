@@ -1,10 +1,10 @@
 #include <iostream>
 #include <string>
 
-#include "wamon/scanner.h"
-#include "wamon/parser.h"
-#include "wamon/type_checker.h"
 #include "wamon/interpreter.h"
+#include "wamon/parser.h"
+#include "wamon/scanner.h"
+#include "wamon/type_checker.h"
 #include "wamon/variable.h"
 
 /* output should be:
@@ -57,14 +57,16 @@ int main() {
   }
 
   wamon::Interpreter ip(pu);
-  // 利用VariableFactory API构造变量对象，需要指定类型、值型别、名字[为空则代表匿名]和packageunit，packageunit是当指定类型中包含结构体类型时从该包中查找对应的类型定义。
+  // 利用VariableFactory
+  // API构造变量对象，需要指定类型、值型别、名字[为空则代表匿名]和packageunit，packageunit是当指定类型中包含结构体类型时从该包中查找对应的类型定义。
   auto v = wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu);
   // 利用AsXXXVariable系列API将变量转化为对应类型并进行赋值。
   wamon::AsIntVariable(v)->SetValue(10);
   // 填充函数参数，这里的设计还不优雅，需要进行类型转换std::unique_ptr -> std::shared_ptr
   std::vector<std::shared_ptr<wamon::Variable>> params;
   params.push_back(std::shared_ptr<wamon::Variable>(std::move(v)));
-  // 利用CallFunctionByName API调用函数，注意经过符号定位和重命名之后，对全局变量、函数、结构体等进行索引的时候需要在对应名字前加上包名称$。
+  // 利用CallFunctionByName
+  // API调用函数，注意经过符号定位和重命名之后，对全局变量、函数、结构体等进行索引的时候需要在对应名字前加上包名称$。
   auto ret = ip.CallFunctionByName("main$test1", std::move(params));
   std::cout << "call function teest1 get result : " << wamon::AsIntVariable(ret)->GetValue() << std::endl;
 
@@ -75,7 +77,8 @@ int main() {
   v = wamon::VariableFactory(struct_type, wamon::Variable::ValueCategory::RValue, "", pu);
   auto v2 = std::shared_ptr<wamon::Variable>(std::move(v));
   wamon::AsStructVariable(v2)->DefaultConstruct();
-  auto string_v = wamon::VariableFactory(wamon::TypeFactory<std::string>::Get(), wamon::Variable::ValueCategory::RValue, "", pu);
+  auto string_v =
+      wamon::VariableFactory(wamon::TypeFactory<std::string>::Get(), wamon::Variable::ValueCategory::RValue, "", pu);
   wamon::AsStringVariable(string_v)->SetValue("world");
   // 结构体成员变量赋值
   wamon::AsStructVariable(v2)->UpdateDataMemberByName("b", std::move(string_v));

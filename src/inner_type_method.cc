@@ -29,15 +29,6 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
     return TypeFactory<unsigned char>::Get();
   };
 
-  handles[concat("double", "to_int")] =
-      [](const std::unique_ptr<Type>& builtin_type,
-         const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
-    if (params_type.empty() == false) {
-      throw_params_type_check_error_exception("double", "to_int", "invalid params count");
-    }
-    return TypeFactory<int>::Get();
-  };
-
   handles[concat("list", "size")] = [](const std::unique_ptr<Type>& builtin_type,
                                        const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
     if (params_type.empty() == false) {
@@ -82,13 +73,6 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
       throw WamonExecption("string.at error, index out of range : {} >= {}", index, v.size());
     }
     return std::make_shared<ByteVariable>(v[index], Variable::ValueCategory::RValue, "");
-  };
-
-  handles[concat("double", "to_int")] =
-      [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params) -> std::shared_ptr<Variable> {
-    assert(params.empty());
-    double ret = AsDoubleVariable(obj)->GetValue();
-    return std::make_shared<IntVariable>(static_cast<int>(ret), Variable::ValueCategory::RValue, "");
   };
 
   handles[concat("list", "size")] = [](std::shared_ptr<Variable>& obj,

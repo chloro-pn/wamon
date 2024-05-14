@@ -39,6 +39,68 @@
   wamon::Interpreter ip(pu);
 ```
 
+## 类型系统
+
+##### wamon的类型系统如下：
+ - 基本类型：
+   - 内置类型
+     - int
+     - string
+     - byte
+     - double
+     - bool
+     - void
+   - 结构体类型
+ - 复合类型(类型加工器):
+   - 指针类型 *       `ptr(int)`
+   - 列表类型 [num]   `list(int)`
+   - 函数类型 <-      `f((int, string) -> int)`
+
+wamon为这些类型提供了以下内置方法（目前这里还没做多少，需要提供更多的方法）：
+* string:len() -> int
+* string:at() -> byte
+* list(T):at(int) -> T
+* list(T):size() -> int
+* list(T):insert(T) -> void
+
+
+##### 类型转换
+wamon是强类型的，通过双元运算符as进行类型转换工作，目前支持：
+* int -> double
+* int -> bool
+* list(byte) -> string
+* struct/ struct trait -> struct trait
+
+## register cpp functions
+wamon提供了如下接口将cpp函数注册到wamon运行时中（不提供类型转换和匹配操作，需要用户自己实现），ct在语义分析阶段调用，用户应该在ct中检查传入的参数类型是否符合要求，如果不符合需要抛出异常。
+ht在运行阶段调用。
+
+```c++
+  std::string RegisterCppFunctions(const std::string& name, BuiltinFunctions::CheckType ct,
+                                   BuiltinFunctions::HandleType ht);
+  // ...
+  using HandleType = std::function<std::shared_ptr<Variable>(std::vector<std::shared_ptr<Variable>>&&)>;
+  using CheckType = std::function<std::unique_ptr<Type>(const std::vector<std::unique_ptr<Type>>& params_type)>;
+```
+
+TODO:因为有些函数的类型是根据提供的参数列表来确定的，因此目前不支持注册函数赋值给Callable对象，只能通过函数调用表达式直接调用。后续可以提供一种绕开语义分析期类型检测、直接在运行时检测并调用的注册机制。
+
+## 函数是一等公民
+
+wamon中的函数可以被赋值给变量、可以作为参数和返回值传递，是wamon中的一等公民。
+
+wamon通过Callable变量持有原始函数、lambda表达式、重载了()运算符类型的变量。
+
+Callable变量是指具有函数类型的变量：
+
+`let callable_obj : f((int) -> int) = (...); `
+
+Callable变量可以像普通变量一样被复制、传递、作为参数和返回值。
+
+Callable变量可以出现在函数调用表达式表达式中：
+
+`call callable_obj:(4); `
+
 ## hello world
 ```c++
 #include <iostream>
