@@ -1,5 +1,6 @@
 #include "wamon/operator.h"
 
+#include "wamon/interpreter.h"
 #include "wamon/operator_def.h"
 
 namespace wamon {
@@ -187,7 +188,7 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
       return tmp;
     }
     // struct to struct trait
-    auto v = VariableFactory(to_type, Variable::ValueCategory::RValue, "", interpreter);
+    auto v = VariableFactory(to_type, Variable::ValueCategory::RValue, "", interpreter.GetPackageUnit());
     v->ConstructByFields({v1});
     return v;
   };

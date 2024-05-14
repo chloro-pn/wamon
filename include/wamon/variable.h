@@ -69,9 +69,9 @@ class Variable {
   ValueCategory vc_;
 };
 
-class Interpreter;
+class PackageUnit;
 std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                          const std::string& name, Interpreter& interpreter);
+                                          const std::string& name, const PackageUnit& pu);
 
 std::unique_ptr<Variable> GetVoidVariable();
 
@@ -369,7 +369,7 @@ inline ByteVariable* AsByteVariable(const std::shared_ptr<Variable>& v) { return
 
 class StructVariable : public Variable {
  public:
-  StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& i, const std::string& name);
+  StructVariable(const StructDef* sd, ValueCategory vc, const PackageUnit& i, const std::string& name);
 
   std::shared_ptr<Variable> GetDataMemberByName(const std::string& name);
 
@@ -405,7 +405,7 @@ class StructVariable : public Variable {
 
  private:
   const StructDef* def_;
-  Interpreter& interpreter_;
+  const PackageUnit& pu_;
   struct member {
     std::string name;
     std::shared_ptr<Variable> data;
@@ -482,7 +482,7 @@ class ListVariable : public CompoundVariable {
 
   size_t Size() const { return elements_.size(); }
 
-  void Resize(size_t new_size, Interpreter& interpreter) {
+  void Resize(size_t new_size, const PackageUnit& pu) {
     size_t old_size = Size();
     if (new_size == old_size) {
       return;
@@ -490,7 +490,7 @@ class ListVariable : public CompoundVariable {
       elements_.resize(new_size);
     } else {
       for (size_t i = 0; i < (new_size - old_size); ++i) {
-        auto v = VariableFactory(element_type_, Variable::ValueCategory::RValue, "", interpreter);
+        auto v = VariableFactory(element_type_, Variable::ValueCategory::RValue, "", pu);
         v->DefaultConstruct();
         elements_.push_back(std::move(v));
       }

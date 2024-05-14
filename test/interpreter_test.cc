@@ -591,8 +591,7 @@ TEST(interpreter, operator) {
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
   tmp_params.clear();
-  auto int_v =
-      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", interpreter);
+  auto int_v = wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu);
   wamon::AsIntVariable(int_v)->SetValue(2);
   tmp_params.push_back(std::move(int_v));
   ret = interpreter.CallFunctionByName("main$as_test", std::move(tmp_params));

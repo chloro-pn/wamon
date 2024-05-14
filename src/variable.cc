@@ -6,7 +6,7 @@
 namespace wamon {
 
 std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                          const std::string& name, Interpreter& interpreter) {
+                                          const std::string& name, const PackageUnit& pu) {
   if (IsBuiltInType(type)) {
     std::string typeinfo = type->GetTypeInfo();
     if (typeinfo == "string") {
@@ -29,9 +29,9 @@ std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
     }
   }
   if (type->IsBasicType() == true) {
-    auto struct_def = interpreter.GetPackageUnit().FindStruct(type->GetTypeInfo());
+    auto struct_def = pu.FindStruct(type->GetTypeInfo());
     assert(struct_def != nullptr);
-    return std::make_unique<StructVariable>(struct_def, vc, interpreter, name);
+    return std::make_unique<StructVariable>(struct_def, vc, pu, name);
   }
   if (IsPtrType(type)) {
     return std::make_unique<PointerVariable>(GetHoldType(type), vc, name);
@@ -47,8 +47,8 @@ std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
 
 std::unique_ptr<Variable> GetVoidVariable() { return std::make_unique<VoidVariable>(); }
 
-StructVariable::StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& i, const std::string& name)
-    : Variable(std::make_unique<BasicType>(sd->GetStructName()), vc, name), def_(sd), interpreter_(i) {}
+StructVariable::StructVariable(const StructDef* sd, ValueCategory vc, const PackageUnit& pu, const std::string& name)
+    : Variable(std::make_unique<BasicType>(sd->GetStructName()), vc, name), def_(sd), pu_(pu) {}
 
 std::shared_ptr<Variable> StructVariable::GetDataMemberByName(const std::string& name) {
   if (def_->IsTrait()) {
@@ -72,7 +72,9 @@ void StructVariable::UpdateDataMemberByName(const std::string& name, std::shared
   data->ChangeTo(vc_);
   auto it =
       std::find_if(data_members_.begin(), data_members_.end(), [&](auto& each) -> bool { return each.name == name; });
-  assert(it != data_members_.end());
+  if (it != data_members_.end()) {
+    throw WamonExecption("StructVariable.UpdateDataMemberByName error, data member {} not exist", name);
+  }
   it->data = data;
 }
 
@@ -116,7 +118,7 @@ void StructVariable::DefaultConstruct() {
   data_members_.clear();
   auto& members = def_->GetDataMembers();
   for (auto& each : members) {
-    auto member = VariableFactory(each.second, vc_, each.first, interpreter_);
+    auto member = VariableFactory(each.second, vc_, each.first, pu_);
     member->DefaultConstruct();
     member->ChangeTo(vc_);
     data_members_.push_back({each.first, std::move(member)});
@@ -133,7 +135,7 @@ std::unique_ptr<Variable> StructVariable::Clone() {
     } else {
       proxy = trait_proxy_->Clone();
     }
-    auto ret = std::make_unique<StructVariable>(def_, ValueCategory::RValue, interpreter_, GetName());
+    auto ret = std::make_unique<StructVariable>(def_, ValueCategory::RValue, pu_, GetName());
     ret->ConstructByFields({proxy});
     return ret;
   }
@@ -146,8 +148,8 @@ std::unique_ptr<Variable> StructVariable::Clone() {
       variables.back()->ChangeTo(ValueCategory::RValue);
     }
   }
-  // all variable in variable is rvalue now
-  auto ret = std::make_unique<StructVariable>(def_, ValueCategory::RValue, interpreter_, GetName());
+  // all variable in variables is rvalue now
+  auto ret = std::make_unique<StructVariable>(def_, ValueCategory::RValue, pu_, GetName());
   ret->ConstructByFields(variables);
   return ret;
 }
@@ -201,7 +203,6 @@ bool StructVariable::Compare(const std::shared_ptr<Variable>& other) {
   if (def_->IsTrait()) {
     return trait_compare(this, AsStructVariable(other));
   }
-  // trait compare todo
   StructVariable* other_struct = static_cast<StructVariable*>(other.get());
   for (size_t index = 0; index < data_members_.size(); ++index) {
     if (data_members_[index].data->Compare(other_struct->data_members_[index].data) == false) {

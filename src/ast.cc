@@ -126,7 +126,8 @@ std::shared_ptr<Variable> LambdaExpr::Calculate(Interpreter& interpreter) {
     }
     capture_variables.push_back(v);
   }
-  auto call_obj = VariableFactory(func_def->GetType(), Variable::ValueCategory::RValue, "", interpreter);
+  auto call_obj =
+      VariableFactory(func_def->GetType(), Variable::ValueCategory::RValue, "", interpreter.GetPackageUnit());
   AsFunctionVariable(call_obj.get())->SetFuncName(lambda_func_name_);
   AsFunctionVariable(call_obj.get())->SetCaptureVariables(std::move(capture_variables));
   return call_obj;
@@ -239,7 +240,7 @@ ExecuteResult ExpressionStmt::Execute(Interpreter& interpreter) {
 
 ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   auto context = interpreter.GetCurrentContext();
-  auto v = VariableFactory(type_, Variable::ValueCategory::LValue, var_name_, interpreter);
+  auto v = VariableFactory(type_, Variable::ValueCategory::LValue, var_name_, interpreter.GetPackageUnit());
   std::vector<std::shared_ptr<Variable>> fields;
   for (auto& each : constructors_) {
     fields.push_back(each->Calculate(interpreter));
