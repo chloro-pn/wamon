@@ -132,7 +132,7 @@ void TypeChecker::CheckFunctions() {
 void TypeChecker::CheckStructs() {
   const PackageUnit& pu = static_analyzer_.GetPackageUnit();
   const auto& structs = pu.GetStructs();
-  auto built_in_types = GetBuiltInTypesWithoutVoid();
+  auto built_in_types = detail::GetBuiltInTypesWithoutVoid();
   // 保证不同类型的TypeInfo不相同，因此可以用其代表一个类型进行循环依赖分析
   bool all_succ = true;
   Graph<std::string> graph;
@@ -460,7 +460,7 @@ std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& t
 
 std::unique_ptr<Type> CheckAndGetInnerMethodReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype,
                                                        const MethodCallExpr* call_expr) {
-  assert(IsInnerType(ctype));
+  assert(!IsStructType(ctype));
   std::vector<std::unique_ptr<Type>> params_type;
   for (auto& each : call_expr->parameters_) {
     params_type.push_back(tc.GetExpressionType(each.get()));
@@ -543,7 +543,7 @@ std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecke
 
 std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker& tc, MethodCallExpr* method_call_expr) {
   std::unique_ptr<Type> find_type = tc.GetExpressionType(method_call_expr->caller_.get());
-  if (IsInnerType(find_type)) {
+  if (!IsStructType(find_type)) {
     return CheckAndGetInnerMethodReturnType(tc, find_type, method_call_expr);
   }
   // if not find, throw exception
@@ -710,7 +710,7 @@ void TypeChecker::CheckStatement(Statement* stmt) {
     for (auto& each : tmp->GetConstructors()) {
       params_type.push_back(GetExpressionType(each.get()));
     }
-    CheckCanConstructBy(static_analyzer_.GetPackageUnit(), tmp->GetType(), params_type);
+    detail::CheckCanConstructBy(static_analyzer_.GetPackageUnit(), tmp->GetType(), params_type);
     // 将该语句定义的变量记录到当前Context中
     static_analyzer_.GetCurrentContext()->RegisterVariable(tmp->GetVarName(), tmp->GetType()->Clone());
     return;

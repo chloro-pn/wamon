@@ -204,7 +204,7 @@ class Interpreter {
 
   std::shared_ptr<Variable> CallMethodByName(std::shared_ptr<Variable> obj, const std::string& method_name,
                                              std::vector<std::shared_ptr<Variable>>&& params) {
-    if (IsInnerType(obj->GetType())) {
+    if (!IsStructType(obj->GetType())) {
       return CallMethod(obj, method_name, std::move(params));
     }
     auto type = obj->GetTypeInfo();

@@ -51,7 +51,7 @@ std::shared_ptr<Variable> MethodCallExpr::Calculate(Interpreter& interpreter) {
     params.push_back(std::move(v));
   }
   auto v = caller_->Calculate(interpreter);
-  if (IsInnerType(v->GetType())) {
+  if (!IsStructType(v->GetType())) {
     auto result = interpreter.CallMethod(v, method_name_, std::move(params));
     return result;
   }

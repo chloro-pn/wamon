@@ -27,6 +27,10 @@
  *   - 函数类型 <-      int <- (type_list)
  *
  */
+
+/*
+ * 本文件中除wamon::detail命名空间外的其他内容均为公开API
+ */
 namespace wamon {
 
 class Type {
@@ -59,6 +63,8 @@ class BasicType : public Type {
   std::string type_name_;
   std::string package_name_;
 };
+
+inline BasicType* AsBasicType(const std::unique_ptr<Type>& type) { return static_cast<BasicType*>(type.get()); }
 
 class CompoundType : public Type {
  public:
@@ -180,16 +186,22 @@ inline bool IsBuiltInType(const std::unique_ptr<Type>& type) {
          type->GetTypeInfo() == "byte" || type->GetTypeInfo() == "bool" || type->GetTypeInfo() == "void";
 }
 
-inline bool IsInnerType(const std::unique_ptr<Type>& type) {
-  bool struct_type = type->IsBasicType() && !IsBuiltInType(type);
-  return !struct_type;
+inline bool IsStructType(const std::unique_ptr<Type>& type) { return type->IsBasicType() && !IsBuiltInType(type); }
+
+inline void SetScopeForStructType(std::unique_ptr<Type>& type, const std::string& package_name) {
+  assert(IsStructType(type));
+  AsBasicType(type)->SetScope(package_name);
 }
+
+namespace detail {
 
 inline std::vector<std::string> GetBuiltInTypesWithoutVoid() {
   return std::vector<std::string>{
       "string", "int", "double", "byte", "bool",
   };
 }
+
+}  // namespace detail
 
 inline std::unique_ptr<Type> GetVoidType() { return std::make_unique<BasicType>("void"); }
 
@@ -341,7 +353,11 @@ inline std::string GetTypeListId(const std::vector<std::unique_ptr<Type>>& type_
 
 class PackageUnit;
 
+namespace detail {
+
 void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var_type,
                          const std::vector<std::unique_ptr<Type>>& param_types);
+
+}
 
 }  // namespace wamon

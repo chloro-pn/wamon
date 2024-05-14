@@ -43,7 +43,7 @@ class InnerTypeMethod {
   }
 
   HandleType& Get(std::shared_ptr<Variable>& obj, const std::string& method_name) {
-    assert(IsInnerType(obj->GetType()));
+    assert(!IsStructType(obj->GetType()));
     auto handle_id = GetHandleId(obj->GetType(), method_name);
     assert(handles_.find(handle_id) != handles_.end());
     return handles_[handle_id];

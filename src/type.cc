@@ -81,7 +81,8 @@ bool CheckTraitConstraint(const PackageUnit& pu, const std::unique_ptr<Type>& tr
   return true;
 }
 
-// todo : 支持重载了operator()的类型初始化callable_object
+namespace detail {
+
 void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var_type,
                          const std::vector<std::unique_ptr<Type>>& param_types) {
   if (IsVoidType(var_type)) {
@@ -171,5 +172,7 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
   throw WamonExecption("construct check error,type {} can not be constructed by {} ", var_type->GetTypeInfo(),
                        fmt::join(type_infos, ", "));
 }
+
+}  // namespace detail
 
 }  // namespace wamon
