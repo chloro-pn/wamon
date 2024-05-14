@@ -42,13 +42,22 @@ bool CheckTraitConstraint(const PackageUnit& pu, const std::unique_ptr<Type>& tr
   auto trait_def = pu.FindStruct(trait_name);
   auto param_def = pu.FindStruct(param_name);
   if (trait_def == nullptr || param_def == nullptr) {
-    throw WamonExecption("CheckTraitConstraint, trait_type or param_type not exist");
+    throw WamonExecption("CheckTraitConstraint error, trait_type or param_type not exist : {} {}", trait_name,
+                         param_name);
   }
+  if (trait_def->IsTrait() == false) {
+    throw WamonExecption("CheckTraitConstraint error, {} should be struct trait", trait_name);
+  }
+  /* param_name 可以是struct trait
+  if (param_def->IsTrait() == true) {
+    throw WamonExecption("CheckTraitConstraint error, {} should not be struct trait", param_name);
+  }
+  */
   // 在param_type中查找trait_type中约定的数据成员和方法，根据名字查找，匹配类型
   for (auto& each : trait_def->GetDataMembers()) {
     auto data_type = param_def->GetDataMemberType<false>(each.first);
     if (data_type == nullptr) {
-      reason = fmt::format("CheckTraitConstraint error, data_type {} not found", each.first);
+      reason = fmt::format("CheckTraitConstraint error, data_type {} not found in {}", each.first, param_name);
       return false;
     }
     if (!IsSameType(data_type, each.second)) {
@@ -60,7 +69,7 @@ bool CheckTraitConstraint(const PackageUnit& pu, const std::unique_ptr<Type>& tr
   for (auto& each : trait_def->GetMethods()) {
     auto method_def = param_def->GetMethod(each->GetMethodName());
     if (method_def == nullptr) {
-      reason = fmt::format("CheckTraitConstraint error, method {} not found", each->GetMethodName());
+      reason = fmt::format("CheckTraitConstraint error, method {} not found in {}", each->GetMethodName(), param_name);
       return false;
     }
     if (!IsSameType(method_def->GetType(), each->GetType())) {

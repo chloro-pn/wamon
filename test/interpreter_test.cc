@@ -73,7 +73,7 @@ TEST(interpreter, variable) {
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
-  EXPECT_EQ(succ, true);
+  EXPECT_EQ(succ, true) << reason;
   // tc.CheckOperatorOverride();
 
   wamon::Interpreter interpreter(pu);
@@ -140,7 +140,7 @@ TEST(interpreter, variable_compare) {
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
-  EXPECT_EQ(succ, true);
+  EXPECT_EQ(succ, true) << reason;
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("main$a");
   auto v2 = interpreter.FindVariableById("main$c");
@@ -187,7 +187,7 @@ TEST(interpreter, variable_assign) {
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
-  EXPECT_EQ(succ, true);
+  EXPECT_EQ(succ, true) << reason;
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("main$a");
   auto v2 = interpreter.FindVariableById("main$c");
@@ -282,7 +282,7 @@ TEST(interpreter, inner_type_method) {
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
-  EXPECT_EQ(succ, true);
+  EXPECT_EQ(succ, true) << reason;
 
   wamon::Interpreter interpreter(pu);
   auto ret = interpreter.CallFunctionByName("main$func1", {});
@@ -346,7 +346,7 @@ TEST(interpreter, callable) {
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
-  EXPECT_EQ(succ, true);
+  EXPECT_EQ(succ, true) << reason;
 
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("main$mycallable");
@@ -434,7 +434,7 @@ TEST(interpreter, trait) {
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
-  EXPECT_EQ(succ, true);
+  EXPECT_EQ(succ, true) << reason;
 
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("main$v1");
@@ -635,7 +635,7 @@ TEST(interpreter, fibonacci) {
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
-  EXPECT_EQ(succ, true);
+  EXPECT_EQ(succ, true) << reason;
 
   wamon::Interpreter interpreter(pu);
   auto a = interpreter.FindVariableById("main$v");
@@ -681,7 +681,7 @@ TEST(interpreter, register_cpp_function) {
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
-  EXPECT_EQ(succ, true);
+  EXPECT_EQ(succ, true) << reason;
 
   auto ret = interpreter.CallFunctionByName("main$testfunc", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
@@ -717,7 +717,7 @@ TEST(interpreter, move) {
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
-  EXPECT_EQ(succ, true);
+  EXPECT_EQ(succ, true) << reason;
 
   wamon::Interpreter interpreter(pu);
   auto a = interpreter.FindVariableById("main$a");
@@ -759,7 +759,7 @@ TEST(interpreter, lambda) {
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
-  EXPECT_EQ(succ, true);
+  EXPECT_EQ(succ, true) << reason;
 
   wamon::Interpreter interpreter(pu);
 

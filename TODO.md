@@ -11,7 +11,7 @@
   - [delete] 重构Parser函数，将PackageUnit传递进去以供注册lambda函数(当前的架构很难改了，转换为将lambda函数注册到全局表中，PackageUnit在parse完后从全局表中获取所有的lambda函数)
   - [done] 完成lambda的类型检测阶段分析
   - [done] 运行阶段，当lambda表达式用于初始化、赋值给一个函数类型的变量时，需要在当前上下文执行捕获操作并保存在变量中，对该变量执行调用操作时需要将捕获的数据注册在运行时栈中。
-* 支持包管理
+* [done] 支持包管理
 * 为解释器实例提供更多的功能（执行表达式，打印当前运行栈、支持增量parse功能）
 * 重构，将operator运算的类型检测从type_checker移动到operator类中
 * [done] 支持trait(参考rust)

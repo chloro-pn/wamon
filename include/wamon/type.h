@@ -23,7 +23,7 @@
  *   - 结构体类型
  * - 复合类型(类型加工器):
  *   - 指针类型 *       int*
- *   - 数组类型 [num]   int[2]
+ *   - 列表类型 [num]   int[2]
  *   - 函数类型 <-      int <- (type_list)
  *
  */
@@ -205,7 +205,7 @@ inline std::unique_ptr<Type> GetElementType(const std::unique_ptr<Type>& type) {
 
 inline std::vector<std::unique_ptr<Type>> GetParamType(const std::unique_ptr<Type>& type) {
   assert(IsFuncType(type));
-  auto& param_type = dynamic_cast<FuncType*>(type.get())->GetParamType();
+  auto& param_type = static_cast<FuncType*>(type.get())->GetParamType();
   std::vector<std::unique_ptr<Type>> ret;
   for (auto& each : param_type) {
     ret.push_back(each->Clone());
@@ -215,7 +215,7 @@ inline std::vector<std::unique_ptr<Type>> GetParamType(const std::unique_ptr<Typ
 
 inline std::unique_ptr<Type> GetReturnType(const std::unique_ptr<Type>& type) {
   assert(IsFuncType(type));
-  return dynamic_cast<FuncType*>(type.get())->GetReturnType()->Clone();
+  return static_cast<FuncType*>(type.get())->GetReturnType()->Clone();
 }
 
 namespace detail {

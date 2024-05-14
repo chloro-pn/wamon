@@ -27,7 +27,7 @@ TEST(variable, list) {
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);
-  EXPECT_EQ(succ, true);
+  EXPECT_EQ(succ, true) << reason;
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.CallFunctionByName("main$my_func", {});
   EXPECT_EQ(v->GetTypeInfo(), "void");
