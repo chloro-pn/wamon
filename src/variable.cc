@@ -72,7 +72,7 @@ void StructVariable::UpdateDataMemberByName(const std::string& name, std::shared
   data->ChangeTo(vc_);
   auto it =
       std::find_if(data_members_.begin(), data_members_.end(), [&](auto& each) -> bool { return each.name == name; });
-  if (it != data_members_.end()) {
+  if (it == data_members_.end()) {
     throw WamonExecption("StructVariable.UpdateDataMemberByName error, data member {} not exist", name);
   }
   it->data = data;

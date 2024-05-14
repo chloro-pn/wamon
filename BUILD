@@ -35,3 +35,11 @@ cc_binary(
     ":wamon"
   ],
 )
+
+cc_binary(
+  name = "interpreter_api",
+  srcs = ["example/interpreter_api.cc"],
+  deps = [
+    ":wamon"
+  ],
+)

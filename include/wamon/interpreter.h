@@ -209,6 +209,9 @@ class Interpreter {
     }
     auto type = obj->GetTypeInfo();
     auto method_def = pu_.FindStruct(type)->GetMethod(method_name);
+    if (method_def == nullptr) {
+      throw WamonExecption("CallMethodByName error, method {} not exist", method_name);
+    }
     return CallMethod(obj, method_def, std::move(params));
   }
 
