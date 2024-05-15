@@ -62,11 +62,13 @@ wamon为这些类型提供了以下内置方法（目前这里还没做多少，
 * list(T):at(int) -> T
 * list(T):size() -> int
 * list(T):insert(T) -> void
-
+* list(T):push_back(T) -> void
+* list(T):pop_back() -> void
 
 ##### 类型转换
 wamon是强类型的，通过双元运算符as进行类型转换工作，目前支持：
 * int -> double
+* double -> int
 * int -> bool
 * list(byte) -> string
 * struct/ struct trait -> struct trait
