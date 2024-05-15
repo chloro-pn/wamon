@@ -523,6 +523,11 @@ TEST(interpreter, operator) {
       let bytes : list(byte) = (0X61, 0X62, 0X63);
       return bytes as string;
     }
+
+    func as_test_4() -> int {
+      let v : double = 3.9;
+      return v as int;
+    }
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -607,6 +612,11 @@ TEST(interpreter, operator) {
   ret = interpreter.CallFunctionByName("main$as_test_3", std::move(tmp_params));
   EXPECT_EQ(ret->GetTypeInfo(), "string");
   EXPECT_EQ(wamon::AsStringVariable(ret)->GetValue(), "abc");
+
+  tmp_params.clear();
+  ret = interpreter.CallFunctionByName("main$as_test_4", std::move(tmp_params));
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 3);
 }
 
 TEST(interpreter, fibonacci) {
