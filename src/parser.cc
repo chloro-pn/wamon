@@ -52,6 +52,7 @@ std::pair<std::string, std::string> ParseIdentifier(const std::vector<WamonToken
   }
   std::string v2 = tokens[begin].Get<std::string>();
   begin += 1;
+  AssertInImportListOrThrow(v1);
   return {v1, v2};
 }
 
@@ -913,6 +914,7 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
 
   std::vector<std::string> import_packages = ParseImportPackages(tokens, current_index);
   package_unit.SetImportPackage(import_packages);
+  current_parsing_imports = import_packages;
 
   while (current_index < tokens.size()) {
     WamonToken token = tokens[current_index];

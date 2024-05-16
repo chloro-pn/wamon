@@ -71,7 +71,7 @@ wamon是强类型的，通过双元运算符as进行类型转换工作，目前�
 * double -> int
 * int -> bool
 * list(byte) -> string
-* struct/ struct trait -> struct trait
+* struct / struct trait -> struct trait
 
 ## register cpp functions
 wamon提供了如下接口将cpp函数注册到wamon运行时中（不提供类型转换和匹配操作，需要用户自己实现），ct在语义分析阶段调用，用户应该在ct中检查传入的参数类型是否符合要求，如果不符合需要抛出异常。

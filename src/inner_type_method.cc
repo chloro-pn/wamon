@@ -79,6 +79,20 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
     }
     return GetVoidType();
   };
+
+  /*
+    handles[concat("list", "resize")] =
+        [](const std::unique_ptr<Type>& builtin_type,
+           const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
+      if (params_type.size() != 1) {
+        throw WamonExecption("list.resize error, params.size() == {}", params_type.size());
+      }
+      if (!IsIntType(params_type[0])) {
+        throw WamonExecption("list.resize error, params type == {}", params_type[0]->GetTypeInfo());
+      }
+      return GetVoidType();
+    };
+  */
 }
 
 static void register_builtin_type_method_handle(std::unordered_map<std::string, InnerTypeMethod::HandleType>& handles) {
@@ -135,6 +149,16 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
     AsListVariable(obj)->PopBack();
     return GetVoidVariable();
   };
+
+  /* todo: InnerTypeMethod should see Interpreter
+   *
+  handles[concat("list", "resize")] =
+      [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params) -> std::shared_ptr<Variable> {
+    assert(params.size() == 1);
+    AsListVariable(obj)->Resize(AsIntVariable(params[0])->GetValue());
+    return GetVoidVariable();
+  };
+   */
 }
 
 InnerTypeMethod::InnerTypeMethod() {

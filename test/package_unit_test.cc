@@ -92,3 +92,15 @@ TEST(package_unit, multi_package) {
   EXPECT_EQ(v->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 11);
 }
+
+TEST(package_unit, import_check) {
+  wamon::Scanner scan;
+  std::string main_script = R"(
+    package main;
+
+    let v : int = net::v;
+  )";
+
+  auto tokens = scan.Scan(main_script);
+  EXPECT_THROW(wamon::Parse(tokens), wamon::WamonExecption);
+}
