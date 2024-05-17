@@ -1,5 +1,7 @@
 #include "wamon/variable.h"
 
+#include <vector>
+
 #include "gtest/gtest.h"
 #include "wamon/interpreter.h"
 #include "wamon/parser.h"
@@ -16,6 +18,11 @@ TEST(variable, list) {
 
     func my_func() -> void {
       call a:insert(3, 5);
+      return;
+    }
+
+    func my_erase(int i) -> void {
+      call a:erase(i);
       return;
     }
   )";
@@ -37,4 +44,21 @@ TEST(variable, list) {
   EXPECT_EQ(wamon::AsIntVariable(wamon::AsListVariable(v)->at(1))->GetValue(), 3);
   EXPECT_EQ(wamon::AsIntVariable(wamon::AsListVariable(v)->at(2))->GetValue(), 4);
   EXPECT_EQ(wamon::AsIntVariable(wamon::AsListVariable(v)->at(3))->GetValue(), 5);
+
+  std::vector<std::shared_ptr<wamon::Variable>> params;
+  params.push_back(
+      wamon::VariableFactoryShared(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu));
+  wamon::AsIntVariable(params[0])->SetValue(0);
+  interpreter.CallFunctionByName("main$my_erase", std::move(params));
+  v = interpreter.FindVariableById("main$a");
+  EXPECT_EQ(v->GetTypeInfo(), "list(int)");
+  EXPECT_EQ(wamon::AsIntVariable(wamon::AsListVariable(v)->at(0))->GetValue(), 3);
+  EXPECT_EQ(wamon::AsIntVariable(wamon::AsListVariable(v)->at(1))->GetValue(), 4);
+  EXPECT_EQ(wamon::AsIntVariable(wamon::AsListVariable(v)->at(2))->GetValue(), 5);
+
+  params.clear();
+  params.push_back(
+      wamon::VariableFactoryShared(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu));
+  wamon::AsIntVariable(params[0])->SetValue(3);
+  EXPECT_THROW(interpreter.CallFunctionByName("main$my_erase", std::move(params)), wamon::WamonExecption);
 }

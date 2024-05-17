@@ -500,6 +500,15 @@ class ListVariable : public CompoundVariable {
     }
   }
 
+  void Erase(size_t index) {
+    if (index >= elements_.size()) {
+      throw WamonExecption("List.Erase error, index out of range : {} >= {}", index, elements_.size());
+    }
+    auto it = elements_.begin();
+    std::advance(it, index);
+    elements_.erase(it);
+  }
+
   void Insert(size_t index, std::shared_ptr<Variable> v) {
     if (index > Size()) {
       throw WamonExecption("List.Insert error, index = {}, size = {}", index, Size());
