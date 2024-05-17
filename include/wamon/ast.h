@@ -161,6 +161,7 @@ class IdExpr : public Expression {
     Variable,
     Callable,
     Function,
+    BuiltinFunc,
     Invalid,
   };
 

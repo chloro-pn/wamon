@@ -102,6 +102,13 @@ std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
   }
   if (type_ == Type::Variable || type_ == Type::Callable) {
     return interpreter.FindVariableById(GenerateIdent());
+  } else if (type_ == Type::BuiltinFunc) {
+    auto type = BuiltinFunctions::Instance().GetType(GenerateIdent());
+    assert(type != nullptr);
+    auto ret = std::make_unique<FunctionVariable>(GetParamType(type), GetReturnType(type),
+                                                  Variable::ValueCategory::RValue, "");
+    ret->SetFuncName(GenerateIdent());
+    return ret;
   } else {
     auto func_def = interpreter.GetPackageUnit().FindFunction(GenerateIdent());
     auto type = func_def->GetType();

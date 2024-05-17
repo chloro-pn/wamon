@@ -14,6 +14,8 @@ int main() {
     func call_cpp_function(string s) -> int {
       return call wamon::my_cpp_func:(s);
     }
+
+    let test : f(() -> int) = wamon::my_type_cpp_func;
   )";
 
   wamon::Scanner scanner;
@@ -39,6 +41,12 @@ int main() {
         return std::make_shared<wamon::IntVariable>(static_cast<int>(len), wamon::Variable::ValueCategory::RValue, "");
       });
 
+  ip.RegisterCppFunctions(
+      "my_type_cpp_func", wamon::TypeFactory<int()>::Get(),
+      [](std::vector<std::shared_ptr<wamon::Variable>>&& params) -> std::shared_ptr<wamon::Variable> {
+        return std::make_shared<wamon::IntVariable>(12138, wamon::Variable::ValueCategory::RValue, "");
+      });
+
   wamon::TypeChecker type_checker(package_unit);
 
   std::string reason;
@@ -53,6 +61,9 @@ int main() {
   wamon::AsStringVariable(string_v)->SetValue("hello");
 
   auto ret = ip.CallFunctionByName("main$call_cpp_function", {std::move(string_v)});
+  std::cout << wamon::AsIntVariable(ret)->GetValue() << std::endl;
+
+  ret = ip.CallCallable(ip.FindVariableById("main$test"), {});
   std::cout << wamon::AsIntVariable(ret)->GetValue() << std::endl;
   return 0;
 }

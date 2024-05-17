@@ -1,6 +1,9 @@
 #include "wamon/interpreter.h"
 
+#include "wamon/exception.h"
+#include "wamon/move_wrapper.h"
 #include "wamon/operator.h"
+#include "wamon/type.h"
 
 namespace wamon {
 
@@ -86,6 +89,34 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
   }
   LeaveContext();
   return result.result_->IsRValue() ? result.result_ : result.result_->Clone();
+}
+
+void Interpreter::RegisterCppFunctions(const std::string& name, std::unique_ptr<Type> func_type,
+                                       BuiltinFunctions::HandleType ht) {
+  if (IsFuncType(func_type) == false) {
+    throw WamonExecption("RegisterCppFunctions error, {} have non-function type : {}", name, func_type->GetTypeInfo());
+  }
+  auto ftype = func_type->Clone();
+  MoveWrapper<decltype(ftype)> mw(std::move(ftype));
+  auto check_f = [name = name,
+                  mw = mw](const std::vector<std::unique_ptr<Type>>& params_type) mutable -> std::unique_ptr<Type> {
+    auto func_type = std::move(mw).Get();
+    auto par_type = GetParamType(func_type);
+    size_t param_size = par_type.size();
+    if (param_size != params_type.size()) {
+      throw WamonExecption("RegisterCppFunctions error, func {} params type count {} != {}", name, params_type.size(),
+                           param_size);
+    }
+    for (size_t i = 0; i < param_size; ++i) {
+      if (!IsSameType(par_type[i], params_type[i])) {
+        throw WamonExecption("RegisterCppFunctions error, func {} {}th param type mismatch : {} != {}", name, i,
+                             par_type[i]->GetTypeInfo(), params_type[i]->GetTypeInfo());
+      }
+    }
+    return GetReturnType(func_type);
+  };
+  RegisterCppFunctions(name, std::move(check_f), std::move(ht));
+  BuiltinFunctions::Instance().SetTypeForFunction(name, std::move(func_type));
 }
 
 }  // namespace wamon

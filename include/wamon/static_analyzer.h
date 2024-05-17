@@ -4,6 +4,7 @@
 #include <stack>
 
 #include "wamon/ast.h"
+#include "wamon/builtin_functions.h"
 #include "wamon/context.h"
 #include "wamon/package_unit.h"
 #include "wamon/type.h"
@@ -50,6 +51,12 @@ class StaticAnalyzer {
     if (fd != nullptr) {
       type = IdExpr::Type::Function;
       return fd->GetType();
+    }
+    // 只有设定类型的注册函数能够被找到
+    auto ftype = BuiltinFunctions::Instance().GetType(name);
+    if (ftype != nullptr) {
+      type = IdExpr::Type::BuiltinFunc;
+      return ftype;
     }
     throw WamonExecption("GetTypeByName error, can't find name {}, maybe builtin function or invalid", name);
   }

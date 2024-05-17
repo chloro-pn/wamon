@@ -85,7 +85,13 @@ ht在运行阶段调用。
   using CheckType = std::function<std::unique_ptr<Type>(const std::vector<std::unique_ptr<Type>>& params_type)>;
 ```
 
-TODO:因为有些函数的类型是根据提供的参数列表来确定的，因此目前不支持注册函数赋值给Callable对象，只能通过函数调用表达式直接调用。后续可以提供一种绕开语义分析期类型检测、直接在运行时检测并调用的注册机制。
+你也可以通过下面这个接口注册类型确定的内置函数：
+```c++
+void Interpreter::RegisterCppFunctions(const std::string& name, std::unique_ptr<Type> func_type,
+                                       BuiltinFunctions::HandleType ht);
+```
+这种内置函数参与类型分析，可以被赋值给Callable对象，详情见example/register_cpp_function.cc
+
 
 ## 函数是一等公民
 

@@ -215,10 +215,11 @@ class Interpreter {
     return CallMethod(obj, method_def, std::move(params));
   }
 
-  std::string RegisterCppFunctions(const std::string& name, BuiltinFunctions::CheckType ct,
-                                   BuiltinFunctions::HandleType ht) {
-    return BuiltinFunctions::Instance().Register("wamon$" + name, std::move(ct), std::move(ht));
+  void RegisterCppFunctions(const std::string& name, BuiltinFunctions::CheckType ct, BuiltinFunctions::HandleType ht) {
+    BuiltinFunctions::Instance().Register("wamon$" + name, std::move(ct), std::move(ht));
   }
+
+  void RegisterCppFunctions(const std::string& name, std::unique_ptr<Type> func_type, BuiltinFunctions::HandleType ht);
 
   const PackageUnit& GetPackageUnit() const { return pu_; }
 
