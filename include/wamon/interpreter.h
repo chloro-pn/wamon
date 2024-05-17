@@ -197,7 +197,7 @@ class Interpreter {
                                        std::vector<std::shared_ptr<Variable>>&& params) {
     auto method = InnerTypeMethod::Instance().Get(obj, method_name);
     EnterContext<RuntimeContextType::Method>();
-    auto ret = method(obj, std::move(params));
+    auto ret = method(obj, std::move(params), pu_);
     LeaveContext();
     return ret->IsRValue() ? std::move(ret) : ret->Clone();
   }

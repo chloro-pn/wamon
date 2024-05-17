@@ -10,6 +10,8 @@
 
 namespace wamon {
 
+class PackageUnit;
+
 class InnerTypeMethod {
  public:
   static InnerTypeMethod& Instance() {
@@ -19,8 +21,8 @@ class InnerTypeMethod {
 
   using CheckType = std::function<std::unique_ptr<Type>(const std::unique_ptr<Type>& builtin_type,
                                                         const std::vector<std::unique_ptr<Type>>& params_type)>;
-  using HandleType = std::function<std::shared_ptr<Variable>(std::shared_ptr<Variable>& obj,
-                                                             std::vector<std::shared_ptr<Variable>>&&)>;
+  using HandleType = std::function<std::shared_ptr<Variable>(
+      std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&&, const PackageUnit&)>;
 
   std::string GetHandleId(const std::unique_ptr<Type>& builtintype, const std::string& method_name) {
     std::string handle_id;
