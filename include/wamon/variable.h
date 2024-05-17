@@ -73,6 +73,9 @@ class PackageUnit;
 std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
                                           const std::string& name, const PackageUnit& pu);
 
+std::shared_ptr<Variable> VariableFactoryShared(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
+                                                const std::string& name, const PackageUnit& pu);
+
 std::unique_ptr<Variable> GetVoidVariable();
 
 class VoidVariable : public Variable {

@@ -43,3 +43,11 @@ cc_binary(
     ":wamon"
   ],
 )
+
+cc_binary(
+  name = "lambda",
+  srcs = ["example/lambda.cc"],
+  deps = [
+    ":wamon"
+  ],
+)

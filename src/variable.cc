@@ -45,6 +45,11 @@ std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
   throw WamonExecption("VariableFactory error, not implement now.");
 }
 
+std::shared_ptr<Variable> VariableFactoryShared(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
+                                                const std::string& name, const PackageUnit& pu) {
+  return std::shared_ptr<Variable>(VariableFactory(type, vc, name, pu));
+}
+
 std::unique_ptr<Variable> GetVoidVariable() { return std::make_unique<VoidVariable>(); }
 
 StructVariable::StructVariable(const StructDef* sd, ValueCategory vc, const PackageUnit& pu, const std::string& name)
