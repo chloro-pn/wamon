@@ -279,6 +279,7 @@ static void PushBoperators(std::stack<Token> &b_operators, std::stack<std::uniqu
 //  - 成员调用表达式
 //  - lambda表达式
 //  - id表达式
+//  - new表达式
 //  - 表达式嵌套（二元运算，括号）
 std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &tokens, size_t begin, size_t end) {
   assert(begin <= end);
@@ -403,6 +404,18 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
         lambda_expr->SetLambdaFuncName(lambda_func_name);
         i -= 1;
         operands.push(AttachUnaryOperators(std::move(lambda_expr), u_operators));
+        continue;
+      }
+      if (current_token == Token::NEW) {
+        std::unique_ptr<NewExpr> new_expr(new NewExpr());
+        i += 1;
+        auto type = ParseType(tokens, i);
+        size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, i);
+        auto expr_list = ParseExprList(tokens, i, right_parent);
+        new_expr->SetNewType(std::move(type));
+        new_expr->SetParameters(std::move(expr_list));
+        i = right_parent;
+        operands.push(AttachUnaryOperators(std::move(new_expr), u_operators));
         continue;
       }
       size_t tmp = i;

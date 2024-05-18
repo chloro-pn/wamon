@@ -780,3 +780,36 @@ TEST(interpreter, lambda) {
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 12);
 }
+
+TEST(interpreter, new_expr) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+
+    let v : int = new int(2);
+
+    struct test {
+      string name;
+    }
+
+    let v2 : test = new test("chloro");
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
+
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true) << reason;
+
+  wamon::Interpreter interpreter(pu);
+
+  auto ret = interpreter.FindVariableById("main$v");
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 2);
+  ret = interpreter.FindVariableById("main$v2");
+  EXPECT_EQ(ret->GetTypeInfo(), "main$test");
+  EXPECT_EQ(wamon::AsStringVariable(wamon::AsStructVariable(ret)->GetDataMemberByName("name"))->GetValue(), "chloro");
+}

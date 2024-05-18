@@ -140,6 +140,20 @@ std::shared_ptr<Variable> LambdaExpr::Calculate(Interpreter& interpreter) {
   return call_obj;
 }
 
+std::shared_ptr<Variable> NewExpr::Calculate(Interpreter& interpreter) {
+  auto v = VariableFactory(type_, Variable::ValueCategory::RValue, "", interpreter.GetPackageUnit());
+  std::vector<std::shared_ptr<Variable>> fields;
+  for (auto& each : parameters_) {
+    fields.push_back(each->Calculate(interpreter));
+  }
+  if (fields.empty()) {
+    v->DefaultConstruct();
+  } else {
+    v->ConstructByFields(std::move(fields));
+  }
+  return v;
+}
+
 ExecuteResult BlockStmt::Execute(Interpreter& interpreter) {
   interpreter.EnterContext<RuntimeContextType::Block>();
   for (auto& each : block_) {
@@ -254,6 +268,11 @@ ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   }
   if (fields.empty() == true) {
     v->DefaultConstruct();
+  } else if (fields.size() == 1 && fields[0]->GetTypeInfo() == v->GetTypeInfo()) {
+    // copy construct
+    v = fields[0]->Clone();
+    v->SetName(var_name_);
+    v->ChangeTo(Variable::ValueCategory::LValue);
   } else {
     v->ConstructByFields(fields);
   }

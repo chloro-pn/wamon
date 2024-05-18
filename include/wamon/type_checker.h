@@ -32,6 +32,7 @@ class TypeChecker {
                                                                 const MethodCallExpr* call_expr);
   friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker& tc,
                                                                        MethodCallExpr* method_call_expr);
+  friend std::unique_ptr<Type> CheckAndGetTypeForNewExpr(TypeChecker& tc, NewExpr* new_expr);
 
   friend class BuiltinFunctions;
 

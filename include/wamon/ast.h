@@ -268,6 +268,23 @@ class LambdaExpr : public Expression {
   std::string lambda_func_name_;
 };
 
+class NewExpr : public Expression {
+ public:
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
+
+  void SetNewType(std::unique_ptr<Type> type) { type_ = std::move(type); }
+
+  const std::unique_ptr<Type>& GetNewType() const { return type_; }
+
+  void SetParameters(std::vector<std::unique_ptr<Expression>>&& param) { parameters_ = std::move(param); }
+
+  std::vector<std::unique_ptr<Expression>>& GetParameters() { return parameters_; }
+
+ private:
+  std::unique_ptr<Type> type_;
+  std::vector<std::unique_ptr<Expression>> parameters_;
+};
+
 enum class ExecuteState {
   Next,
   Continue,

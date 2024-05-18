@@ -84,6 +84,8 @@ enum class Token {
   TRAIT,
   // 变量定义
   LET,
+  // 匿名变量定义
+  NEW,
   // 方法定义
   METHOD,
   SELF,
@@ -222,6 +224,8 @@ inline const char *GetTokenStr(Token token) {
       return "trait";
     case Token::LET:
       return "let";
+    case Token::NEW:
+      return "new";
     case Token::METHOD:
       return "method";
     case Token::SELF:

@@ -237,6 +237,14 @@ TEST(parse, parse_expression) {
   EXPECT_NE(dynamic_cast<wamon::BinaryExpr*>(expr.get()), nullptr);
   auto ptr = dynamic_cast<wamon::BinaryExpr*>(expr.get());
   EXPECT_EQ(ptr->op_, wamon::Token::PIPE);
+
+  str = "new int(2)";
+  tokens = scan.Scan(str);
+  expr = wamon::ParseExpression(tokens, 0, tokens.size() - 1);
+  EXPECT_NE(expr, nullptr);
+  auto ptr2 = dynamic_cast<wamon::NewExpr*>(expr.get());
+  EXPECT_EQ(ptr2->GetNewType()->GetTypeInfo(), "int");
+  EXPECT_EQ(ptr2->parameters_.size(), 1);
 }
 
 TEST(parse, unary_operator) {

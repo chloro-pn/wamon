@@ -13,6 +13,7 @@
 #include "wamon/static_analyzer.h"
 #include "wamon/token.h"
 #include "wamon/topological_sort.h"
+#include "wamon/type.h"
 
 namespace wamon {
 
@@ -568,6 +569,18 @@ std::unique_ptr<Type> CheckAndGetTypeForLambda(TypeChecker& tc, LambdaExpr* lamb
   return def->GetType();
 }
 
+std::unique_ptr<Type> CheckAndGetTypeForNewExpr(TypeChecker& tc, NewExpr* new_expr) {
+  auto& type = new_expr->GetNewType();
+  tc.CheckType(type, fmt::format("check new expr's type {}", type->GetTypeInfo()));
+  std::vector<std::unique_ptr<Type>> constructor_types;
+  for (auto& each : new_expr->GetParameters()) {
+    auto tmp = tc.GetExpressionType(each.get());
+    constructor_types.push_back(std::move(tmp));
+  }
+  detail::CheckCanConstructBy(tc.GetStaticAnalyzer().GetPackageUnit(), type, constructor_types);
+  return type->Clone();
+}
+
 std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   assert(expr != nullptr);
   if (dynamic_cast<StringIteralExpr*>(expr)) {
@@ -621,6 +634,9 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   }
   if (auto tmp = dynamic_cast<LambdaExpr*>(expr)) {
     return CheckAndGetTypeForLambda(*const_cast<TypeChecker*>(this), tmp);
+  }
+  if (auto tmp = dynamic_cast<NewExpr*>(expr)) {
+    return CheckAndGetTypeForNewExpr(*const_cast<TypeChecker*>(this), tmp);
   }
   auto tmp = dynamic_cast<IdExpr*>(expr);
   if (tmp == nullptr) {
