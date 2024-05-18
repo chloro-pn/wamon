@@ -73,6 +73,12 @@ wamon是强类型的，通过双元运算符as进行类型转换工作，目前�
 * list(byte) -> string
 * struct / struct trait -> struct trait
 
+## 值型别、变量定义和new表达式
+wamon有与c++相似的值型别的概念，不过是简化版本，wamon中的变量有两种值型别：左值和右值：
+* move运算符可以将左值变量变成右值变量，与c++不同的是，wamon中的move是一个单元运算符。
+* 变量定义表达式的格式：`let var_name : type = expr | (expr_list);`，let定义的变量是左值类型
+* 也可以通过new表达式定义一个匿名的临时变量：`new type(expr_list)`，new定义的变量是右值类型
+
 ## register cpp functions
 wamon提供了如下接口将cpp函数注册到wamon运行时中（不提供类型转换和匹配操作，需要用户自己实现），ct在语义分析阶段调用，用户应该在ct中检查传入的参数类型是否符合要求，如果不符合需要抛出异常。
 ht在运行阶段调用。
