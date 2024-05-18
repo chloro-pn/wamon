@@ -61,9 +61,11 @@ wamon为这些类型提供了以下内置方法（目前这里还没做多少，
 * string:at() -> byte
 * list(T):at(int) -> T
 * list(T):size() -> int
-* list(T):insert(T) -> void
+* list(T):insert(int, T) -> void
 * list(T):push_back(T) -> void
 * list(T):pop_back() -> void
+* list(T):resize(int) -> void
+* list(T):erase(int) -> void
 
 ##### 类型转换
 wamon是强类型的，通过双元运算符as进行类型转换工作，目前支持：
@@ -72,6 +74,38 @@ wamon是强类型的，通过双元运算符as进行类型转换工作，目前�
 * int -> bool
 * list(byte) -> string
 * struct / struct trait -> struct trait
+
+## struct、struct trait
+wamon通过支持`struct`来支持ADT，struct声明的语法如下：
+```c++
+// 数据成员声明在struct块中
+struct struct_name {
+  type identifier;
+  type identifier;
+  ...
+}
+
+// 方法声明在method块中
+method struct_name {
+  // 可以使用self代指调用该方法的变量
+  func method_name(param_list) -> type {
+    ...
+  }
+  ...
+  // wamon支持调用运算符重载
+  operator() (param_list) -> type {
+    ...
+  }
+}
+```
+wamon通过支持`struct trait`来支持运行时多态，struct trait和struct的区别在于：struct trait的方法只有声明没有定义，它只定义了一些struct应该有的数据成员和方法。
+
+如果某个`struct A`拥有某个`struct trait B`定义的全部数据成员和方法，那么就称A满足B这种trait。
+
+`struct trait`属于wamon的类型系统，因此一个变量可以是`struct trait`类型，只是无法直接构造这个类型的变量，需要从其它类型的变量转换而来。
+
+如果`struct A`满足`struct trait B`，那么可以用as运算符将其转换为B类型。
+
 
 ## 值型别、变量定义和new表达式
 wamon有与c++相似的值型别的概念，不过是简化版本，wamon中的变量有两种值型别：左值和右值：

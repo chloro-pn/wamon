@@ -51,3 +51,11 @@ cc_binary(
     ":wamon"
   ],
 )
+
+cc_binary(
+  name = "struct_trait",
+  srcs = ["example/struct_trait.cc"],
+  deps = [
+    ":wamon"
+  ],
+)

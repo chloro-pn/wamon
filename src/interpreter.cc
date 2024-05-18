@@ -74,6 +74,9 @@ std::shared_ptr<Variable> Interpreter::CallCallable(std::shared_ptr<Variable> ca
 
 std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj, const MethodDef* method_def,
                                                   std::vector<std::shared_ptr<Variable>>&& params) {
+  if (method_def->IsDeclaration()) {
+    throw WamonExecption("Interpreter.CallMethod error, method {} is declaration", method_def->GetMethodName());
+  }
   EnterContext<RuntimeContextType::Method>();
   auto param_name = method_def->GetParamList().begin();
   for (auto param : params) {
