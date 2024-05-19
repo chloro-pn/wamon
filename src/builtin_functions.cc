@@ -34,7 +34,7 @@ BuiltinFunctions::BuiltinFunctions() {
 }
 
 std::unique_ptr<Type> BuiltinFunctions::TypeCheck(const std::string& name,
-                                                  const std::vector<std::unique_ptr<Type>>& params_type) {
+                                                  const std::vector<std::unique_ptr<Type>>& params_type) const {
   auto check = builtin_checks_.find(name);
   if (check == builtin_checks_.end()) {
     throw WamonExecption("BuiltinFunctions::TypeCheck error, not implemented {} now", name);

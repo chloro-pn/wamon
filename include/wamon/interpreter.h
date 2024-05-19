@@ -94,7 +94,7 @@ class Interpreter {
   friend class ForStmt;
   friend class WhileStmt;
 
-  explicit Interpreter(const PackageUnit& pu);
+  explicit Interpreter(PackageUnit& pu);
 
  private:
   template <RuntimeContextType type>
@@ -168,7 +168,7 @@ class Interpreter {
   // call builtin funcs
   std::shared_ptr<Variable> CallFunction(const std::string& builtin_name,
                                          std::vector<std::shared_ptr<Variable>>&& params) {
-    auto func = BuiltinFunctions::Instance().Get(builtin_name);
+    auto func = GetPackageUnit().GetBuiltinFunctions().Get(builtin_name);
     if (func == nullptr) {
       throw WamonExecption("CallFunction error, {} not exist", builtin_name);
     }
@@ -181,7 +181,7 @@ class Interpreter {
   // todo : builtin funcs need type check
   std::shared_ptr<Variable> CallFunctionByName(const std::string& func_name,
                                                std::vector<std::shared_ptr<Variable>>&& params) {
-    if (BuiltinFunctions::Instance().Find(func_name)) {
+    if (GetPackageUnit().GetBuiltinFunctions().Find(func_name)) {
       return CallFunction(func_name, std::move(params));
     }
     return CallFunction(pu_.FindFunction(func_name), std::move(params));
@@ -224,12 +224,14 @@ class Interpreter {
   }
 
   void RegisterCppFunctions(const std::string& name, BuiltinFunctions::CheckType ct, BuiltinFunctions::HandleType ht) {
-    BuiltinFunctions::Instance().Register("wamon$" + name, std::move(ct), std::move(ht));
+    GetPackageUnit().GetBuiltinFunctions().Register("wamon$" + name, std::move(ct), std::move(ht));
   }
 
   void RegisterCppFunctions(const std::string& name, std::unique_ptr<Type> func_type, BuiltinFunctions::HandleType ht);
 
   const PackageUnit& GetPackageUnit() const { return pu_; }
+
+  PackageUnit& GetPackageUnit() { return pu_; }
 
  private:
   // 这里使用vector模拟栈，因为需要对其进行遍历
@@ -237,7 +239,7 @@ class Interpreter {
   // 包符号表
   RuntimeContext package_context_;
   // 解释执行的时候需要从package_unit_中查找函数、方法、类型等信息
-  const PackageUnit& pu_;
+  PackageUnit& pu_;
 };
 
 }  // namespace wamon

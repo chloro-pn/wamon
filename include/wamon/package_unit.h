@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "wamon/ast.h"
+#include "wamon/builtin_functions.h"
 #include "wamon/exception.h"
 #include "wamon/function_def.h"
 #include "wamon/method_def.h"
@@ -107,6 +108,10 @@ class PackageUnit {
 
   const std::unordered_map<std::string, std::unique_ptr<StructDef>>& GetStructs() const { return structs_; }
 
+  const BuiltinFunctions& GetBuiltinFunctions() const { return builtin_functions_; }
+
+  BuiltinFunctions& GetBuiltinFunctions() { return builtin_functions_; }
+
  private:
   std::string package_name_;
   std::vector<std::string> import_packages_;
@@ -114,6 +119,7 @@ class PackageUnit {
   std::vector<std::unique_ptr<VariableDefineStmt>> var_define_;
   std::unordered_map<std::string, std::unique_ptr<FunctionDef>> funcs_;
   std::unordered_map<std::string, std::unique_ptr<StructDef>> structs_;
+  BuiltinFunctions builtin_functions_;
 };
 
 template <typename... T>

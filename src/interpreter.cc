@@ -7,7 +7,7 @@
 
 namespace wamon {
 
-Interpreter::Interpreter(const PackageUnit& pu) : pu_(pu) {
+Interpreter::Interpreter(PackageUnit& pu) : pu_(pu) {
   package_context_.type_ = RuntimeContextType::Global;
   // 将packge unit中的包变量进行求解并插入包符号表中
   const auto& vars = pu_.GetGlobalVariDefStmt();
@@ -119,7 +119,7 @@ void Interpreter::RegisterCppFunctions(const std::string& name, std::unique_ptr<
     return GetReturnType(func_type);
   };
   RegisterCppFunctions(name, std::move(check_f), std::move(ht));
-  BuiltinFunctions::Instance().SetTypeForFunction(name, std::move(func_type));
+  GetPackageUnit().GetBuiltinFunctions().SetTypeForFunction(name, std::move(func_type));
 }
 
 }  // namespace wamon

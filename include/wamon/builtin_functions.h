@@ -24,21 +24,20 @@ class BuiltinFunctions {
 
   BuiltinFunctions();
 
-  static BuiltinFunctions& Instance() {
-    static BuiltinFunctions obj;
-    return obj;
-  }
+  BuiltinFunctions(BuiltinFunctions&&) = default;
 
-  std::unique_ptr<Type> TypeCheck(const std::string& name, const std::vector<std::unique_ptr<Type>>& params_type);
+  BuiltinFunctions& operator=(BuiltinFunctions&&) = default;
 
-  bool Find(const std::string& name) { return builtin_handles_.find(name) != builtin_handles_.end(); }
+  std::unique_ptr<Type> TypeCheck(const std::string& name, const std::vector<std::unique_ptr<Type>>& params_type) const;
 
-  HandleType* Get(const std::string& name) {
+  bool Find(const std::string& name) const { return builtin_handles_.find(name) != builtin_handles_.end(); }
+
+  HandleType* Get(const std::string& name) const {
     auto it = builtin_handles_.find(name);
     if (it == builtin_handles_.end()) {
       return nullptr;
     }
-    return &builtin_handles_[name];
+    return const_cast<HandleType*>(&it->second);
   }
 
   std::unique_ptr<Type> GetType(const std::string& name) const {

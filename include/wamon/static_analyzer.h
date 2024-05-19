@@ -53,7 +53,7 @@ class StaticAnalyzer {
       return fd->GetType();
     }
     // 只有设定类型的注册函数能够被找到
-    auto ftype = BuiltinFunctions::Instance().GetType(name);
+    auto ftype = GetPackageUnit().GetBuiltinFunctions().GetType(name);
     if (ftype != nullptr) {
       type = IdExpr::Type::BuiltinFunc;
       return ftype;
