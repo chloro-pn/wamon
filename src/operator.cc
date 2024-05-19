@@ -237,7 +237,7 @@ static void register_buildin_uoperator_handles(std::unordered_map<std::string, O
 }
 
 std::shared_ptr<Variable> Operator::Calculate(Interpreter& interpreter, Token op, std::shared_ptr<Variable> v1,
-                                              std::shared_ptr<Variable> v2) {
+                                              std::shared_ptr<Variable> v2) const {
   std::string tmp;
   std::vector<std::unique_ptr<Type>> opernads;
   opernads.push_back(v1->GetType());
@@ -255,7 +255,7 @@ std::shared_ptr<Variable> Operator::Calculate(Interpreter& interpreter, Token op
   return (*handle).second(interpreter, v1, v2);
 }
 
-std::shared_ptr<Variable> Operator::Calculate(Interpreter& interpreter, Token op, std::shared_ptr<Variable> v) {
+std::shared_ptr<Variable> Operator::Calculate(Interpreter& interpreter, Token op, std::shared_ptr<Variable> v) const {
   std::string handle_name;
   // &和*对所有类型适用，因此特殊处理
   if (op == Token::ADDRESS_OF || op == Token::MULTIPLY || op == Token::MOVE) {

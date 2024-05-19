@@ -34,9 +34,9 @@ class Operator {
   }
 
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter, Token op, std::shared_ptr<Variable> v1,
-                                      std::shared_ptr<Variable> v2);
+                                      std::shared_ptr<Variable> v2) const;
 
-  std::shared_ptr<Variable> Calculate(Interpreter& interpreter, Token op, std::shared_ptr<Variable> v);
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter, Token op, std::shared_ptr<Variable> v) const;
 
   using BinaryOperatorType =
       std::function<std::shared_ptr<Variable>(Interpreter&, std::shared_ptr<Variable>, std::shared_ptr<Variable>)>;

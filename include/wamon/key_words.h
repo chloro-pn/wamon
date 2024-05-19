@@ -16,7 +16,7 @@ class KeyWords {
 
   bool Find(const std::string &id) const { return key_words_.count(id) > 0; }
 
-  Token Get(const std::string &id) { return key_words_.at(id); }
+  Token Get(const std::string &id) const { return key_words_.at(id); }
 
  private:
   std::unordered_map<std::string, Token> key_words_;

@@ -24,7 +24,7 @@ class InnerTypeMethod {
   using HandleType = std::function<std::shared_ptr<Variable>(
       std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&&, const PackageUnit&)>;
 
-  std::string GetHandleId(const std::unique_ptr<Type>& builtintype, const std::string& method_name) {
+  std::string GetHandleId(const std::unique_ptr<Type>& builtintype, const std::string& method_name) const {
     std::string handle_id;
     if (IsListType(builtintype)) {
       handle_id = "list" + method_name;
@@ -35,7 +35,7 @@ class InnerTypeMethod {
   }
 
   std::unique_ptr<Type> CheckAndGetReturnType(const std::unique_ptr<Type>& builtintype, const std::string& method_name,
-                                              const std::vector<std::unique_ptr<Type>>& params_type) {
+                                              const std::vector<std::unique_ptr<Type>>& params_type) const {
     std::string handle_id = GetHandleId(builtintype, method_name);
     auto handle = checks_.find(handle_id);
     if (handle == checks_.end()) {
@@ -44,11 +44,12 @@ class InnerTypeMethod {
     return handle->second(builtintype, params_type);
   }
 
-  HandleType& Get(std::shared_ptr<Variable>& obj, const std::string& method_name) {
+  HandleType& Get(std::shared_ptr<Variable>& obj, const std::string& method_name) const {
     assert(!IsStructType(obj->GetType()));
     auto handle_id = GetHandleId(obj->GetType(), method_name);
-    assert(handles_.find(handle_id) != handles_.end());
-    return handles_[handle_id];
+    auto it = handles_.find(handle_id);
+    assert(it != handles_.end());
+    return const_cast<HandleType&>(it->second);
   }
 
  private:
