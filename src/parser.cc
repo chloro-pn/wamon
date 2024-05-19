@@ -185,7 +185,7 @@ void ParseCaptureIdList(const std::vector<WamonToken> &tokens, size_t begin, siz
  * parser解析一个lambda并将其注册为一个全局函数，返回该函数的名字
  * PackageUnit需要传递进parser中，不然无法注册
  */
-std::string ParseLambda(const std::vector<WamonToken> &tokens, size_t &begin) {
+std::string ParseLambda(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t &begin) {
   auto name = LambdaExpr::CreateUniqueLambdaName();
   std::unique_ptr<FunctionDef> lambda_def(new FunctionDef(name));
 
@@ -207,10 +207,10 @@ std::string ParseLambda(const std::vector<WamonToken> &tokens, size_t &begin) {
   lambda_def->SetReturnType(std::move(return_type));
 
   auto end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
-  auto stmt_block = ParseStmtBlock(tokens, begin, end);
+  auto stmt_block = ParseStmtBlock(pu, tokens, begin, end);
   lambda_def->SetBlockStmt(std::move(stmt_block));
 
-  LambdaFunctionSet::Instance().RegisterLambdaFunction(name, std::move(lambda_def));
+  pu.AddLambdaFunction(name, std::move(lambda_def));
   begin = end + 1;
   return name;
 }
@@ -281,7 +281,8 @@ static void PushBoperators(std::stack<Token> &b_operators, std::stack<std::uniqu
 //  - id表达式
 //  - new表达式
 //  - 表达式嵌套（二元运算，括号）
-std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &tokens, size_t begin, size_t end) {
+std::unique_ptr<Expression> ParseExpression(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                            size_t end) {
   assert(begin <= end);
   if (begin == end) {
     return nullptr;
@@ -294,7 +295,7 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
     Token current_token = tokens[i].token;
     if (current_token == Token::LEFT_PARENTHESIS) {
       size_t match_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, i);
-      auto expr = ParseExpression(tokens, i + 1, match_parent);
+      auto expr = ParseExpression(pu, tokens, i + 1, match_parent);
       operands.push(AttachUnaryOperators(std::move(expr), u_operators));
       i = match_parent;
       parse_state = ParseExpressionState::NO_OP;
@@ -324,7 +325,7 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
       // 像普通二元运算符一样处理，根据优先级
       PushBoperators(b_operators, operands, Token::SUBSCRIPT);
       size_t right_bracket = FindMatchedToken<Token::LEFT_BRACKETS, Token::RIGHT_BRACKETS>(tokens, i);
-      auto nested_expr = ParseExpression(tokens, i + 1, right_bracket);
+      auto nested_expr = ParseExpression(pu, tokens, i + 1, right_bracket);
       i = right_bracket;
       operands.push(std::move(nested_expr));
       parse_state = ParseExpressionState::NO_OP;
@@ -335,11 +336,11 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
       //   i             tmp            tmp2         tmp3
       if (current_token == Token::CALL) {
         size_t tmp = FindNextToken<Token::COLON, false, true>(tokens, i + 1);
-        auto caller = ParseExpression(tokens, i + 1, tmp);
+        auto caller = ParseExpression(pu, tokens, i + 1, tmp);
         size_t tmp2 = tmp + 1;
         if (AssertToken(tokens, tmp2, Token::LEFT_PARENTHESIS)) {
           size_t tmp3 = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp2 - 1);
-          auto param_list = ParseExprList(tokens, tmp2 - 1, tmp3);
+          auto param_list = ParseExprList(pu, tokens, tmp2 - 1, tmp3);
           std::unique_ptr<FuncCallExpr> func_call_expr(new FuncCallExpr());
           func_call_expr->SetCaller(std::move(caller));
           func_call_expr->SetParameters(std::move(param_list));
@@ -348,7 +349,7 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
         } else {
           auto [package_name, method_name] = ParseIdentifier(tokens, tmp2);
           size_t tmp3 = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp2);
-          auto param_list = ParseExprList(tokens, tmp2, tmp3);
+          auto param_list = ParseExprList(pu, tokens, tmp2, tmp3);
           std::unique_ptr<MethodCallExpr> method_call_expr(new MethodCallExpr());
           method_call_expr->SetCaller(std::move(caller));
           method_call_expr->SetMethodName(method_name);
@@ -400,7 +401,7 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
       }
       if (current_token == Token::LAMBDA) {
         std::unique_ptr<LambdaExpr> lambda_expr(new LambdaExpr());
-        std::string lambda_func_name = ParseLambda(tokens, i);
+        std::string lambda_func_name = ParseLambda(pu, tokens, i);
         lambda_expr->SetLambdaFuncName(lambda_func_name);
         i -= 1;
         operands.push(AttachUnaryOperators(std::move(lambda_expr), u_operators));
@@ -411,7 +412,7 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
         i += 1;
         auto type = ParseType(tokens, i);
         size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, i);
-        auto expr_list = ParseExprList(tokens, i, right_parent);
+        auto expr_list = ParseExprList(pu, tokens, i, right_parent);
         new_expr->SetNewType(std::move(type));
         new_expr->SetParameters(std::move(expr_list));
         i = right_parent;
@@ -452,26 +453,28 @@ std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &token
   return std::move(operands.top());
 }
 
-std::unique_ptr<Statement> TryToParseBlockStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next);
+std::unique_ptr<Statement> TryToParseBlockStmt(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                               size_t &next);
 
-std::unique_ptr<Statement> TryToParseIfStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
+std::unique_ptr<Statement> TryToParseIfStmt(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                            size_t &next) {
   std::unique_ptr<IfStmt> ret = std::make_unique<IfStmt>();
   if (AssertToken(tokens, begin, Token::IF) == false) {
     return nullptr;
   }
   auto end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
-  auto expr_check = ParseExpression(tokens, begin + 1, end);
+  auto expr_check = ParseExpression(pu, tokens, begin + 1, end);
   ret->SetCheck(std::move(expr_check));
   begin = end + 1;
 
   end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
-  auto stmt_if = ParseStmtBlock(tokens, begin, end);
+  auto stmt_if = ParseStmtBlock(pu, tokens, begin, end);
   ret->SetIfStmt(std::move(stmt_if));
 
   begin = end + 1;
   if (AssertToken(tokens, begin, Token::ELSE)) {
     end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
-    auto stmt_else = ParseStmtBlock(tokens, begin, end);
+    auto stmt_else = ParseStmtBlock(pu, tokens, begin, end);
     ret->SetElseStmt(std::move(stmt_else));
     begin = end + 1;
   }
@@ -480,19 +483,20 @@ std::unique_ptr<Statement> TryToParseIfStmt(const std::vector<WamonToken> &token
   return ret;
 }
 
-std::unique_ptr<Statement> TryToParseForStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
+std::unique_ptr<Statement> TryToParseForStmt(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                             size_t &next) {
   std::unique_ptr<ForStmt> ret = std::make_unique<ForStmt>();
   if (AssertToken(tokens, begin, Token::FOR) == false) {
     return nullptr;
   }
   auto end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
   size_t tnext = FindNextToken<Token::SEMICOLON>(tokens, begin, end);
-  auto init = ParseExpression(tokens, begin + 1, tnext);
+  auto init = ParseExpression(pu, tokens, begin + 1, tnext);
   ret->SetInit(std::move(init));
   begin = tnext + 1;
 
   tnext = FindNextToken<Token::SEMICOLON>(tokens, begin, end);
-  auto check = ParseExpression(tokens, begin, tnext);
+  auto check = ParseExpression(pu, tokens, begin, tnext);
   ret->SetCheck(std::move(check));
   begin = tnext + 1;
 
@@ -500,29 +504,30 @@ std::unique_ptr<Statement> TryToParseForStmt(const std::vector<WamonToken> &toke
   if (tnext != end) {
     throw WamonExecption("parse for stmt error");
   }
-  auto update = ParseExpression(tokens, begin, end);
+  auto update = ParseExpression(pu, tokens, begin, end);
   ret->SetUpdate(std::move(update));
   begin = end + 1;
 
   end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
-  auto block = ParseStmtBlock(tokens, begin, end);
+  auto block = ParseStmtBlock(pu, tokens, begin, end);
   ret->SetBlock(std::move(block));
   next = end + 1;
   return ret;
 }
 
-std::unique_ptr<Statement> TryToParseWhileStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
+std::unique_ptr<Statement> TryToParseWhileStmt(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                               size_t &next) {
   std::unique_ptr<WhileStmt> ret(new WhileStmt());
   if (AssertToken(tokens, begin, Token::WHILE) == false) {
     return nullptr;
   }
   auto end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
-  auto check = ParseExpression(tokens, begin + 1, end);
+  auto check = ParseExpression(pu, tokens, begin + 1, end);
   ret->SetCheck(std::move(check));
   begin = end + 1;
 
   end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
-  auto stmt_block = ParseStmtBlock(tokens, begin, end);
+  auto stmt_block = ParseStmtBlock(pu, tokens, begin, end);
   ret->SetBlock(std::move(stmt_block));
   next = end + 1;
   return ret;
@@ -531,8 +536,9 @@ std::unique_ptr<Statement> TryToParseWhileStmt(const std::vector<WamonToken> &to
 // wrapper for TryToParseVariableDeclaration
 // 全局变量的包前缀会在Merge Package的时候加上
 // 非全局变量在这里加上
-std::unique_ptr<Statement> TryToParseVarDefStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
-  std::unique_ptr<Statement> ret = TryToParseVariableDeclaration(tokens, begin);
+std::unique_ptr<Statement> TryToParseVarDefStmt(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                                size_t &next) {
+  std::unique_ptr<Statement> ret = TryToParseVariableDeclaration(pu, tokens, begin);
   if (ret == nullptr) {
     return ret;
   }
@@ -542,7 +548,8 @@ std::unique_ptr<Statement> TryToParseVarDefStmt(const std::vector<WamonToken> &t
   return ret;
 }
 
-std::unique_ptr<Statement> TryToParseSkipStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
+std::unique_ptr<Statement> TryToParseSkipStmt(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                              size_t &next) {
   std::unique_ptr<Statement> ret(nullptr);
   if (AssertToken(tokens, begin, Token::CONTINUE)) {
     ret.reset(new ContinueStmt());
@@ -556,7 +563,7 @@ std::unique_ptr<Statement> TryToParseSkipStmt(const std::vector<WamonToken> &tok
     ret.reset(new ReturnStmt());
     if (AssertToken(tokens, begin, Token::SEMICOLON) == false) {
       auto end = FindNextToken<Token::SEMICOLON, false, true>(tokens, begin);
-      auto expr = ParseExpression(tokens, begin, end);
+      auto expr = ParseExpression(pu, tokens, begin, end);
       next = end + 1;
       static_cast<ReturnStmt *>(ret.get())->SetReturn(std::move(expr));
     } else {
@@ -566,10 +573,11 @@ std::unique_ptr<Statement> TryToParseSkipStmt(const std::vector<WamonToken> &tok
   return ret;
 }
 
-std::unique_ptr<ExpressionStmt> ParseExprStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
+std::unique_ptr<ExpressionStmt> ParseExprStmt(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                              size_t &next) {
   // parse expr stmt.
   size_t colon = FindNextToken<Token::SEMICOLON, false, true>(tokens, begin);
-  auto expr = ParseExpression(tokens, begin, colon);
+  auto expr = ParseExpression(pu, tokens, begin, colon);
   next = colon + 1;
   std::unique_ptr<ExpressionStmt> expr_stmt(new ExpressionStmt());
   expr_stmt->SetExpr(std::move(expr));
@@ -583,41 +591,43 @@ std::unique_ptr<ExpressionStmt> ParseExprStmt(const std::vector<WamonToken> &tok
 //  - while语句
 //  - 变量定义语句
 //  - 表达式语句
-std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
+std::unique_ptr<Statement> ParseStatement(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                          size_t &next) {
   std::unique_ptr<Statement> ret(nullptr);
-  ret = TryToParseBlockStmt(tokens, begin, next);
+  ret = TryToParseBlockStmt(pu, tokens, begin, next);
   if (ret != nullptr) {
     return ret;
   }
-  ret = TryToParseIfStmt(tokens, begin, next);
+  ret = TryToParseIfStmt(pu, tokens, begin, next);
   if (ret != nullptr) {
     return ret;
   }
-  ret = TryToParseForStmt(tokens, begin, next);
+  ret = TryToParseForStmt(pu, tokens, begin, next);
   if (ret != nullptr) {
     return ret;
   }
-  ret = TryToParseWhileStmt(tokens, begin, next);
+  ret = TryToParseWhileStmt(pu, tokens, begin, next);
   if (ret != nullptr) {
     return ret;
   }
-  ret = TryToParseVarDefStmt(tokens, begin, next);
+  ret = TryToParseVarDefStmt(pu, tokens, begin, next);
   if (ret != nullptr) {
     return ret;
   }
-  ret = TryToParseSkipStmt(tokens, begin, next);
+  ret = TryToParseSkipStmt(pu, tokens, begin, next);
   if (ret != nullptr) {
     return ret;
   }
-  return ParseExprStmt(tokens, begin, next);
+  return ParseExprStmt(pu, tokens, begin, next);
 }
 
-std::unique_ptr<BlockStmt> ParseStmtBlock(const std::vector<WamonToken> &tokens, size_t begin, size_t end) {
+std::unique_ptr<BlockStmt> ParseStmtBlock(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                          size_t end) {
   std::vector<std::unique_ptr<Statement>> ret;
   AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACE, __FILE__, __LINE__);
   while (begin < end) {
     size_t next = 0;
-    auto stmt = ParseStatement(tokens, begin, next);
+    auto stmt = ParseStatement(pu, tokens, begin, next);
     ret.push_back(std::move(stmt));
     begin = next;
   }
@@ -627,14 +637,15 @@ std::unique_ptr<BlockStmt> ParseStmtBlock(const std::vector<WamonToken> &tokens,
   return tmp;
 }
 
-std::unique_ptr<Statement> TryToParseBlockStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next) {
+std::unique_ptr<Statement> TryToParseBlockStmt(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                               size_t &next) {
   std::unique_ptr<BlockStmt> ret = std::make_unique<BlockStmt>();
   size_t tmp = begin;
   if (AssertToken(tokens, tmp, Token::LEFT_BRACE) == false) {
     return nullptr;
   }
   auto end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
-  ret = ParseStmtBlock(tokens, begin, end);
+  ret = ParseStmtBlock(pu, tokens, begin, end);
   next = end + 1;
   return ret;
 }
@@ -667,13 +678,13 @@ std::vector<std::pair<std::string, std::unique_ptr<Type>>> ParseParameterList(co
 
 //   (  expr1, expr2, expr3, ...   )
 // begin                          end
-std::vector<std::unique_ptr<Expression>> ParseExprList(const std::vector<WamonToken> &tokens, size_t begin,
-                                                       size_t end) {
+std::vector<std::unique_ptr<Expression>> ParseExprList(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                       size_t begin, size_t end) {
   std::vector<std::unique_ptr<Expression>> ret;
   size_t current = begin;
   while (current != end) {
     size_t next = FindNextToken<Token::COMMA>(tokens, current, end);
-    auto expr = ParseExpression(tokens, current + 1, next);
+    auto expr = ParseExpression(pu, tokens, current + 1, next);
     if (expr != nullptr) {
       ret.push_back(std::move(expr));
     }
@@ -682,7 +693,8 @@ std::vector<std::unique_ptr<Expression>> ParseExprList(const std::vector<WamonTo
   return ret;
 }
 
-std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(const std::vector<WamonToken> &tokens, size_t &begin) {
+std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                           size_t &begin) {
   std::unique_ptr<FunctionDef> ret(nullptr);
   bool succ = AssertToken(tokens, begin, Token::FUNC);
   if (succ == false) {
@@ -706,7 +718,7 @@ std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(const std::vector<Wam
     ret->SetBlockStmt(nullptr);
   } else {
     end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
-    auto stmt_block = ParseStmtBlock(tokens, begin, end);
+    auto stmt_block = ParseStmtBlock(pu, tokens, begin, end);
     //
     ret->SetBlockStmt(std::move(stmt_block));
     begin = end + 1;
@@ -718,8 +730,8 @@ std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(const std::vector<Wam
 //  ...
 // }
 // call id(a, b);
-std::unique_ptr<OperatorDef> TryToParseOperatorOverride(const std::vector<WamonToken> &tokens, size_t &begin,
-                                                        Token &token) {
+std::unique_ptr<OperatorDef> TryToParseOperatorOverride(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                        size_t &begin, Token &token) {
   std::unique_ptr<OperatorDef> ret;
   bool succ = AssertToken(tokens, begin, Token::OPERATOR);
   if (!succ) {
@@ -758,7 +770,7 @@ std::unique_ptr<OperatorDef> TryToParseOperatorOverride(const std::vector<WamonT
     ret->SetBlockStmt(nullptr);
   } else {
     end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
-    auto stmt_block = ParseStmtBlock(tokens, begin, end);
+    auto stmt_block = ParseStmtBlock(pu, tokens, begin, end);
     //
     ret->SetBlockStmt(std::move(stmt_block));
     begin = end + 1;
@@ -792,8 +804,8 @@ std::unique_ptr<FunctionDef> OperatorOverrideToFunc(std::unique_ptr<OperatorDef>
   return ret;
 }
 
-std::unique_ptr<methods_def> TryToParseMethodDeclaration(const std::vector<WamonToken> &tokens, size_t &begin,
-                                                         std::string &type_name) {
+std::unique_ptr<methods_def> TryToParseMethodDeclaration(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                         size_t &begin, std::string &type_name) {
   std::unique_ptr<methods_def> ret;
   bool succ = AssertToken(tokens, begin, Token::METHOD);
   if (succ == false) {
@@ -807,7 +819,7 @@ std::unique_ptr<methods_def> TryToParseMethodDeclaration(const std::vector<Wamon
   begin += 1;
   while (begin < end) {
     // 在 method块中依次解析方法
-    auto method = TryToParseFunctionDeclaration(tokens, begin);
+    auto method = TryToParseFunctionDeclaration(pu, tokens, begin);
     if (method != nullptr) {
       std::unique_ptr<MethodDef> md;
       md.reset(new MethodDef(type_name, std::move(method)));
@@ -815,7 +827,7 @@ std::unique_ptr<methods_def> TryToParseMethodDeclaration(const std::vector<Wamon
     } else {
       // 如果解析方法失败尝试解析运算符重载
       Token op_token;
-      auto call_op = TryToParseOperatorOverride(tokens, begin, op_token);
+      auto call_op = TryToParseOperatorOverride(pu, tokens, begin, op_token);
       if (call_op == nullptr) {
         throw WamonExecption("parse method error, invalid operator override and method {}", method->GetFunctionName());
       }
@@ -857,7 +869,8 @@ std::unique_ptr<StructDef> TryToParseStructDeclaration(const std::vector<WamonTo
 
 // let var_name : type = (expr_list); or
 // let var_name : type = expr;
-std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens,
+std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(PackageUnit &pu,
+                                                                  const std::vector<WamonToken> &tokens,
                                                                   size_t &begin) {
   std::unique_ptr<VariableDefineStmt> ret(nullptr);
   bool succ = AssertToken(tokens, begin, Token::LET);
@@ -874,7 +887,7 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vec
   // parse expr.
   if (!AssertToken(tokens, begin, Token::LEFT_PARENTHESIS)) {
     size_t end = FindNextToken<Token::SEMICOLON>(tokens, begin);
-    auto expr = ParseExpression(tokens, begin, end);
+    auto expr = ParseExpression(pu, tokens, begin, end);
     begin = end + 1;
     ret->SetConstructors(std::move(expr));
     return ret;
@@ -882,7 +895,7 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vec
   // parse expr list.
   begin -= 1;
   size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
-  auto expr_list = ParseExprList(tokens, begin, end);
+  auto expr_list = ParseExprList(pu, tokens, begin, end);
   begin = end + 1;
   AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
   ret->SetConstructors(std::move(expr_list));
@@ -935,7 +948,7 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
       break;
     }
     size_t old_index = current_index;
-    auto func_def = TryToParseFunctionDeclaration(tokens, current_index);
+    auto func_def = TryToParseFunctionDeclaration(package_unit, tokens, current_index);
     if (func_def != nullptr) {
       package_unit.AddFuncDef(std::move(func_def));
       continue;
@@ -945,20 +958,20 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
       package_unit.AddStructDef(std::move(struct_def));
       continue;
     }
-    auto var_declaration = TryToParseVariableDeclaration(tokens, current_index);
+    auto var_declaration = TryToParseVariableDeclaration(package_unit, tokens, current_index);
     if (var_declaration != nullptr) {
       package_unit.AddVarDef(std::move(var_declaration));
       continue;
     }
     std::string type_name;
-    auto methods_declaration = TryToParseMethodDeclaration(tokens, current_index, type_name);
+    auto methods_declaration = TryToParseMethodDeclaration(package_unit, tokens, current_index, type_name);
     if (methods_declaration != nullptr) {
       package_unit.AddMethod(type_name, std::move(methods_declaration));
       continue;
     }
     // 运算符重载函数会被编码为一个特殊的函数名字，该名字由运算符和参数类型唯一确定
     Token op_token;
-    auto operator_override = TryToParseOperatorOverride(tokens, current_index, op_token);
+    auto operator_override = TryToParseOperatorOverride(package_unit, tokens, current_index, op_token);
     if (operator_override != nullptr) {
       package_unit.AddFuncDef(OperatorOverrideToFunc(std::move(operator_override)));
       continue;
@@ -967,9 +980,6 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
       throw WamonExecption("parse error, invalid token {}", GetTokenStr(token.token));
     }
   }
-
-  // 这一步需要放到合并package之后再进行，lambda不需要添加前缀。
-  // package_unit.AddAllLambdaFunction(LambdaFunctionSet::Instance().GetAllLambdas());
 
   current_parsing_package.clear();
   return package_unit;

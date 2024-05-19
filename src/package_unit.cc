@@ -16,8 +16,9 @@ PackageUnit PackageUnit::_MergePackageUnits(std::vector<PackageUnit>&& packages)
 
     for (auto func_define = it->funcs_.begin(); func_define != it->funcs_.end(); ++func_define) {
       auto func_name = func_define->first;
-      if (!OperatorDef::IsOperatorOverrideName(func_name)) {
+      if (!OperatorDef::IsOperatorOverrideName(func_name) && !LambdaExpr::IsLambdaName(func_name)) {
         // 运算符重载不能添加前缀，因为相同类型的重载即便在不同包，也不应该重复定义。
+        // lambda函数不添加前缀
         func_define->second->SetFunctionName(package_name + "$" + func_name);
       }
       result.AddFuncDef(std::move(func_define->second));
@@ -29,8 +30,6 @@ PackageUnit PackageUnit::_MergePackageUnits(std::vector<PackageUnit>&& packages)
       result.AddStructDef(std::move(struct_define->second));
     }
   }
-  // 所有包的lambda都被解析在一起，因此直接全部添加即可
-  result.AddAllLambdaFunction(LambdaFunctionSet::Instance().GetAllLambdas());
   return result;
 }
 

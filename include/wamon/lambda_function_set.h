@@ -10,10 +10,7 @@ namespace wamon {
 
 class LambdaFunctionSet {
  public:
-  static LambdaFunctionSet& Instance() {
-    static LambdaFunctionSet obj;
-    return obj;
-  }
+  LambdaFunctionSet() = default;
 
   void RegisterLambdaFunction(const std::string& name, std::unique_ptr<FunctionDef>&& lambda) {
     if (funcs_.find(name) != funcs_.end()) {
@@ -25,8 +22,6 @@ class LambdaFunctionSet {
   std::unordered_map<std::string, std::unique_ptr<FunctionDef>> GetAllLambdas() { return std::move(funcs_); }
 
  private:
-  LambdaFunctionSet() = default;
-
   std::unordered_map<std::string, std::unique_ptr<FunctionDef>> funcs_;
 };
 

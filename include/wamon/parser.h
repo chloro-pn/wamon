@@ -100,28 +100,37 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
 void ParseTypeList(const std::vector<WamonToken> &tokens, size_t begin, size_t end,
                    std::vector<std::unique_ptr<Type>> &param_list, std::unique_ptr<Type> &return_type);
 
-std::unique_ptr<Statement> ParseStatement(const std::vector<WamonToken> &tokens, size_t begin, size_t &next);
+std::unique_ptr<Statement> ParseStatement(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                          size_t &next);
 
 std::vector<std::pair<std::string, std::unique_ptr<Type>>> ParseParameterList(const std::vector<WamonToken> &tokens,
                                                                               size_t begin, size_t end);
 
-std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(const std::vector<WamonToken> &tokens, size_t &begin);
+std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                           size_t &begin);
 
-std::unique_ptr<OperatorDef> TryToParseOperatorOverride(const std::vector<WamonToken> &tokens, size_t &begin, Token &);
+std::unique_ptr<OperatorDef> TryToParseOperatorOverride(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                        size_t &begin, Token &);
 
 std::unique_ptr<StructDef> TryToParseStructDeclaration(const std::vector<WamonToken> &tokens, size_t &begin);
 
-std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(const std::vector<WamonToken> &tokens, size_t &begin);
+std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(PackageUnit &pu,
+                                                                  const std::vector<WamonToken> &tokens, size_t &begin);
 
-std::unique_ptr<BlockStmt> ParseStmtBlock(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
+std::unique_ptr<BlockStmt> ParseStmtBlock(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                          size_t end);
 
-std::vector<std::unique_ptr<Expression>> ParseExprList(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
+std::vector<std::unique_ptr<Expression>> ParseExprList(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                       size_t begin, size_t end);
 
-std::unique_ptr<Expression> ParseExpression(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
+std::unique_ptr<Expression> ParseExpression(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                            size_t end);
 
-std::unique_ptr<Statement> TryToParseSkipStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next);
+std::unique_ptr<Statement> TryToParseSkipStmt(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                              size_t &next);
 
-std::unique_ptr<ExpressionStmt> ParseExprStmt(const std::vector<WamonToken> &tokens, size_t begin, size_t &next);
+std::unique_ptr<ExpressionStmt> ParseExprStmt(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                              size_t &next);
 
 std::string ParsePackageName(const std::vector<WamonToken> &tokens, size_t &begin);
 

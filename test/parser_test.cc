@@ -83,7 +83,8 @@ TEST(parser, function_declaration) {
   std::string str = "func myfunc(int a, double b, string c) -> void {}";
   auto tokens = scan.Scan(str);
   size_t begin = 0;
-  wamon::TryToParseFunctionDeclaration(tokens, begin);
+  wamon::PackageUnit pu;
+  wamon::TryToParseFunctionDeclaration(pu, tokens, begin);
   EXPECT_EQ(tokens[begin].token, wamon::Token::TEOF);
 }
 
@@ -121,9 +122,10 @@ TEST(parser, operator_override) {
 
 TEST(parser, operator_priority) {
   wamon::Scanner scan;
+  wamon::PackageUnit pu;
   std::string str = "a.b[2]";
   auto tokens = scan.Scan(str);
-  auto expr = wamon::ParseExpression(tokens, 0, tokens.size() - 2);
+  auto expr = wamon::ParseExpression(pu, tokens, 0, tokens.size() - 2);
   auto be = dynamic_cast<wamon::BinaryExpr*>(expr.get());
   EXPECT_NE(be, nullptr);
   EXPECT_EQ(be->op_, wamon::Token::SUBSCRIPT);
@@ -133,7 +135,7 @@ TEST(parser, operator_priority) {
 
   str = "call mf:(a, b)[4]";
   tokens = scan.Scan(str);
-  EXPECT_NO_THROW(wamon::ParseExpression(tokens, 0, tokens.size() - 2));
+  EXPECT_NO_THROW(wamon::ParseExpression(pu, tokens, 0, tokens.size() - 2));
 }
 
 TEST(parser, struct_trait) {
@@ -166,17 +168,18 @@ TEST(parser, struct_trait) {
 
 TEST(parser, parse_stmt) {
   wamon::Scanner scan;
+  wamon::PackageUnit pu;
   std::string str = "if (a.b) { call myfunc:(b, c, d[3]); break; } else { \"string_iter\"; }";
   auto tokens = scan.Scan(str);
   size_t next = 0;
-  auto stmt = wamon::ParseStatement(tokens, 0, next);
+  auto stmt = wamon::ParseStatement(pu, tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
   EXPECT_EQ(stmt->GetStmtName(), "if_stmt");
 
   str = "{}";
   tokens = scan.Scan(str);
   next = wamon::FindMatchedToken<wamon::Token::LEFT_BRACE, wamon::Token::RIGHT_BRACE>(tokens, 0);
-  stmt = wamon::ParseStmtBlock(tokens, 0, next);
+  stmt = wamon::ParseStmtBlock(pu, tokens, 0, next);
   next += 1;
   EXPECT_EQ(next, tokens.size() - 1);
   EXPECT_EQ(stmt->GetStmtName(), "block_stmt");
@@ -184,55 +187,56 @@ TEST(parser, parse_stmt) {
   str = "while(true) { call myfunc:(a, b, c); }";
   tokens = scan.Scan(str);
   next = 0;
-  stmt = wamon::ParseStatement(tokens, 0, next);
+  stmt = wamon::ParseStatement(pu, tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
   EXPECT_EQ(stmt->GetStmtName(), "while_stmt");
 
   str = "let var : string = (\"hello world\");";
   tokens = scan.Scan(str);
   next = 0;
-  stmt = wamon::ParseStatement(tokens, 0, next);
+  stmt = wamon::ParseStatement(pu, tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
   EXPECT_EQ(stmt->GetStmtName(), "var_def_stmt");
 
   str = "let var : list(ptr(string)) = (\"hello world\");";
   tokens = scan.Scan(str);
   next = 0;
-  stmt = wamon::ParseStatement(tokens, 0, next);
+  stmt = wamon::ParseStatement(pu, tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
   EXPECT_EQ(stmt->GetStmtName(), "var_def_stmt");
 
   str = "continue;";
   tokens = scan.Scan(str);
   next = 0;
-  stmt = wamon::TryToParseSkipStmt(tokens, 0, next);
+  stmt = wamon::TryToParseSkipStmt(pu, tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
   EXPECT_GE(stmt->GetStmtName(), "continue_stmt");
 
   str = "return call my_func:();";
   tokens = scan.Scan(str);
   next = 0;
-  stmt = wamon::TryToParseSkipStmt(tokens, 0, next);
+  stmt = wamon::TryToParseSkipStmt(pu, tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
   EXPECT_EQ(stmt->GetStmtName(), "return_stmt");
 
   str = "marr[call get_arr_index:()];";
   tokens = scan.Scan(str);
   next = 0;
-  stmt = wamon::ParseExprStmt(tokens, 0, next);
+  stmt = wamon::ParseExprStmt(pu, tokens, 0, next);
   EXPECT_EQ(next, tokens.size() - 1);
   EXPECT_EQ(stmt->GetStmtName(), "expr_stmt");
 }
 
 TEST(parse, parse_expression) {
   wamon::Scanner scan;
+  wamon::PackageUnit pu;
   std::string str = "var_name.data_member";
   auto tokens = scan.Scan(str);
-  auto expr = wamon::ParseExpression(tokens, 0, tokens.size() - 1);
+  auto expr = wamon::ParseExpression(pu, tokens, 0, tokens.size() - 1);
   EXPECT_NE(expr, nullptr);
   str = "range | view";
   tokens = scan.Scan(str);
-  expr = wamon::ParseExpression(tokens, 0, tokens.size() - 1);
+  expr = wamon::ParseExpression(pu, tokens, 0, tokens.size() - 1);
   EXPECT_NE(expr, nullptr);
   EXPECT_NE(dynamic_cast<wamon::BinaryExpr*>(expr.get()), nullptr);
   auto ptr = dynamic_cast<wamon::BinaryExpr*>(expr.get());
@@ -240,7 +244,7 @@ TEST(parse, parse_expression) {
 
   str = "new int(2)";
   tokens = scan.Scan(str);
-  expr = wamon::ParseExpression(tokens, 0, tokens.size() - 1);
+  expr = wamon::ParseExpression(pu, tokens, 0, tokens.size() - 1);
   EXPECT_NE(expr, nullptr);
   auto ptr2 = dynamic_cast<wamon::NewExpr*>(expr.get());
   EXPECT_EQ(ptr2->GetNewType()->GetTypeInfo(), "int");
@@ -249,9 +253,10 @@ TEST(parse, parse_expression) {
 
 TEST(parse, unary_operator) {
   wamon::Scanner scan;
+  wamon::PackageUnit pu;
   std::string str = "a + -&b";
   auto tokens = scan.Scan(str);
-  auto expr = wamon::ParseExpression(tokens, 0, tokens.size() - 1);
+  auto expr = wamon::ParseExpression(pu, tokens, 0, tokens.size() - 1);
   EXPECT_NE(expr, nullptr);
   auto tmp = dynamic_cast<wamon::BinaryExpr*>(expr.get())->right_.get();
   auto tmp2 = dynamic_cast<wamon::UnaryExpr*>(tmp);

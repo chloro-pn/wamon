@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -255,6 +256,11 @@ class LambdaExpr : public Expression {
     auto ret = "__lambda_" + std::to_string(lambda_count);
     lambda_count += 1;
     return ret;
+  }
+
+  static bool IsLambdaName(const std::string& name) {
+    constexpr int len = strlen("__lambda_");
+    return name.size() >= len && name.substr(0, len) == "__lambda_";
   }
 
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
