@@ -19,9 +19,7 @@ class OperatorDef {
  public:
   explicit OperatorDef(Token op) : op_(op) {}
 
-  void AddParamList(std::unique_ptr<Type>&& type, const std::string& var) {
-    param_list_.push_back({std::move(type), var});
-  }
+  void AddParamList(ParameterListItem&& item) { param_list_.push_back(std::move(item)); }
 
   void SetReturnType(std::unique_ptr<Type>&& type) { return_type_ = std::move(type); }
 
@@ -46,7 +44,7 @@ class OperatorDef {
     std::string result;
     result.reserve(16);
     for (auto& each : param_list_) {
-      result += each.first->GetTypeInfo();
+      result += each.type->GetTypeInfo();
       result += "-";
     }
     return result;
@@ -88,7 +86,7 @@ class OperatorDef {
  private:
   // 注意，因为允许()重载，而()并不作为二元运算符，因此这里使用(的token代替，这并不会引起歧义
   Token op_;
-  std::vector<std::pair<std::unique_ptr<Type>, std::string>> param_list_;
+  std::vector<ParameterListItem> param_list_;
   std::unique_ptr<Type> return_type_;
   std::unique_ptr<BlockStmt> block_stmt_;
 };

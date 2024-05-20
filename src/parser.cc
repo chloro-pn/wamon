@@ -199,7 +199,7 @@ std::string ParseLambda(PackageUnit &pu, const std::vector<WamonToken> &tokens, 
   size_t param_end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
   auto param_list = ParseParameterList(tokens, begin, param_end);
   for (auto &&each : param_list) {
-    lambda_def->AddParamList(std::move(each.second), each.first);
+    lambda_def->AddParamList(std::move(each));
   }
   begin = param_end + 1;
   AssertTokenOrThrow(tokens, begin, Token::ARROW, __FILE__, __LINE__);
@@ -652,18 +652,21 @@ std::unique_ptr<Statement> TryToParseBlockStmt(PackageUnit &pu, const std::vecto
 
 //   (  type id, type id, ... )
 // begin                     end
-std::vector<std::pair<std::string, std::unique_ptr<Type>>> ParseParameterList(const std::vector<WamonToken> &tokens,
-                                                                              size_t begin, size_t end) {
-  std::vector<std::pair<std::string, std::unique_ptr<Type>>> ret;
+std::vector<ParameterListItem> ParseParameterList(const std::vector<WamonToken> &tokens, size_t begin, size_t end) {
+  std::vector<ParameterListItem> ret;
   AssertTokenOrThrow(tokens, begin, Token::LEFT_PARENTHESIS, __FILE__, __LINE__);
   if (AssertToken(tokens, begin, Token::RIGHT_PARENTHESIS)) {
     return ret;
   }
   while (true) {
     auto type = ParseType(tokens, begin);
+    bool is_ref = false;
+    if (AssertToken(tokens, begin, Token::REF)) {
+      is_ref = true;
+    }
     auto [package_name, id] = ParseIdentifier(tokens, begin);
     id = package_name + "$" + id;
-    ret.push_back(std::pair<std::string, std::unique_ptr<Type>>(id, std::move(type)));
+    ret.push_back({id, std::move(type), is_ref});
     bool succ = AssertToken(tokens, begin, Token::COMMA);
     if (succ == false) {
       AssertTokenOrThrow(tokens, begin, Token::RIGHT_PARENTHESIS, __FILE__, __LINE__);
@@ -705,9 +708,9 @@ std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(PackageUnit &pu, cons
   ret.reset(new FunctionDef(func_name));
   size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
   auto param_list = ParseParameterList(tokens, begin, end);
-  for (auto &each : param_list) {
+  for (auto &&each : param_list) {
     //
-    ret->AddParamList(std::move(each.second), each.first);
+    ret->AddParamList(std::move(each));
   }
   begin = end + 1;
   AssertTokenOrThrow(tokens, begin, Token::ARROW, __FILE__, __LINE__);
@@ -756,9 +759,9 @@ std::unique_ptr<OperatorDef> TryToParseOperatorOverride(PackageUnit &pu, const s
   }
   size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
   auto param_list = ParseParameterList(tokens, begin, end);
-  for (auto &each : param_list) {
+  for (auto &&each : param_list) {
     //
-    ret->AddParamList(std::move(each.second), each.first);
+    ret->AddParamList(std::move(each));
   }
   begin = end + 1;
   AssertTokenOrThrow(tokens, begin, Token::ARROW, __FILE__, __LINE__);

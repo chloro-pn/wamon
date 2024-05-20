@@ -24,6 +24,7 @@ static void register_buildin_keywords(std::unordered_map<std::string, Token> &kw
   kws["struct"] = Token::STRUCT;
   kws["trait"] = Token::TRAIT;
   kws["let"] = Token::LET;
+  kws["ref"] = Token::REF;
   kws["new"] = Token::NEW;
   kws["method"] = Token::METHOD;
   kws["self"] = Token::SELF;

@@ -48,8 +48,8 @@ void TypeChecker::CheckTypes() {
   }
   for (auto& each : pu.GetFunctions()) {
     for (auto& param : each.second->param_list_) {
-      CheckType(param.first, fmt::format("check function {} param {}'s type {}", each.first, param.second,
-                                         param.first->GetTypeInfo()));
+      CheckType(param.type,
+                fmt::format("check function {} param {}'s type {}", each.first, param.name, param.type->GetTypeInfo()));
     }
     CheckType(each.second->return_type_,
               fmt::format("check function {} return type {}", each.first, each.second->return_type_->GetTypeInfo()),
@@ -62,8 +62,8 @@ void TypeChecker::CheckTypes() {
     }
     for (auto& member : each.second->GetMethods()) {
       for (auto& param : member->GetParamList()) {
-        CheckType(param.first, fmt::format("check struct {} method {} param {}'s type {}", each.first,
-                                           member->GetMethodName(), param.second, param.first->GetTypeInfo()));
+        CheckType(param.type, fmt::format("check struct {} method {} param {}'s type {}", each.first,
+                                          member->GetMethodName(), param.name, param.type->GetTypeInfo()));
       }
       CheckType(member->GetReturnType(),
                 fmt::format("check struct {} method {} return type {}", each.first, member->GetMethodName(),
@@ -480,9 +480,9 @@ std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const M
   }
   for (size_t arg_i = 0; arg_i < method->param_list_.size(); ++arg_i) {
     auto arg_i_type = tc.GetExpressionType(call_expr->parameters_[arg_i].get());
-    if (!IsSameType(method->param_list_[arg_i].first, arg_i_type)) {
+    if (!IsSameType(method->param_list_[arg_i].type, arg_i_type)) {
       throw WamonExecption("method_call {} error, arg_{}'s type dismatch {} != {}", call_expr->method_name_, arg_i,
-                           method->param_list_[arg_i].first->GetTypeInfo(), arg_i_type->GetTypeInfo());
+                           method->param_list_[arg_i].type->GetTypeInfo(), arg_i_type->GetTypeInfo());
     }
   }
   // 类型检测成功
@@ -497,9 +497,9 @@ std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const Fun
   }
   for (size_t arg_i = 0; arg_i < function->param_list_.size(); ++arg_i) {
     auto arg_i_type = tc.GetExpressionType(call_expr->parameters_[arg_i].get());
-    if (!IsSameType(function->param_list_[arg_i].first, arg_i_type)) {
+    if (!IsSameType(function->param_list_[arg_i].type, arg_i_type)) {
       throw WamonExecption("func_call {} error, arg_{}'s type dismatch {} != {}", function->name_, arg_i,
-                           function->param_list_[arg_i].first->GetTypeInfo(), arg_i_type->GetTypeInfo());
+                           function->param_list_[arg_i].type->GetTypeInfo(), arg_i_type->GetTypeInfo());
     }
   }
   // 类型检测成功

@@ -8,6 +8,7 @@
 #include "wamon/exception.h"
 #include "wamon/function_def.h"
 #include "wamon/package_unit.h"
+#include "wamon/parameter_list_item.h"
 #include "wamon/scanner.h"
 #include "wamon/struct_def.h"
 
@@ -103,8 +104,7 @@ void ParseTypeList(const std::vector<WamonToken> &tokens, size_t begin, size_t e
 std::unique_ptr<Statement> ParseStatement(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
                                           size_t &next);
 
-std::vector<std::pair<std::string, std::unique_ptr<Type>>> ParseParameterList(const std::vector<WamonToken> &tokens,
-                                                                              size_t begin, size_t end);
+std::vector<ParameterListItem> ParseParameterList(const std::vector<WamonToken> &tokens, size_t begin, size_t end);
 
 std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(PackageUnit &pu, const std::vector<WamonToken> &tokens,
                                                            size_t &begin);

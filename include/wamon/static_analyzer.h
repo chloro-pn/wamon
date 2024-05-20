@@ -61,15 +61,14 @@ class StaticAnalyzer {
     throw WamonExecption("GetTypeByName error, can't find name {}, maybe builtin function or invalid", name);
   }
 
-  void RegisterFuncParamsToContext(const std::vector<std::pair<std::unique_ptr<Type>, std::string>>& params,
-                                   Context* func_context) {
+  void RegisterFuncParamsToContext(const std::vector<ParameterListItem>& params, Context* func_context) {
     std::set<std::string> param_names;
     for (auto& each : params) {
-      if (param_names.find(each.second) != param_names.end()) {
+      if (param_names.find(each.name) != param_names.end()) {
         throw WamonExecption("func or method {} has duplicate param name {}",
-                             func_context->AssertFuncContextAndGetFuncName(), each.second);
+                             func_context->AssertFuncContextAndGetFuncName(), each.name);
       }
-      func_context->RegisterVariable(each.second, each.first->Clone());
+      func_context->RegisterVariable(each.name, each.type->Clone());
     }
   }
 

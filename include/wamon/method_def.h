@@ -7,6 +7,7 @@
 
 #include "wamon/ast.h"
 #include "wamon/function_def.h"
+#include "wamon/parameter_list_item.h"
 #include "wamon/type.h"
 
 namespace wamon {
@@ -40,20 +41,18 @@ class MethodDef {
   std::unique_ptr<Type> GetType() const {
     std::vector<std::unique_ptr<Type>> param_types;
     for (auto& each : param_list_) {
-      param_types.push_back(each.first->Clone());
+      param_types.push_back(each.type->Clone());
     }
     return std::make_unique<FuncType>(std::move(param_types), return_type_->Clone());
   }
 
   const std::unique_ptr<Type>& GetReturnType() const { return return_type_; }
 
-  const std::vector<std::pair<std::unique_ptr<Type>, std::string>>& GetParamList() const { return param_list_; }
+  const std::vector<ParameterListItem>& GetParamList() const { return param_list_; }
 
   const std::unique_ptr<BlockStmt>& GetBlockStmt() const { return block_stmt_; }
 
-  void AddParamList(std::unique_ptr<Type>&& type, const std::string& var) {
-    param_list_.push_back({std::move(type), var});
-  }
+  void AddParamList(ParameterListItem&& item) { param_list_.push_back(std::move(item)); }
 
   void SetReturnType(std::unique_ptr<Type>&& type) { return_type_ = std::move(type); }
 
@@ -64,7 +63,7 @@ class MethodDef {
  private:
   std::string type_name_;
   std::string method_name_;
-  std::vector<std::pair<std::unique_ptr<Type>, std::string>> param_list_;
+  std::vector<ParameterListItem> param_list_;
   std::unique_ptr<Type> return_type_;
   std::unique_ptr<BlockStmt> block_stmt_;
 };

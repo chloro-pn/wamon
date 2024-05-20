@@ -65,12 +65,12 @@ TEST(parser, parse_parameter_list) {
   std::string str = "(int a, double b, string c)";
   auto tokens = scan.Scan(str);
   auto param_list = wamon::ParseParameterList(tokens, 0, tokens.size() - 2);
-  EXPECT_EQ(param_list[0].first, "$a");
-  EXPECT_EQ(param_list[0].second->GetTypeInfo(), "int");
-  EXPECT_EQ(param_list[1].first, "$b");
-  EXPECT_EQ(param_list[1].second->GetTypeInfo(), "double");
-  EXPECT_EQ(param_list[2].first, "$c");
-  EXPECT_EQ(param_list[2].second->GetTypeInfo(), "string");
+  EXPECT_EQ(param_list[0].name, "$a");
+  EXPECT_EQ(param_list[0].type->GetTypeInfo(), "int");
+  EXPECT_EQ(param_list[1].name, "$b");
+  EXPECT_EQ(param_list[1].type->GetTypeInfo(), "double");
+  EXPECT_EQ(param_list[2].name, "$c");
+  EXPECT_EQ(param_list[2].type->GetTypeInfo(), "string");
   EXPECT_EQ(param_list.size(), 3);
   str = "()";
   tokens = scan.Scan(str);

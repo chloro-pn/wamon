@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "wamon/parameter_list_item.h"
 #include "wamon/type.h"
 
 namespace wamon {
@@ -36,16 +37,14 @@ class FunctionDef {
   std::unique_ptr<Type> GetType() const {
     std::vector<std::unique_ptr<Type>> param_types;
     for (auto& each : param_list_) {
-      param_types.push_back(each.first->Clone());
+      param_types.push_back(each.type->Clone());
     }
     return std::make_unique<FuncType>(std::move(param_types), return_type_->Clone());
   }
 
-  void AddParamList(std::unique_ptr<Type>&& type, const std::string& var) {
-    param_list_.push_back({std::move(type), var});
-  }
+  void AddParamList(ParameterListItem&& item) { param_list_.push_back(std::move(item)); }
 
-  const std::vector<std::pair<std::unique_ptr<Type>, std::string>>& GetParamList() const { return param_list_; }
+  const std::vector<ParameterListItem>& GetParamList() const { return param_list_; }
 
   void SetReturnType(std::unique_ptr<Type>&& type) { return_type_ = std::move(type); }
 
@@ -61,7 +60,7 @@ class FunctionDef {
 
  private:
   std::string name_;
-  std::vector<std::pair<std::unique_ptr<Type>, std::string>> param_list_;
+  std::vector<ParameterListItem> param_list_;
   std::unique_ptr<Type> return_type_;
   std::unique_ptr<BlockStmt> block_stmt_;
   // 目前只有lambda用到
