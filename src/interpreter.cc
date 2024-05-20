@@ -28,7 +28,15 @@ std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_
   for (auto param : params) {
     if (param_name != function_def->GetParamList().end()) {
       assert(capture_name == function_def->GetCaptureIds().begin());
-      GetCurrentContext()->RegisterVariable(param->IsRValue() ? param : param->Clone(), param_name->name);
+      if (param_name->is_ref == true) {
+        if (param->IsRValue()) {
+          // todo:这种情况应该在语义分析阶段被排除
+          throw WamonExecption("Interpreter::CallFunction error, ref parameter can not be rvalue");
+        }
+        GetCurrentContext()->RegisterVariable(param, param_name->name);
+      } else {
+        GetCurrentContext()->RegisterVariable(param->IsRValue() ? param : param->Clone(), param_name->name);
+      }
       ++param_name;
     } else {
       // 函数调用传入的参数总是在前面，捕获的变量跟在后面，因此当注册捕获变量时，参数应该已经注册完毕
@@ -81,7 +89,15 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
   auto param_name = method_def->GetParamList().begin();
   for (auto param : params) {
     assert(param_name != method_def->GetParamList().end());
-    GetCurrentContext()->RegisterVariable(param->Clone(), param_name->name);
+    if (param_name->is_ref == true) {
+      if (param->IsRValue() == true) {
+        // todo:这种情况应该在语义分析阶段被排除
+        throw WamonExecption("Interpreter::CallMethod error, ref parameter can not be rvalue");
+      }
+      GetCurrentContext()->RegisterVariable(param, param_name->name);
+    } else {
+      GetCurrentContext()->RegisterVariable(param->IsRValue() ? param : param->Clone(), param_name->name);
+    }
     ++param_name;
   }
   GetCurrentContext()->RegisterVariable(obj, "__self__");

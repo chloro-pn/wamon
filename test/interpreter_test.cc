@@ -813,3 +813,39 @@ TEST(interpreter, new_expr) {
   EXPECT_EQ(ret->GetTypeInfo(), "main$test");
   EXPECT_EQ(wamon::AsStringVariable(wamon::AsStructVariable(ret)->GetDataMemberByName("name"))->GetValue(), "chloro");
 }
+
+TEST(interpreter, ref) {
+  wamon::Scanner scan;
+  std::string script = R"(
+    package main;
+
+    func test(int ref a, int b) -> void {
+      a = a + 1;
+      b = b + 1;
+      return;
+    }
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(script);
+  pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
+
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true) << reason;
+
+  wamon::Interpreter interpreter(pu);
+  std::vector<std::shared_ptr<wamon::Variable>> params;
+  params.push_back(
+      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::LValue, "", pu));
+  params.push_back(
+      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::LValue, "", pu));
+  wamon::AsIntVariable(params[0])->SetValue(1);
+  wamon::AsIntVariable(params[1])->SetValue(1);
+  auto hold_0 = params[0];
+  auto hold_1 = params[1];
+  interpreter.CallFunctionByName("main$test", std::move(params));
+  EXPECT_EQ(wamon::AsIntVariable(hold_0)->GetValue(), 2);
+  EXPECT_EQ(wamon::AsIntVariable(hold_1)->GetValue(), 1);
+}
