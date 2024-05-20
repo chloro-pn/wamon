@@ -89,9 +89,13 @@ class PackageUnit {
   const MethodDef* FindTypeMethod(const std::string& type_name, const std::string& method_name) const {
     auto it = structs_.find(type_name);
     if (it == structs_.end()) {
-      throw WamonExecption("find type method error, type {} not exist", type_name, method_name);
+      throw WamonExecption("FindTypeMethod error, type {} not exist", type_name, method_name);
     }
-    return it->second->GetMethod(method_name);
+    auto ret = it->second->GetMethod(method_name);
+    if (ret == nullptr) {
+      throw WamonExecption("FindTypeMethod error, type {}'s method {} not exist", type_name, method_name);
+    }
+    return ret;
   }
 
   std::unique_ptr<Type> GetDataMemberType(const std::string& type_name, const std::string& field_name) const {

@@ -824,6 +824,24 @@ TEST(interpreter, ref) {
       b = b + 1;
       return;
     }
+
+    struct st {
+      int a;
+    }
+
+    method st {
+      func update(int ref b) -> void {
+        b = b + self.a;
+        return;
+      }
+    }
+
+    func test2() -> int {
+      let v : int = 2;
+      let tmp : st = (1);
+      call tmp:update(v);
+      return v;
+    }
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(script);
@@ -848,4 +866,6 @@ TEST(interpreter, ref) {
   interpreter.CallFunctionByName("main$test", std::move(params));
   EXPECT_EQ(wamon::AsIntVariable(hold_0)->GetValue(), 2);
   EXPECT_EQ(wamon::AsIntVariable(hold_1)->GetValue(), 1);
+  auto v = interpreter.CallFunctionByName("main$test2", {});
+  EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 3);
 }

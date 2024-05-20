@@ -474,6 +474,7 @@ std::unique_ptr<Type> CheckAndGetInnerMethodReturnType(const TypeChecker& tc, co
 
 std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const MethodDef* method,
                                                   const MethodCallExpr* call_expr) {
+  assert(method != nullptr);
   if (method->param_list_.size() != call_expr->parameters_.size()) {
     throw WamonExecption("method_call {} error, The number of parameters does not match : {} != {}",
                          call_expr->method_name_, method->param_list_.size(), call_expr->parameters_.size());
