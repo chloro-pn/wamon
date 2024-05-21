@@ -580,7 +580,7 @@ std::unique_ptr<Type> CheckAndGetTypeForNewExpr(TypeChecker& tc, NewExpr* new_ex
     auto tmp = tc.GetExpressionType(each.get());
     constructor_types.push_back(std::move(tmp));
   }
-  detail::CheckCanConstructBy(tc.GetStaticAnalyzer().GetPackageUnit(), type, constructor_types);
+  detail::CheckCanConstructBy(tc.GetStaticAnalyzer().GetPackageUnit(), type, constructor_types, false);
   return type->Clone();
 }
 
@@ -732,7 +732,7 @@ void TypeChecker::CheckStatement(Statement* stmt) {
     for (auto& each : tmp->GetConstructors()) {
       params_type.push_back(GetExpressionType(each.get()));
     }
-    detail::CheckCanConstructBy(static_analyzer_.GetPackageUnit(), tmp->GetType(), params_type);
+    detail::CheckCanConstructBy(static_analyzer_.GetPackageUnit(), tmp->GetType(), params_type, tmp->IsRef());
     // 将该语句定义的变量记录到当前Context中
     static_analyzer_.GetCurrentContext()->RegisterVariable(tmp->GetVarName(), tmp->GetType()->Clone());
     return;

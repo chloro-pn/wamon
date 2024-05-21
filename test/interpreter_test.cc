@@ -836,11 +836,19 @@ TEST(interpreter, ref) {
       }
     }
 
+    let v : int = 2;
+    let ref v2 : int = v;
+
     func test2() -> int {
       let v : int = 2;
       let tmp : st = (1);
       call tmp:update(v);
       return v;
+    }
+
+    func test3() -> void {
+      v2 = 10;
+      return;
     }
   )";
   wamon::PackageUnit pu;
@@ -868,4 +876,15 @@ TEST(interpreter, ref) {
   EXPECT_EQ(wamon::AsIntVariable(hold_1)->GetValue(), 1);
   auto v = interpreter.CallFunctionByName("main$test2", {});
   EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 3);
+
+  params.clear();
+  params.push_back(
+      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu));
+  params.push_back(
+      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu));
+  EXPECT_THROW(interpreter.CallFunctionByName("main$test", std::move(params)), wamon::WamonExecption);
+
+  interpreter.CallFunctionByName("main$test3", {});
+  v = interpreter.FindVariableById("main$v");
+  EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 10);
 }

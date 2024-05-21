@@ -466,6 +466,10 @@ class VariableDefineStmt : public Statement {
  public:
   void SetType(std::unique_ptr<Type>&& type) { type_ = std::move(type); }
 
+  void SetRefTag() { is_ref_ = true; }
+
+  bool IsRef() const { return is_ref_; }
+
   void SetVarName(const std::string& var_name) { var_name_ = var_name; }
 
   void SetConstructors(std::vector<std::unique_ptr<Expression>>&& cos) { constructors_ = std::move(cos); }
@@ -487,6 +491,7 @@ class VariableDefineStmt : public Statement {
 
  private:
   std::unique_ptr<Type> type_;
+  bool is_ref_{false};
   std::string var_name_;
   std::vector<std::unique_ptr<Expression>> constructors_;
 };

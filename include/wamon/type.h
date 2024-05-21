@@ -356,7 +356,7 @@ class PackageUnit;
 namespace detail {
 
 void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var_type,
-                         const std::vector<std::unique_ptr<Type>>& param_types);
+                         const std::vector<std::unique_ptr<Type>>& param_types, bool is_ref);
 
 }
 

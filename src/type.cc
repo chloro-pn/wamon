@@ -84,7 +84,7 @@ bool CheckTraitConstraint(const PackageUnit& pu, const std::unique_ptr<Type>& tr
 namespace detail {
 
 void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var_type,
-                         const std::vector<std::unique_ptr<Type>>& param_types) {
+                         const std::vector<std::unique_ptr<Type>>& param_types, bool is_ref) {
   if (IsVoidType(var_type)) {
     throw WamonExecption("CheckCanConstructBy check error, var's type should not be void");
   }
@@ -122,6 +122,15 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
   // 所有相同类型的单个对象均可以执行构造（复制操作）
   if (param_types.size() == 1 && IsSameType(var_type, param_types[0])) {
     return;
+  }
+  std::vector<std::string> type_infos;
+  for (auto& each : param_types) {
+    type_infos.push_back(each->GetTypeInfo());
+  }
+  if (is_ref == true) {
+    // ref构造如果执行到这里，则表示不是相同类型的单个对象，因此直接失败
+    throw WamonExecption("ref construct check error, type ref {} can not be constructed by {}", var_type->GetTypeInfo(),
+                         fmt::join(type_infos, ", "));
   }
   if (IsListType(var_type)) {
     ListType* type = static_cast<ListType*>(var_type.get());
@@ -164,10 +173,6 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
       }
     }
     return;
-  }
-  std::vector<std::string> type_infos;
-  for (auto& each : param_types) {
-    type_infos.push_back(each->GetTypeInfo());
   }
   throw WamonExecption("construct check error,type {} can not be constructed by {} ", var_type->GetTypeInfo(),
                        fmt::join(type_infos, ", "));

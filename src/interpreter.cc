@@ -30,7 +30,6 @@ std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_
       assert(capture_name == function_def->GetCaptureIds().begin());
       if (param_name->is_ref == true) {
         if (param->IsRValue()) {
-          // todo:这种情况应该在语义分析阶段被排除
           throw WamonExecption("Interpreter::CallFunction error, ref parameter can not be rvalue");
         }
         GetCurrentContext()->RegisterVariable(param, param_name->name);
@@ -91,7 +90,6 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
     assert(param_name != method_def->GetParamList().end());
     if (param_name->is_ref == true) {
       if (param->IsRValue() == true) {
-        // todo:这种情况应该在语义分析阶段被排除
         throw WamonExecption("Interpreter::CallMethod error, ref parameter can not be rvalue");
       }
       GetCurrentContext()->RegisterVariable(param, param_name->name);

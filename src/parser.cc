@@ -880,6 +880,10 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(PackageUnit &p
   if (succ == false) {
     return ret;
   }
+  bool is_ref = false;
+  if (AssertToken(tokens, begin, Token::REF)) {
+    is_ref = true;
+  }
   auto [package_name, var_name] = ParseIdentifier(tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::COLON, __FILE__, __LINE__);
   auto type = ParseType(tokens, begin);
@@ -887,6 +891,9 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(PackageUnit &p
   ret.reset(new VariableDefineStmt());
   ret->SetType(std::move(type));
   ret->SetVarName(var_name);
+  if (is_ref == true) {
+    ret->SetRefTag();
+  }
   // parse expr.
   if (!AssertToken(tokens, begin, Token::LEFT_PARENTHESIS)) {
     size_t end = FindNextToken<Token::SEMICOLON>(tokens, begin);

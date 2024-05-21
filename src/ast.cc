@@ -259,21 +259,44 @@ ExecuteResult ExpressionStmt::Execute(Interpreter& interpreter) {
   return ExecuteResult::Next();
 }
 
+template <typename T>
+std::shared_ptr<T> ptr_cast(std::unique_ptr<T>&& ptr) {
+  return std::shared_ptr<T>(std::move(ptr));
+}
+
+template <typename T>
+std::unique_ptr<T> ptr_cast(std::shared_ptr<T>&& ptr) {
+  assert(ptr.use_count() == 1);
+  std::unique_ptr<T> ret(ptr.get());
+  ptr.reset();
+  return ret;
+}
+
 ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   auto context = interpreter.GetCurrentContext();
-  auto v = VariableFactory(type_, Variable::ValueCategory::LValue, var_name_, interpreter.GetPackageUnit());
+  auto v = VariableFactoryShared(type_, Variable::ValueCategory::LValue, var_name_, interpreter.GetPackageUnit());
   std::vector<std::shared_ptr<Variable>> fields;
   for (auto& each : constructors_) {
     fields.push_back(each->Calculate(interpreter));
   }
   if (fields.empty() == true) {
+    assert(IsRef() == false);
     v->DefaultConstruct();
   } else if (fields.size() == 1 && fields[0]->GetTypeInfo() == v->GetTypeInfo()) {
-    // copy construct
-    v = fields[0]->Clone();
+    if (IsRef()) {
+      // if rvalue
+      if (fields[0]->IsRValue()) {
+        throw WamonExecption("VariableDefineStmt::Execute failed, let ref can not be constructed by rvalue");
+      } else {
+        v = fields[0];
+      }
+    } else {
+      v = fields[0]->IsRValue() ? fields[0] : fields[0]->Clone();
+    }
     v->SetName(var_name_);
     v->ChangeTo(Variable::ValueCategory::LValue);
   } else {
+    assert(IsRef() == false);
     v->ConstructByFields(fields);
   }
   context->RegisterVariable(std::move(v));
