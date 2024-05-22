@@ -992,6 +992,7 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
   }
 
   current_parsing_package.clear();
+  current_parsing_imports.clear();
   return package_unit;
 }
 
