@@ -18,8 +18,10 @@ std::shared_ptr<Variable> FuncCallExpr::Calculate(Interpreter& interpreter) {
     params.push_back(std::move(v));
   }
   std::string func_name;
-  if (type == FuncCallType::FUNC || type == FuncCallType::BUILT_IN_FUNC) {
+  if (type == FuncCallType::FUNC) {
     func_name = dynamic_cast<IdExpr*>(caller_.get())->GenerateIdent();
+  } else if (type == FuncCallType::BUILT_IN_FUNC) {
+    func_name = dynamic_cast<IdExpr*>(caller_.get())->GetId();
   }
   if (type == FuncCallType::FUNC) {
     auto funcdef = interpreter.GetPackageUnit().FindFunction(func_name);

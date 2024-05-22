@@ -298,6 +298,35 @@ TEST(interpreter, inner_type_method) {
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 6);
 }
 
+TEST(interpreter, builtin_function) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    package main;
+    let v : string = call to_string:(20);
+    let v2 : string = call to_string:(true);
+    let v3 : string = call to_string:(3.35);
+    let v4 : string = call to_string:(0X41);
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(str);
+  pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true) << reason;
+
+  wamon::Interpreter ip(pu);
+  auto v = ip.FindVariableById("main$v");
+  auto v2 = ip.FindVariableById("main$v2");
+  auto v3 = ip.FindVariableById("main$v3");
+  auto v4 = ip.FindVariableById("main$v4");
+  EXPECT_EQ(wamon::AsStringVariable(v)->GetValue(), "20");
+  EXPECT_EQ(wamon::AsStringVariable(v2)->GetValue(), "true");
+  EXPECT_EQ(wamon::AsStringVariable(v3)->GetValue(), "3.350000");
+  EXPECT_EQ(wamon::AsStringVariable(v4)->GetValue(), "A");
+}
+
 TEST(interpreter, callable) {
   wamon::Scanner scan;
   std::string str = R"(
@@ -661,7 +690,7 @@ TEST(interpreter, register_cpp_function) {
     package main;
 
     func testfunc() -> int {
-      let v2 : int = call wamon::func111:("hello");
+      let v2 : int = call func111:("hello");
       return v2;
     }
   )";

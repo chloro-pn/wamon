@@ -514,15 +514,13 @@ std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const Fun
  */
 std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc, FuncCallExpr* call_expr) {
   auto id_expr = dynamic_cast<IdExpr*>(call_expr->caller_.get());
-  if (id_expr != nullptr &&
-      tc.GetStaticAnalyzer().GetPackageUnit().GetBuiltinFunctions().Find(id_expr->GenerateIdent())) {
+  if (id_expr != nullptr && tc.GetStaticAnalyzer().GetPackageUnit().GetBuiltinFunctions().Find(id_expr->GetId())) {
     call_expr->type = FuncCallExpr::FuncCallType::BUILT_IN_FUNC;
     std::vector<std::unique_ptr<Type>> param_types;
     for (auto& each : call_expr->parameters_) {
       param_types.push_back(tc.GetExpressionType(each.get()));
     }
-    return tc.GetStaticAnalyzer().GetPackageUnit().GetBuiltinFunctions().TypeCheck(id_expr->GenerateIdent(),
-                                                                                   param_types);
+    return tc.GetStaticAnalyzer().GetPackageUnit().GetBuiltinFunctions().TypeCheck(id_expr->GetId(), param_types);
   }
   // would calcualte id_expr.type_
   std::unique_ptr<Type> find_type = tc.GetExpressionType(call_expr->caller_.get());

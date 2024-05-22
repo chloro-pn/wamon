@@ -224,7 +224,7 @@ class Interpreter {
   }
 
   void RegisterCppFunctions(const std::string& name, BuiltinFunctions::CheckType ct, BuiltinFunctions::HandleType ht) {
-    GetPackageUnit().GetBuiltinFunctions().Register("wamon$" + name, std::move(ct), std::move(ht));
+    GetPackageUnit().GetBuiltinFunctions().Register(name, std::move(ct), std::move(ht));
   }
 
   void RegisterCppFunctions(const std::string& name, std::unique_ptr<Type> func_type, BuiltinFunctions::HandleType ht);
