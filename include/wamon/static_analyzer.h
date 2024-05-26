@@ -11,6 +11,22 @@
 
 namespace wamon {
 
+inline std::string GetPackageNameFromIdent(const std::string& name) {
+  size_t index = name.find('$');
+  if (index == std::string::npos) {
+    return "";
+  }
+  return name.substr(0, index);
+}
+
+inline std::string GetIdFromIdent(const std::string& name) {
+  size_t index = name.find('$');
+  if (index == std::string::npos) {
+    return name;
+  }
+  return name.substr(index + 1);
+}
+
 // 静态分析器，在词法分析和语法分析之后的第三个阶段，执行上下文相关的语义分析，包括类型诊断、定义声明规则诊断、语句合法性诊断等。
 class StaticAnalyzer {
  public:
@@ -53,7 +69,7 @@ class StaticAnalyzer {
       return fd->GetType();
     }
     // 只有设定类型的注册函数能够被找到
-    auto ftype = GetPackageUnit().GetBuiltinFunctions().GetType(name);
+    auto ftype = GetPackageUnit().GetBuiltinFunctions().GetType(GetIdFromIdent(name));
     if (ftype != nullptr) {
       type = IdExpr::Type::BuiltinFunc;
       return ftype;

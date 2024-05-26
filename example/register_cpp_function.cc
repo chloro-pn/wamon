@@ -12,10 +12,10 @@ int main() {
     package main;
 
     func call_cpp_function(string s) -> int {
-      return call wamon::my_cpp_func:(s);
+      return call my_cpp_func:(s);
     }
 
-    let test : f(() -> int) = wamon::my_type_cpp_func;
+    let test : f(() -> int) = my_type_cpp_func;
   )";
 
   wamon::Scanner scanner;
@@ -23,7 +23,8 @@ int main() {
   wamon::PackageUnit package_unit = wamon::Parse(tokens);
   package_unit = wamon::MergePackageUnits(std::move(package_unit));
 
-  wamon::Interpreter ip(package_unit);
+  // 这里有问题，构造函数中定义了全局变量，然后才注册函数，这是有问题的，fix：将全局变量的定义独立出来不放在构造函数中
+  wamon::Interpreter ip(package_unit, wamon::Interpreter::Tag::DelayConstruct);
 
   ip.RegisterCppFunctions(
       "my_cpp_func",
@@ -55,7 +56,7 @@ int main() {
     std::cerr << "type check error : " << reason << std::endl;
     return -1;
   }
-
+  ip.ExecGlobalVariDefStmt();
   auto string_v = wamon::VariableFactory(wamon::TypeFactory<std::string>::Get(), wamon::Variable::ValueCategory::RValue,
                                          "", ip.GetPackageUnit());
   wamon::AsStringVariable(string_v)->SetValue("hello");

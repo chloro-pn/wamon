@@ -699,7 +699,8 @@ TEST(interpreter, register_cpp_function) {
   pu = wamon::Parse(tokens);
   pu = wamon::MergePackageUnits(std::move(pu));
 
-  wamon::Interpreter interpreter(pu);
+  wamon::Interpreter interpreter(pu, wamon::Interpreter::Tag::DelayConstruct);
+
   interpreter.RegisterCppFunctions(
       "func111",
       [](const std::vector<std::unique_ptr<wamon::Type>>& params_type) -> std::unique_ptr<wamon::Type> {

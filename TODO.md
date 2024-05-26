@@ -15,7 +15,7 @@
 * 为解释器实例提供更多的功能（执行表达式，打印当前运行栈、支持增量parse功能）
 * 重构，将operator运算的类型检测从type_checker移动到operator类中
 * [done] 支持trait(参考rust)
-* 变量ConstructByFields成员支持复制构造，目前检测阶段可以通过但是运行时不支持，会抛出异常
+* [update] 变量ConstructByFields成员支持复制构造，目前检测阶段可以通过但是运行时不支持，会抛出异常。update：总是使用copy函数进行复制构造。
 * [done] CheckTraitConstraint失败时，返回具体的失败原因
 * [done] 将interpreter的进入退出运行时栈接口改为私有的，不对用户暴露
 * lambda捕获列表支持move
@@ -23,3 +23,4 @@
 * 支持enum
 * 优化内置方法的错误提示
 * [done] 支持变量引用（不涉及类型系统）
+* 支持声明注册函数

@@ -100,16 +100,16 @@ std::shared_ptr<Variable> UnaryExpr::Calculate(Interpreter& interpreter) {
 // 如果id指向的是变量，则从调用栈中找到该变量返回，如果id指向的是函数，则构造一个右值的FunctionVariable对象返回
 std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
   if (type_ == Type::Invalid) {
-    throw WamonExecption("IdExpr Calculate error, type invalid");
+    throw WamonExecption("IdExpr {} {} Calculate error, type invalid", package_name_, id_name_);
   }
   if (type_ == Type::Variable || type_ == Type::Callable) {
     return interpreter.FindVariableById(GenerateIdent());
   } else if (type_ == Type::BuiltinFunc) {
-    auto type = interpreter.GetPackageUnit().GetBuiltinFunctions().GetType(GenerateIdent());
+    auto type = interpreter.GetPackageUnit().GetBuiltinFunctions().GetType(GetId());
     assert(type != nullptr);
     auto ret = std::make_unique<FunctionVariable>(GetParamType(type), GetReturnType(type),
                                                   Variable::ValueCategory::RValue, "");
-    ret->SetFuncName(GenerateIdent());
+    ret->SetFuncName(GetId());
     return ret;
   } else {
     auto func_def = interpreter.GetPackageUnit().FindFunction(GenerateIdent());

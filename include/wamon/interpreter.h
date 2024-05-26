@@ -94,7 +94,11 @@ class Interpreter {
   friend class ForStmt;
   friend class WhileStmt;
 
-  explicit Interpreter(PackageUnit& pu);
+  enum class Tag { DelayConstruct, Default };
+
+  explicit Interpreter(PackageUnit& pu, Tag tag = Tag::Default);
+
+  void ExecGlobalVariDefStmt();
 
  private:
   template <RuntimeContextType type>
@@ -234,6 +238,7 @@ class Interpreter {
   PackageUnit& GetPackageUnit() { return pu_; }
 
  private:
+  Tag tag_;
   // 这里使用vector模拟栈，因为需要对其进行遍历
   std::vector<std::unique_ptr<RuntimeContext>> runtime_stack_;
   // 包符号表

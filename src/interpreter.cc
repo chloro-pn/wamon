@@ -7,8 +7,21 @@
 
 namespace wamon {
 
-Interpreter::Interpreter(PackageUnit& pu) : pu_(pu) {
+Interpreter::Interpreter(PackageUnit& pu, Tag tag) : tag_(tag), pu_(pu) {
   package_context_.type_ = RuntimeContextType::Global;
+  if (tag_ == Tag::Default) {
+    // 将packge unit中的包变量进行求解并插入包符号表中
+    const auto& vars = pu_.GetGlobalVariDefStmt();
+    for (const auto& each : vars) {
+      each->Execute(*this);
+    }
+  }
+}
+
+void Interpreter::ExecGlobalVariDefStmt() {
+  if (tag_ == Tag::Default) {
+    throw WamonExecption("Interpreter::ExecGlobalVariDefStmt should not be called under Default Tag");
+  }
   // 将packge unit中的包变量进行求解并插入包符号表中
   const auto& vars = pu_.GetGlobalVariDefStmt();
   for (const auto& each : vars) {
