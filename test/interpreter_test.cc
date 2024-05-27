@@ -721,7 +721,7 @@ TEST(interpreter, register_cpp_function) {
   std::string reason;
   bool succ = tc.CheckAll(reason);
   EXPECT_EQ(succ, true) << reason;
-
+  interpreter.ExecGlobalVariDefStmt();
   auto ret = interpreter.CallFunctionByName("main$testfunc", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
@@ -789,6 +789,17 @@ TEST(interpreter, lambda) {
       let v : int = (2);
       return call lambda [v] (int a) -> int  { return v + a; }:(10);
     }
+
+    let v1 : int = (10);
+
+    func test3() -> int {
+      let lmd : f(() -> int) = lambda [move v1, ref v]() -> int { 
+        v = v * 2;
+        return v1 + v;
+      };
+
+      return call lmd:();
+    }
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -806,9 +817,21 @@ TEST(interpreter, lambda) {
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
+  EXPECT_EQ(interpreter.FindVariableById("main$v")->IsRValue(), false);
+
   ret = interpreter.CallFunctionByName("main$test2", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 12);
+  EXPECT_EQ(interpreter.FindVariableById("main$v")->IsRValue(), false);
+
+  ret = interpreter.CallFunctionByName("main$test3", {});
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 50);
+
+  ret = interpreter.FindVariableById("main$v");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 40);
+
+  ret = interpreter.FindVariableById("main$v1");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 0);
 }
 
 TEST(interpreter, new_expr) {

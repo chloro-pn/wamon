@@ -3,6 +3,7 @@
 #include "wamon/exception.h"
 #include "wamon/move_wrapper.h"
 #include "wamon/operator.h"
+#include "wamon/ptr_cast.h"
 #include "wamon/type.h"
 
 namespace wamon {
@@ -43,7 +44,7 @@ std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_
       assert(capture_name == function_def->GetCaptureIds().begin());
       if (param_name->is_ref == true) {
         if (param->IsRValue()) {
-          throw WamonExecption("Interpreter::CallFunction error, ref parameter can not be rvalue");
+          throw WamonExecption("Interpreter::CallFunction error, ref parameter {} can not be rvalue", param_name->name);
         }
         GetCurrentContext()->RegisterVariable(param, param_name->name);
       } else {
@@ -53,7 +54,7 @@ std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_
     } else {
       // 函数调用传入的参数总是在前面，捕获的变量跟在后面，因此当注册捕获变量时，参数应该已经注册完毕
       assert(param_name == function_def->GetParamList().end());
-      GetCurrentContext()->RegisterVariable(param->IsRValue() ? param : param->Clone(), capture_name->id);
+      GetCurrentContext()->RegisterVariable(param, capture_name->id);
       ++capture_name;
     }
   }
@@ -75,11 +76,7 @@ std::shared_ptr<Variable> Interpreter::CallCallable(std::shared_ptr<Variable> ca
     throw WamonExecption("Interpreter.CallCallable error, the callable is null state, cant not be called");
   }
   for (auto& each : capture_variable) {
-    if (each->IsRValue()) {
-      params.push_back(std::move(each));
-    } else {
-      params.push_back(each->Clone());
-    }
+    params.push_back(each);
   }
   if (obj != nullptr) {
     auto method_name = OperatorDef::CreateName(Token::LEFT_PARENTHESIS, params);

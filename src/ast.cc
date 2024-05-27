@@ -3,6 +3,7 @@
 #include "wamon/exception.h"
 #include "wamon/inner_type_method.h"
 #include "wamon/interpreter.h"
+#include "wamon/ptr_cast.h"
 
 namespace wamon {
 
@@ -129,11 +130,24 @@ std::shared_ptr<Variable> LambdaExpr::Calculate(Interpreter& interpreter) {
   auto& ids = func_def->GetCaptureIds();
   for (auto& each : ids) {
     auto v = interpreter.FindVariableById(each.id);
-    if (!v->IsRValue()) {
-      v = v->Clone();
-      v->SetName(each.id);
+    // 左右值和move/ref id统一在CallFunction中处理 <-- error, 应该在当前上下文立即处理
+    if (each.type == CaptureIdItem::Type::MOVE) {
+      if (!v->IsRValue()) {
+        v->ChangeTo(Variable::ValueCategory::RValue);
+        auto tmp = v->Clone();
+        v->DefaultConstruct();
+        v->ChangeTo(Variable::ValueCategory::LValue);
+        v = ptr_cast(std::move(tmp));
+      }
+      capture_variables.push_back(v);
+    } else if (each.type == CaptureIdItem::Type::REF) {
+      if (v->IsRValue()) {
+        throw WamonExecption("LambdaExpr::Calculate error, ref id can not be rvalue");
+      }
+      capture_variables.push_back(v);
+    } else {
+      capture_variables.push_back(v->IsRValue() ? v : v->Clone());
     }
-    capture_variables.push_back(v);
   }
   auto call_obj =
       VariableFactory(func_def->GetType(), Variable::ValueCategory::RValue, "", interpreter.GetPackageUnit());
@@ -259,19 +273,6 @@ ExecuteResult ReturnStmt::Execute(Interpreter& interpreter) {
 ExecuteResult ExpressionStmt::Execute(Interpreter& interpreter) {
   auto v = expr_->Calculate(interpreter);
   return ExecuteResult::Next();
-}
-
-template <typename T>
-std::shared_ptr<T> ptr_cast(std::unique_ptr<T>&& ptr) {
-  return std::shared_ptr<T>(std::move(ptr));
-}
-
-template <typename T>
-std::unique_ptr<T> ptr_cast(std::shared_ptr<T>&& ptr) {
-  assert(ptr.use_count() == 1);
-  std::unique_ptr<T> ret(ptr.get());
-  ptr.reset();
-  return ret;
 }
 
 ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
