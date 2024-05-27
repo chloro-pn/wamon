@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "fmt/format.h"
+#include "wamon/capture_id_item.h"
 #include "wamon/lambda_function_set.h"
 #include "wamon/method_def.h"
 #include "wamon/operator.h"
@@ -156,22 +157,32 @@ void ParseTypeList(const std::vector<WamonToken> &tokens, size_t begin, size_t e
 
 /*
  * [ id1, id2, ... , idn ]
+ * todo : update to : [ [move|ref] id1, [move|ref] id2, ...]
  */
 void ParseCaptureIdList(const std::vector<WamonToken> &tokens, size_t begin, size_t end,
-                        std::vector<std::string> &ids) {
+                        std::vector<CaptureIdItem> &ids) {
   AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACKETS, __FILE__, __LINE__);
   while (true) {
     if (begin == end) {
       AssertTokenOrThrow(tokens, begin, Token::RIGHT_BRACKETS, __FILE__, __LINE__);
       break;
     }
+    CaptureIdItem item;
+    if (AssertToken(tokens, begin, wamon::Token::MOVE)) {
+      item.type = CaptureIdItem::Type::MOVE;
+    } else if (AssertToken(tokens, begin, wamon::Token::REF)) {
+      item.type = CaptureIdItem::Type::REF;
+    } else {
+      item.type = CaptureIdItem::Type::NORMAL;
+    }
     auto [package_name, id] = ParseIdentifier(tokens, begin);
     id = package_name + "$" + id;
-    auto it = std::find(ids.begin(), ids.end(), id);
+    auto it = std::find_if(ids.begin(), ids.end(), [&id](auto &item) -> bool { return item.id == id; });
     if (it != ids.end()) {
       throw WamonExecption("ParseCpatureIdList error, duplicate id {}", id);
     }
-    ids.push_back(id);
+    item.id = id;
+    ids.push_back(item);
     if (begin < end) {
       AssertTokenOrThrow(tokens, begin, Token::COMMA, __FILE__, __LINE__);
     }
@@ -191,7 +202,7 @@ std::string ParseLambda(PackageUnit &pu, const std::vector<WamonToken> &tokens, 
 
   AssertTokenOrThrow(tokens, begin, Token::LAMBDA, __FILE__, __LINE__);
   size_t capture_end = FindMatchedToken<Token::LEFT_BRACKETS, Token::RIGHT_BRACKETS>(tokens, begin);
-  std::vector<std::string> capture_ids;
+  std::vector<CaptureIdItem> capture_ids;
   ParseCaptureIdList(tokens, begin, capture_end, capture_ids);
   lambda_def->SetCaptureIds(std::move(capture_ids));
 

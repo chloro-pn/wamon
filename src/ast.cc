@@ -128,10 +128,10 @@ std::shared_ptr<Variable> LambdaExpr::Calculate(Interpreter& interpreter) {
   std::vector<std::shared_ptr<Variable>> capture_variables;
   auto& ids = func_def->GetCaptureIds();
   for (auto& each : ids) {
-    auto v = interpreter.FindVariableById(each);
+    auto v = interpreter.FindVariableById(each.id);
     if (!v->IsRValue()) {
       v = v->Clone();
-      v->SetName(each);
+      v->SetName(each.id);
     }
     capture_variables.push_back(v);
   }

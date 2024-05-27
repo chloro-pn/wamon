@@ -5,6 +5,7 @@
 
 #include "wamon/ast.h"
 #include "wamon/builtin_functions.h"
+#include "wamon/capture_id_item.h"
 #include "wamon/context.h"
 #include "wamon/package_unit.h"
 #include "wamon/type.h"
@@ -88,14 +89,14 @@ class StaticAnalyzer {
     }
   }
 
-  void RegisterCaptureIdsToContext(const std::vector<std::string>& ids, Context* func_context) {
+  void RegisterCaptureIdsToContext(const std::vector<CaptureIdItem>& ids, Context* func_context) {
     for (auto& each : ids) {
       IdExpr::Type type = IdExpr::Type::Invalid;
-      auto id_type = GetTypeByName(each, type);
+      auto id_type = GetTypeByName(each.id, type);
       if (type == IdExpr::Type::Invalid || type == IdExpr::Type::Function) {
-        throw WamonExecption("StaticAnalyzer.RegisterFuncParamsToContext, invalid or function id name {}", each);
+        throw WamonExecption("StaticAnalyzer.RegisterFuncParamsToContext, invalid or function id name {}", each.id);
       }
-      func_context->RegisterVariable(each, std::move(id_type));
+      func_context->RegisterVariable(each.id, std::move(id_type));
     }
   }
 

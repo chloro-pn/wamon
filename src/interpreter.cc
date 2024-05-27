@@ -53,7 +53,7 @@ std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_
     } else {
       // 函数调用传入的参数总是在前面，捕获的变量跟在后面，因此当注册捕获变量时，参数应该已经注册完毕
       assert(param_name == function_def->GetParamList().end());
-      GetCurrentContext()->RegisterVariable(param->IsRValue() ? param : param->Clone(), *capture_name);
+      GetCurrentContext()->RegisterVariable(param->IsRValue() ? param : param->Clone(), capture_name->id);
       ++capture_name;
     }
   }
