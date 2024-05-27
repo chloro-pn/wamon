@@ -13,7 +13,7 @@
   - [done] 运行阶段，当lambda表达式用于初始化、赋值给一个函数类型的变量时，需要在当前上下文执行捕获操作并保存在变量中，对该变量执行调用操作时需要将捕获的数据注册在运行时栈中。
 * [done] 支持包管理
 * 为解释器实例提供更多的功能（执行表达式，打印当前运行栈、支持增量parse功能）
-* 重构，将operator运算的类型检测从type_checker移动到operator类中
+* [delete] 重构，将operator运算的类型检测从type_checker移动到operator类中
 * [done] 支持trait(参考rust)
 * [update] 变量ConstructByFields成员支持复制构造，目前检测阶段可以通过但是运行时不支持，会抛出异常。update：总是使用copy函数进行复制构造。
 * [done] CheckTraitConstraint失败时，返回具体的失败原因

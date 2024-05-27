@@ -116,6 +116,18 @@ class PackageUnit {
 
   BuiltinFunctions& GetBuiltinFunctions() { return builtin_functions_; }
 
+  void AddPackageImports(const std::string& package, const std::vector<std::string>& imports) {
+    package_imports_[package] = imports;
+  }
+
+  const std::vector<std::string>& GetImportsFromPackageName(const std::string& package) {
+    auto it = package_imports_.find(package);
+    if (it == package_imports_.end()) {
+      throw WamonExecption("PackageUnit.GetImportsFromPackageName error ,package {} not exist", package);
+    }
+    return it->second;
+  }
+
  private:
   std::string package_name_;
   std::vector<std::string> import_packages_;
@@ -124,6 +136,8 @@ class PackageUnit {
   std::unordered_map<std::string, std::unique_ptr<FunctionDef>> funcs_;
   std::unordered_map<std::string, std::unique_ptr<StructDef>> structs_;
   BuiltinFunctions builtin_functions_;
+  // 只有通过Merge生成的PackageUnit才使用这项
+  std::unordered_map<std::string, std::vector<std::string>> package_imports_;
 };
 
 template <typename... T>

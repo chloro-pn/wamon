@@ -8,6 +8,7 @@ PackageUnit PackageUnit::_MergePackageUnits(std::vector<PackageUnit>&& packages)
   PackageUnit result;  // name == ""; import_package == empty;
   for (auto it = packages.begin(); it != packages.end(); ++it) {
     auto package_name = it->package_name_;
+    result.AddPackageImports(package_name, it->import_packages_);
     for (auto var_define = it->var_define_.begin(); var_define != it->var_define_.end(); ++var_define) {
       auto var_name = (*var_define)->GetVarName();
       (*var_define)->SetVarName(package_name + "$" + var_name);

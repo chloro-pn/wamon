@@ -237,6 +237,9 @@ class Interpreter {
 
   PackageUnit& GetPackageUnit() { return pu_; }
 
+  // 目前有问题，因为有些表达式在执行前在语义分析阶段获取了一些信息，这里需要补充
+  std::shared_ptr<Variable> ExecExpression(TypeChecker& tc, const std::string& package_name, const std::string& script);
+
  private:
   Tag tag_;
   // 这里使用vector模拟栈，因为需要对其进行遍历

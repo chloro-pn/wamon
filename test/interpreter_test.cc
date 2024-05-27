@@ -941,3 +941,33 @@ TEST(interpreter, ref) {
   v = interpreter.FindVariableById("main$v");
   EXPECT_EQ(wamon::AsIntVariable(v)->GetValue(), 10);
 }
+
+TEST(interpreter, exec_expression) {
+  wamon::Scanner scan;
+  std::string script = R"(
+    package main;
+
+    let v : int = 10;
+
+    let v2 : f(() -> int) = lambda [ref v]() -> int { return v + 10; };
+
+    let v3 : double = 5.2;
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(script);
+  pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
+
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true) << reason;
+
+  wamon::Interpreter interpreter(pu);
+  auto ret = interpreter.ExecExpression(tc, "main", "v");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 10);
+  ret = interpreter.ExecExpression(tc, "main", "call v2:()");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 20);
+  ret = interpreter.ExecExpression(tc, "main", "v3 as int + v");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 15);
+}

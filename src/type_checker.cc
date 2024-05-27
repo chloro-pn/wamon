@@ -718,8 +718,7 @@ void TypeChecker::CheckStatement(Statement* stmt) {
     return;
   }
   if (auto tmp = dynamic_cast<ExpressionStmt*>(stmt)) {
-    auto type = GetExpressionType(tmp->expr_.get());
-    tmp->SetExprType(std::move(type));
+    CheckExpression(tmp);
     return;
   }
   if (auto tmp = dynamic_cast<VariableDefineStmt*>(stmt)) {
@@ -737,4 +736,11 @@ void TypeChecker::CheckStatement(Statement* stmt) {
   }
   throw WamonExecption("invalid stmt type {}, check error", stmt->GetStmtName());
 }
+
+void TypeChecker::CheckExpression(ExpressionStmt* expr) {
+  auto type = GetExpressionType(expr->expr_.get());
+  expr->SetExprType(std::move(type));
+}
+
+void TypeChecker::CheckExpression(Expression* expr) { GetExpressionType(expr); }
 }  // namespace wamon

@@ -3,8 +3,12 @@
 #include "wamon/exception.h"
 #include "wamon/move_wrapper.h"
 #include "wamon/operator.h"
+#include "wamon/parser.h"
+#include "wamon/parsing_package.h"
 #include "wamon/ptr_cast.h"
+#include "wamon/scanner.h"
 #include "wamon/type.h"
+#include "wamon/type_checker.h"
 
 namespace wamon {
 
@@ -144,6 +148,18 @@ void Interpreter::RegisterCppFunctions(const std::string& name, std::unique_ptr<
   };
   RegisterCppFunctions(name, std::move(check_f), std::move(ht));
   GetPackageUnit().GetBuiltinFunctions().SetTypeForFunction(name, std::move(func_type));
+}
+
+std::shared_ptr<Variable> Interpreter::ExecExpression(TypeChecker& tc, const std::string& package_name,
+                                                      const std::string& script) {
+  // 恢复parse上下文以正常处理符号定位问题
+  current_parsing_package = package_name;
+  current_parsing_imports = pu_.GetImportsFromPackageName(package_name);
+  Scanner scan;
+  auto tokens = scan.Scan(script);
+  auto expr = ParseExpression(pu_, tokens, 0, tokens.size() - 1);
+  tc.CheckExpression(expr.get());
+  return expr->Calculate(*this);
 }
 
 }  // namespace wamon

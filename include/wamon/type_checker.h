@@ -90,6 +90,8 @@ class TypeChecker {
 
   void CheckDeterministicReturn(const MethodDef* method);
 
+  void CheckExpression(Expression* expr);
+
  private:
   StaticAnalyzer static_analyzer_;
 
@@ -97,6 +99,8 @@ class TypeChecker {
   std::unique_ptr<Type> GetExpressionType(Expression* expr) const;
 
   void CheckStatement(Statement* stmt);
+
+  void CheckExpression(ExpressionStmt* expr);
 
   bool IsDeterministicReturn(BlockStmt* basic_block);
 };
