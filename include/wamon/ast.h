@@ -461,7 +461,6 @@ class ExpressionStmt : public Statement {
 
 class Type;
 
-// let var_name_ = type_(constructors_)
 class VariableDefineStmt : public Statement {
  public:
   void SetType(std::unique_ptr<Type>&& type) { type_ = std::move(type); }

@@ -699,9 +699,7 @@ TEST(interpreter, register_cpp_function) {
   pu = wamon::Parse(tokens);
   pu = wamon::MergePackageUnits(std::move(pu));
 
-  wamon::Interpreter interpreter(pu, wamon::Interpreter::Tag::DelayConstruct);
-
-  interpreter.RegisterCppFunctions(
+  pu.RegisterCppFunctions(
       "func111",
       [](const std::vector<std::unique_ptr<wamon::Type>>& params_type) -> std::unique_ptr<wamon::Type> {
         if (params_type.size() != 1) {
@@ -721,7 +719,8 @@ TEST(interpreter, register_cpp_function) {
   std::string reason;
   bool succ = tc.CheckAll(reason);
   EXPECT_EQ(succ, true) << reason;
-  interpreter.ExecGlobalVariDefStmt();
+
+  wamon::Interpreter interpreter(pu);
   auto ret = interpreter.CallFunctionByName("main$testfunc", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);

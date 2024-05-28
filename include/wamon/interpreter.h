@@ -86,6 +86,8 @@ struct RuntimeContext {
   std::unordered_map<std::string, std::shared_ptr<Variable>> symbol_table_;
 };
 
+class TypeChecker;
+
 // 解释器，负责执行ast，维护运行时栈，运算符执行
 class Interpreter {
  public:
@@ -94,11 +96,7 @@ class Interpreter {
   friend class ForStmt;
   friend class WhileStmt;
 
-  enum class Tag { DelayConstruct, Default };
-
-  explicit Interpreter(PackageUnit& pu, Tag tag = Tag::Default);
-
-  void ExecGlobalVariDefStmt();
+  explicit Interpreter(PackageUnit& pu);
 
  private:
   template <RuntimeContextType type>
@@ -227,21 +225,13 @@ class Interpreter {
     return CallMethod(obj, method_def, std::move(params));
   }
 
-  void RegisterCppFunctions(const std::string& name, BuiltinFunctions::CheckType ct, BuiltinFunctions::HandleType ht) {
-    GetPackageUnit().GetBuiltinFunctions().Register(name, std::move(ct), std::move(ht));
-  }
-
-  void RegisterCppFunctions(const std::string& name, std::unique_ptr<Type> func_type, BuiltinFunctions::HandleType ht);
-
   const PackageUnit& GetPackageUnit() const { return pu_; }
 
   PackageUnit& GetPackageUnit() { return pu_; }
 
-  // 目前有问题，因为有些表达式在执行前在语义分析阶段获取了一些信息，这里需要补充
   std::shared_ptr<Variable> ExecExpression(TypeChecker& tc, const std::string& package_name, const std::string& script);
 
  private:
-  Tag tag_;
   // 这里使用vector模拟栈，因为需要对其进行遍历
   std::vector<std::unique_ptr<RuntimeContext>> runtime_stack_;
   // 包符号表

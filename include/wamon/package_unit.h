@@ -117,6 +117,13 @@ class PackageUnit {
   BuiltinFunctions& GetBuiltinFunctions() { return builtin_functions_; }
 
   void AddPackageImports(const std::string& package, const std::vector<std::string>& imports) {
+    if (package_imports_.count(package) > 0) {
+      auto& tmp = package_imports_[package];
+      for (auto& each : imports) {
+        tmp.push_back(each);
+      }
+      return;
+    }
     package_imports_[package] = imports;
   }
 
@@ -127,6 +134,12 @@ class PackageUnit {
     }
     return it->second;
   }
+
+  void RegisterCppFunctions(const std::string& name, BuiltinFunctions::CheckType ct, BuiltinFunctions::HandleType ht) {
+    GetBuiltinFunctions().Register(name, std::move(ct), std::move(ht));
+  }
+
+  void RegisterCppFunctions(const std::string& name, std::unique_ptr<Type> func_type, BuiltinFunctions::HandleType ht);
 
  private:
   std::string package_name_;

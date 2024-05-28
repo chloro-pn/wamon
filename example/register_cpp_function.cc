@@ -41,12 +41,8 @@ int main() {
   auto tokens = scanner.Scan(script);
   wamon::PackageUnit package_unit = wamon::Parse(tokens);
   package_unit = wamon::MergePackageUnits(std::move(package_unit));
-
-  wamon::Interpreter ip(package_unit, wamon::Interpreter::Tag::DelayConstruct);
-
-  ip.RegisterCppFunctions("my_cpp_func", my_cpp_func_check, my_cpp_func);
-
-  ip.RegisterCppFunctions("my_type_cpp_func", wamon::TypeFactory<int()>::Get(), my_type_cpp_func);
+  package_unit.RegisterCppFunctions("my_cpp_func", my_cpp_func_check, my_cpp_func);
+  package_unit.RegisterCppFunctions("my_type_cpp_func", wamon::TypeFactory<int()>::Get(), my_type_cpp_func);
 
   wamon::TypeChecker type_checker(package_unit);
 
@@ -56,7 +52,8 @@ int main() {
     std::cerr << "type check error : " << reason << std::endl;
     return -1;
   }
-  ip.ExecGlobalVariDefStmt();
+
+  wamon::Interpreter ip(package_unit);
   auto string_v = wamon::VariableFactory(wamon::TypeFactory<std::string>::Get(), wamon::Variable::ValueCategory::RValue,
                                          "", ip.GetPackageUnit());
   wamon::AsStringVariable(string_v)->SetValue("hello");
