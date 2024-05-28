@@ -33,6 +33,18 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
     return TypeFactory<unsigned char>::Get();
   };
 
+  handles[concat("string", "append")] =
+      [](const std::unique_ptr<Type>& builtin_type,
+         const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
+    if (params_type.size() != 1) {
+      throw WamonExecption("string.append error, params.size() == {}", params_type.size());
+    }
+    if (!IsStringType(params_type[0]) && !IsByteType(params_type[0])) {
+      throw WamonExecption("string.append error, param's type == {}", params_type[0]->GetTypeInfo());
+    }
+    return TypeFactory<void>::Get();
+  };
+
   handles[concat("list", "size")] = [](const std::unique_ptr<Type>& builtin_type,
                                        const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
     if (params_type.size() != 0) {
@@ -123,6 +135,21 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
       throw WamonExecption("string.at error, index out of range : {} >= {}", index, v.size());
     }
     return std::make_shared<ByteVariable>(v[index], Variable::ValueCategory::RValue, "");
+  };
+
+  handles[concat("string", "append")] = [](std::shared_ptr<Variable>& obj,
+                                           std::vector<std::shared_ptr<Variable>>&& params,
+                                           const PackageUnit& pu) -> std::shared_ptr<Variable> {
+    assert(params.size() == 1);
+    std::string& v = AsStringVariable(obj)->GetValue();
+    if (IsStringType(params[0]->GetType())) {
+      const auto& p0 = AsStringVariable(params[0])->GetValue();
+      v.append(p0);
+    } else {
+      char c = static_cast<char>(AsByteVariable(params[0])->GetValue());
+      v.push_back(c);
+    }
+    return GetVoidVariable();
   };
 
   handles[concat("list", "size")] = [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params,

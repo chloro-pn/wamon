@@ -121,6 +121,8 @@ class StringVariable : public Variable {
 
   const std::string& GetValue() const { return value_; }
 
+  std::string& GetValue() { return value_; }
+
   void SetValue(const std::string& v) { value_ = v; }
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {

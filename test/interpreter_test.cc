@@ -273,6 +273,12 @@ TEST(interpreter, inner_type_method) {
       return call v2:size() + call v2:at(1);
       // 6
     }
+
+    func func4() -> string {
+       call v1:append(" world");
+       call v1:append(new byte(0X21));
+      return v1;
+    }
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -296,6 +302,9 @@ TEST(interpreter, inner_type_method) {
   ret = interpreter.CallFunctionByName("main$func3", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 6);
+
+  ret = interpreter.CallFunctionByName("main$func4", {});
+  EXPECT_EQ(wamon::AsStringVariable(ret)->GetValue(), "hello world!");
 }
 
 TEST(interpreter, builtin_function) {
