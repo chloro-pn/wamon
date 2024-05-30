@@ -88,6 +88,9 @@ enum class Token {
   REF,
   // 匿名变量定义
   NEW,
+  // 堆上变量定义和销毁
+  ALLOC,
+  DEALLOC,
   // 方法定义
   METHOD,
   SELF,
@@ -230,6 +233,10 @@ inline const char *GetTokenStr(Token token) {
       return "ref";
     case Token::NEW:
       return "new";
+    case Token::ALLOC:
+      return "alloc";
+    case Token::DEALLOC:
+      return "dealloc";
     case Token::METHOD:
       return "method";
     case Token::SELF:

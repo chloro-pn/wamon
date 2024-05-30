@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "wamon/ast.h"
@@ -119,6 +120,10 @@ class Interpreter {
     return runtime_stack_.back().get();
   }
 
+  std::shared_ptr<Variable> Alloc(const std::unique_ptr<Type>& type, std::vector<std::shared_ptr<Variable>>&& params);
+
+  void Dealloc(std::shared_ptr<Variable> v);
+
   // 获取当前调用栈上最近的方法调用对象
   std::shared_ptr<Variable> GetSelfObject() { return FindVariableById("__self__"); }
 
@@ -234,6 +239,7 @@ class Interpreter {
  private:
   // 这里使用vector模拟栈，因为需要对其进行遍历
   std::vector<std::unique_ptr<RuntimeContext>> runtime_stack_;
+  std::unordered_set<std::shared_ptr<Variable>> heap_;
   // 包符号表
   RuntimeContext package_context_;
   // 解释执行的时候需要从package_unit_中查找函数、方法、类型等信息

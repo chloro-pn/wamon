@@ -249,6 +249,22 @@ TEST(parse, parse_expression) {
   auto ptr2 = dynamic_cast<wamon::NewExpr*>(expr.get());
   EXPECT_EQ(ptr2->GetNewType()->GetTypeInfo(), "int");
   EXPECT_EQ(ptr2->parameters_.size(), 1);
+
+  str = "alloc int(2)";
+  tokens = scan.Scan(str);
+  expr = wamon::ParseExpression(pu, tokens, 0, tokens.size() - 1);
+  EXPECT_NE(expr, nullptr);
+  auto ptr3 = dynamic_cast<wamon::AllocExpr*>(expr.get());
+  EXPECT_EQ(ptr3->GetAllocType()->GetTypeInfo(), "int");
+  EXPECT_EQ(ptr3->parameters_.size(), 1);
+
+  str = "dealloc ptr_id";
+  tokens = scan.Scan(str);
+  expr = wamon::ParseExpression(pu, tokens, 0, tokens.size() - 1);
+  EXPECT_NE(expr, nullptr);
+  auto ptr4 = dynamic_cast<wamon::DeallocExpr*>(expr.get());
+  auto id = dynamic_cast<wamon::IdExpr*>(ptr4->GetDeallocParam().get())->GetId();
+  EXPECT_EQ(id, "ptr_id");
 }
 
 TEST(parse, unary_operator) {

@@ -170,6 +170,20 @@ std::shared_ptr<Variable> NewExpr::Calculate(Interpreter& interpreter) {
   return v;
 }
 
+std::shared_ptr<Variable> AllocExpr::Calculate(Interpreter& interpreter) {
+  std::vector<std::shared_ptr<Variable>> params;
+  for (auto& each : parameters_) {
+    params.push_back(each->Calculate(interpreter));
+  }
+  return interpreter.Alloc(type_, std::move(params));
+}
+
+std::shared_ptr<Variable> DeallocExpr::Calculate(Interpreter& interpreter) {
+  auto v = param_->Calculate(interpreter);
+  interpreter.Dealloc(v);
+  return GetVoidVariable();
+}
+
 ExecuteResult BlockStmt::Execute(Interpreter& interpreter) {
   interpreter.EnterContext<RuntimeContextType::Block>();
   for (auto& each : block_) {

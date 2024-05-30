@@ -291,6 +291,7 @@ static void PushBoperators(std::stack<Token> &b_operators, std::stack<std::uniqu
 //  - lambda表达式
 //  - id表达式
 //  - new表达式
+//  - alloc\dealloc表达式
 //  - 表达式嵌套（二元运算，括号）
 std::unique_ptr<Expression> ParseExpression(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
                                             size_t end) {
@@ -428,6 +429,26 @@ std::unique_ptr<Expression> ParseExpression(PackageUnit &pu, const std::vector<W
         new_expr->SetParameters(std::move(expr_list));
         i = right_parent;
         operands.push(AttachUnaryOperators(std::move(new_expr), u_operators));
+        continue;
+      }
+      if (current_token == Token::ALLOC) {
+        std::unique_ptr<AllocExpr> alloc_expr(new AllocExpr());
+        i += 1;
+        auto type = ParseType(tokens, i);
+        size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, i);
+        auto expr_list = ParseExprList(pu, tokens, i, right_parent);
+        alloc_expr->SetAllocType(std::move(type));
+        alloc_expr->SetParameters(std::move(expr_list));
+        i = right_parent;
+        operands.push(AttachUnaryOperators(std::move(alloc_expr), u_operators));
+        continue;
+      }
+      if (current_token == Token::DEALLOC) {
+        std::unique_ptr<DeallocExpr> dealloc_expr(new DeallocExpr());
+        auto expr = ParseExpression(pu, tokens, i + 1, end);
+        dealloc_expr->SetDeallocParam(std::move(expr));
+        i = end;
+        operands.push(AttachUnaryOperators(std::move(dealloc_expr), u_operators));
         continue;
       }
       size_t tmp = i;

@@ -291,6 +291,35 @@ class NewExpr : public Expression {
   std::vector<std::unique_ptr<Expression>> parameters_;
 };
 
+class AllocExpr : public Expression {
+ public:
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
+
+  void SetAllocType(std::unique_ptr<Type> type) { type_ = std::move(type); }
+
+  const std::unique_ptr<Type>& GetAllocType() const { return type_; }
+
+  void SetParameters(std::vector<std::unique_ptr<Expression>>&& param) { parameters_ = std::move(param); }
+
+  std::vector<std::unique_ptr<Expression>>& GetParameters() { return parameters_; }
+
+ private:
+  std::unique_ptr<Type> type_;
+  std::vector<std::unique_ptr<Expression>> parameters_;
+};
+
+class DeallocExpr : public Expression {
+ public:
+  std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
+
+  void SetDeallocParam(std::unique_ptr<Expression>&& param) { param_ = std::move(param); }
+
+  std::unique_ptr<Expression>& GetDeallocParam() { return param_; }
+
+ private:
+  std::unique_ptr<Expression> param_;
+};
+
 enum class ExecuteState {
   Next,
   Continue,
