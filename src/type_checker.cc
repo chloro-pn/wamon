@@ -582,6 +582,27 @@ std::unique_ptr<Type> CheckAndGetTypeForNewExpr(TypeChecker& tc, NewExpr* new_ex
   return type->Clone();
 }
 
+std::unique_ptr<Type> CheckAndGetTypeForAllocExpr(TypeChecker& tc, AllocExpr* alloc_expr) {
+  auto& type = alloc_expr->GetAllocType();
+  tc.CheckType(type, fmt::format("check alloc expr's type {}", type->GetTypeInfo()));
+  std::vector<std::unique_ptr<Type>> constructor_types;
+  for (auto& each : alloc_expr->GetParameters()) {
+    auto tmp = tc.GetExpressionType(each.get());
+    constructor_types.push_back(std::move(tmp));
+  }
+  detail::CheckCanConstructBy(tc.GetStaticAnalyzer().GetPackageUnit(), type, constructor_types, false);
+  return std::unique_ptr<Type>(new PointerType(type->Clone()));
+}
+
+std::unique_ptr<Type> CheckAndGetTypeForDeallocExpr(TypeChecker& tc, DeallocExpr* dealloc_expr) {
+  auto& expr = dealloc_expr->GetDeallocParam();
+  auto type = tc.GetExpressionType(expr.get());
+  if (!IsPtrType(type)) {
+    throw WamonExecption("check dealloc expr's type error, not pointer : {}", type->GetTypeInfo());
+  }
+  return GetVoidType();
+}
+
 std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   assert(expr != nullptr);
   if (dynamic_cast<StringIteralExpr*>(expr)) {
@@ -638,6 +659,12 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   }
   if (auto tmp = dynamic_cast<NewExpr*>(expr)) {
     return CheckAndGetTypeForNewExpr(*const_cast<TypeChecker*>(this), tmp);
+  }
+  if (auto tmp = dynamic_cast<AllocExpr*>(expr)) {
+    return CheckAndGetTypeForAllocExpr(*const_cast<TypeChecker*>(this), tmp);
+  }
+  if (auto tmp = dynamic_cast<DeallocExpr*>(expr)) {
+    return CheckAndGetTypeForDeallocExpr(*const_cast<TypeChecker*>(this), tmp);
   }
   auto tmp = dynamic_cast<IdExpr*>(expr);
   if (tmp == nullptr) {

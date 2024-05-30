@@ -875,6 +875,46 @@ TEST(interpreter, new_expr) {
   EXPECT_EQ(wamon::AsStringVariable(wamon::AsStructVariable(ret)->GetDataMemberByName("name"))->GetValue(), "chloro");
 }
 
+TEST(interpreter, alloc) {
+  wamon::Scanner scan;
+  std::string script = R"(
+    package main;
+
+    let v : ptr(int) = alloc int(2);
+    let v2 : ptr(int) = v;
+
+    func test() -> void {
+      *v = *v + 10;
+      return;
+    }
+
+    func test2() -> void {
+      dealloc v;
+      return;
+    }
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(script);
+  pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
+
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true) << reason;
+
+  wamon::Interpreter interpreter(pu);
+  auto it = interpreter.ExecExpression(tc, "main", "*v");
+  EXPECT_EQ(wamon::AsIntVariable(it)->GetValue(), 2);
+  interpreter.CallFunctionByName("main$test", {});
+  it = interpreter.ExecExpression(tc, "main", "*v");
+  EXPECT_EQ(wamon::AsIntVariable(it)->GetValue(), 12);
+  it.reset();
+  interpreter.CallFunctionByName("main$test2", {});
+  EXPECT_THROW(interpreter.ExecExpression(tc, "main", "*v"), wamon::WamonExecption);
+  EXPECT_THROW(interpreter.ExecExpression(tc, "main", "*v2"), wamon::WamonExecption);
+}
+
 TEST(interpreter, ref) {
   wamon::Scanner scan;
   std::string script = R"(

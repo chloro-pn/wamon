@@ -200,8 +200,12 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
 
 static void register_buildin_uoperator_handles(std::unordered_map<std::string, Operator::UnaryOperatorType>& handles) {
   std::vector<std::unique_ptr<Type>> operands;
-  handles[GetTokenStr(Token::DIVIDE)] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
-    return AsPointerVariable(v)->GetHoldVariable();
+  handles[GetTokenStr(Token::MULTIPLY)] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
+    auto ret = AsPointerVariable(v)->GetHoldVariable();
+    if (ret == nullptr) {
+      throw WamonExecption("dereference to pointer error, invalid pointer(nullptr)");
+    }
+    return ret;
   };
   handles[GetTokenStr(Token::ADDRESS_OF)] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
     auto ret = std::make_shared<PointerVariable>(v->GetType(), Variable::ValueCategory::RValue, "");

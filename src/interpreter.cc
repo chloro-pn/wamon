@@ -25,7 +25,7 @@ std::shared_ptr<Variable> Interpreter::Alloc(const std::unique_ptr<Type>& type,
                                              std::vector<std::shared_ptr<Variable>>&& params) {
   auto v = VariableFactoryShared(type, wamon::Variable::ValueCategory::LValue, "", pu_);
   v->ConstructByFields(params);
-  assert(heap_.find(v) != heap_.end());
+  assert(heap_.find(v) == heap_.end());
   heap_.insert(v);
   std::unique_ptr<Type> ptr_type = std::unique_ptr<PointerType>(new PointerType(type->Clone()));
   auto ptr = VariableFactoryShared(ptr_type, wamon::Variable::ValueCategory::RValue, "", pu_);
@@ -46,9 +46,7 @@ void Interpreter::Dealloc(std::shared_ptr<Variable> v) {
 // params分类两类，一类是函数调用过程中传入的参数，一类是lambda表达式捕获到的变量
 std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_def,
                                                     std::vector<std::shared_ptr<Variable>>&& params) {
-  if (function_def == nullptr) {
-    throw WamonExecption("Interpreter::CallFunction error, function == nullptr");
-  }
+  assert(function_def != nullptr);
   EnterContext<RuntimeContextType::Function>();
   auto param_name = function_def->GetParamList().begin();
   auto capture_name = function_def->GetCaptureIds().begin();

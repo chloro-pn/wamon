@@ -191,7 +191,11 @@ class Interpreter {
     if (GetPackageUnit().GetBuiltinFunctions().Find(func_name)) {
       return CallFunction(func_name, std::move(params));
     }
-    return CallFunction(pu_.FindFunction(func_name), std::move(params));
+    auto function_def = pu_.FindFunction(func_name);
+    if (function_def == nullptr) {
+      throw WamonExecption("Interpreter::CallFunctionByName error, function {} not exist", func_name);
+    }
+    return CallFunction(function_def, std::move(params));
   }
 
   std::shared_ptr<Variable> CallCallable(std::shared_ptr<Variable> callable,
