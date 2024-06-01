@@ -169,7 +169,7 @@ TEST(parser, struct_trait) {
 TEST(parser, parse_stmt) {
   wamon::Scanner scan;
   wamon::PackageUnit pu;
-  std::string str = "if (a.b) { call myfunc:(b, c, d[3]); break; } else { \"string_iter\"; }";
+  std::string str = "if (a.b) { call myfunc:(b, c, d[3]); break; } elif(true) { cc; } else { \"string_iter\"; }";
   auto tokens = scan.Scan(str);
   size_t next = 0;
   auto stmt = wamon::ParseStatement(pu, tokens, 0, next);

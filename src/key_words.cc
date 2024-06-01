@@ -5,6 +5,7 @@ namespace wamon {
 static void register_buildin_keywords(std::unordered_map<std::string, Token> &kws) {
   kws["if"] = Token::IF;
   kws["else"] = Token::ELSE;
+  kws["elif"] = Token::ELIF;
   kws["while"] = Token::WHILE;
   kws["for"] = Token::FOR;
   kws["continue"] = Token::CONTINUE;

@@ -408,6 +408,10 @@ class IfStmt : public Statement {
 
   void SetIfStmt(std::unique_ptr<BlockStmt>&& if_block) { if_block_ = std::move(if_block); }
 
+  void AddElifItem(std::unique_ptr<Expression>&& check, std::unique_ptr<BlockStmt>&& block) {
+    elif_item_.emplace_back(std::move(check), std::move(block));
+  }
+
   void SetElseStmt(std::unique_ptr<BlockStmt>&& else_block) { else_block_ = std::move(else_block); }
 
   std::string GetStmtName() override { return "if_stmt"; }
@@ -415,8 +419,17 @@ class IfStmt : public Statement {
   ExecuteResult Execute(Interpreter&) override;
 
  private:
+  struct elif_item {
+    std::unique_ptr<Expression> elif_check;
+    std::unique_ptr<BlockStmt> elif_block;
+
+    elif_item(std::unique_ptr<Expression>&& check, std::unique_ptr<BlockStmt>&& block)
+        : elif_check(std::move(check)), elif_block(std::move(block)) {}
+  };
+
   std::unique_ptr<Expression> check_;
   std::unique_ptr<BlockStmt> if_block_;
+  std::vector<elif_item> elif_item_;
   std::unique_ptr<BlockStmt> else_block_;
 };
 

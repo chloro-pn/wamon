@@ -25,6 +25,7 @@ enum class Token {
   // 流程控制
   IF,
   ELSE,
+  ELIF,
   WHILE,
   FOR,
   BREAK,
@@ -141,6 +142,8 @@ inline const char *GetTokenStr(Token token) {
       return "if";
     case Token::ELSE:
       return "else";
+    case Token::ELIF:
+      return "elif";
     case Token::WHILE:
       return "while";
     case Token::FOR:

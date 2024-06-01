@@ -504,13 +504,24 @@ std::unique_ptr<Statement> TryToParseIfStmt(PackageUnit &pu, const std::vector<W
   ret->SetIfStmt(std::move(stmt_if));
 
   begin = end + 1;
+  while (true) {
+    if (!AssertToken(tokens, begin, Token::ELIF)) {
+      break;
+    }
+    end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
+    auto expr_check = ParseExpression(pu, tokens, begin + 1, end);
+    begin = end + 1;
+    end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
+    auto stmt_block = ParseStmtBlock(pu, tokens, begin, end);
+    ret->AddElifItem(std::move(expr_check), std::move(stmt_block));
+    begin = end + 1;
+  }
   if (AssertToken(tokens, begin, Token::ELSE)) {
     end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
     auto stmt_else = ParseStmtBlock(pu, tokens, begin, end);
     ret->SetElseStmt(std::move(stmt_else));
     begin = end + 1;
   }
-
   next = begin;
   return ret;
 }

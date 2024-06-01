@@ -33,10 +33,10 @@ int main() {
         if (li == call ll:size()) {
           call ret:push_back(rl[ri]);
           ++ri;
-        } else if (ri == call rl:size()) {
+        } elif (ri == call rl:size()) {
           call ret:push_back(ll[li]);
           ++li;
-        } else if (ll[li] < rl[ri]) {
+        } elif (ll[li] < rl[ri]) {
           call ret:push_back(ll[li]);
           ++li;
         } else {

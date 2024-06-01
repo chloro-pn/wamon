@@ -718,6 +718,13 @@ void TypeChecker::CheckStatement(Statement* stmt) {
                            check_type->GetTypeInfo());
     }
     CheckBlockStatement(*this, tmp->if_block_.get());
+    for (auto& each : tmp->elif_item_) {
+      check_type = GetExpressionType(each.elif_check.get());
+      if (!IsBoolType(check_type)) {
+        throw WamonExecption("elif's check expr should return the bool type value, but {}", check_type->GetTypeInfo());
+      }
+      CheckBlockStatement(*this, each.elif_block.get());
+    }
     if (tmp->else_block_ != nullptr) {
       CheckBlockStatement(*this, tmp->else_block_.get());
     }
