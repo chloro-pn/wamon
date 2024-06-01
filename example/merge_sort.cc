@@ -23,29 +23,25 @@ int main() {
       let ret : list(int) = ();
   
       int mid = (begin + end) / 2;
-      let left_list : list(int) = merge_sort(datas, begin, mid);
-      let right_list : list(int) = merge_sort(datas, mid + 1, end);
-      let left_index : int = 0;
-      let right_index : int = 0;
+      let ll : list(int) = merge_sort(datas, begin, mid);
+      let rl : list(int) = merge_sort(datas, mid + 1, end);
+      let li : int = 0;
+      let ri : int = 0;
 
-      let index : int = 0;
-      for(index = begin; index <= end; index = index + 1) {
-        if (left_index == call left_list:size()) {
-          call ret:push_back(right_list[right_index]);
-          right_index = right_index + 1;
+      let i : int = 0;
+      for(i = begin; i <= end; ++i) {
+        if (li == call ll:size()) {
+          call ret:push_back(rl[ri]);
+          ++ri;
+        } else if (ri == call rl:size()) {
+          call ret:push_back(ll[li]);
+          ++li;
+        } else if (ll[li] < rl[ri]) {
+          call ret:push_back(ll[li]);
+          ++li;
         } else {
-          if (right_index == call right_list:size()) {
-            call ret:push_back(left_list[left_index]);
-            left_index = left_index + 1;
-          } else {
-            if (left_list[left_index] < right_list[right_index]) {
-              call ret:push_back(left_list[left_index]);
-              left_index = left_index + 1;
-            } else {
-              call ret:push_back(right_list[right_index]);
-              right_index = right_index + 1;
-            }
-          }
+          call ret:push_back(rl[ri]);
+          ++ri;
         }
       }
       return move ret;
