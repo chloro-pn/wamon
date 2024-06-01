@@ -59,6 +59,7 @@
 wamon为这些类型提供了以下内置方法（目前这里还没做多少，需要提供更多的方法）：
 * string:len() -> int
 * string:at() -> byte
+* string:append(byte|string) -> void
 * list(T):at(int) -> T
 * list(T):size() -> int
 * list(T):insert(int, T) -> void

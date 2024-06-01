@@ -655,6 +655,14 @@ TEST(interpreter, operator) {
   ret = interpreter.CallFunctionByName("main$as_test_4", std::move(tmp_params));
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 3);
+
+  ret = interpreter.ExecExpression(tc, "main", "0X30 as int");
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 48);
+
+  ret = interpreter.ExecExpression(tc, "main", "48 as byte");
+  EXPECT_EQ(ret->GetTypeInfo(), "byte");
+  EXPECT_EQ((char)wamon::AsByteVariable(ret)->GetValue(), '0');
 }
 
 TEST(interpreter, fibonacci) {

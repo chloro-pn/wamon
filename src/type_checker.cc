@@ -296,9 +296,11 @@ std::unique_ptr<Type> CheckAndGetAssignResultType(std::unique_ptr<Type> lt, std:
 
 // as运算符支持内置的类型转换，包括
 // int -> double
+// double -> int
 // int -> bool
+// byte -> int
+// int -> byte
 // list(byte) -> string
-//
 // 以及struct到相容的struct trait的转换
 std::unique_ptr<Type> CheckAndGetAsResultType(std::unique_ptr<Type> lt, std::unique_ptr<Type> rt,
                                               const PackageUnit& pu) {
@@ -309,6 +311,12 @@ std::unique_ptr<Type> CheckAndGetAsResultType(std::unique_ptr<Type> lt, std::uni
     return rt;
   }
   if (IsIntType(lt) && IsBoolType(rt)) {
+    return rt;
+  }
+  if (IsByteType(lt) && IsIntType(rt)) {
+    return rt;
+  }
+  if (IsIntType(lt) && IsByteType(rt)) {
     return rt;
   }
   if (TypeFactory<std::vector<unsigned char>>::Get()->GetTypeInfo() == lt->GetTypeInfo() && IsStringType(rt)) {
