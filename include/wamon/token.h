@@ -50,6 +50,7 @@ enum class Token {
   // 运算符
   PLUS,
   MINUS,
+  INCREMENT,
   MULTIPLY,
   DIVIDE,
   AND,
@@ -180,6 +181,8 @@ inline const char *GetTokenStr(Token token) {
       return "+";
     case Token::MINUS:
       return "-";
+    case Token::INCREMENT:
+      return "++";
     case Token::MULTIPLY:
       return "*";
     case Token::DIVIDE:

@@ -31,6 +31,8 @@ static void register_buildin_u_operators(std::unordered_map<Token, int>& ops) {
   ops[Token::NOT] = 0;
   // move
   ops[Token::MOVE] = 0;
+  // increment
+  ops[Token::INCREMENT] = 0;
 }
 
 static void register_buildin_operator_handles(std::unordered_map<std::string, Operator::BinaryOperatorType>& handles) {
@@ -237,6 +239,15 @@ static void register_buildin_uoperator_handles(std::unordered_map<std::string, O
   handles[tmp] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
     int tmp = AsIntVariable(v)->GetValue();
     return std::make_shared<IntVariable>(-tmp, Variable::ValueCategory::RValue, "");
+  };
+
+  operands.clear();
+  operands.push_back(TypeFactory<int>::Get());
+  tmp = OperatorDef::CreateName(Token::INCREMENT, operands);
+  handles[tmp] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
+    int tmp = AsIntVariable(v)->GetValue();
+    AsIntVariable(v)->SetValue(tmp + 1);
+    return v;
   };
 
   operands.clear();

@@ -413,6 +413,13 @@ std::unique_ptr<Type> CheckAndGetUnaryNotResultType(std::unique_ptr<Type> operan
   throw WamonExecption("invalid operand type for not, {}", operand->GetTypeInfo());
 }
 
+std::unique_ptr<Type> CheckAndGetUnaryIncrementResultType(std::unique_ptr<Type> operand) {
+  if (operand->GetTypeInfo() == "int") {
+    return operand;
+  }
+  throw WamonExecption("invalid operand type for increment, {}", operand->GetTypeInfo());
+}
+
 std::unique_ptr<Type> CheckAndGetUnaryOperatorResultType(Token op, std::unique_ptr<Type> operand_type) {
   if (op == Token::MINUS) {
     return CheckAndGetUnaryMinusResultType(std::move(operand_type));
@@ -428,6 +435,9 @@ std::unique_ptr<Type> CheckAndGetUnaryOperatorResultType(Token op, std::unique_p
   }
   if (op == Token::MOVE) {
     return CheckAndGetUnaryMoveResultType(std::move(operand_type));
+  }
+  if (op == Token::INCREMENT) {
+    return CheckAndGetUnaryIncrementResultType(std::move(operand_type));
   }
   throw WamonExecption("operator {} is not support now", GetTokenStr(op));
 }

@@ -102,6 +102,9 @@ void Scanner::scan(const std::string &str, std::vector<WamonToken> &tokens) {
     } else if (std::regex_search(begin, end, result, std::regex(","), std::regex_constants::match_continuous)) {
       tokens.push_back(WamonToken(Token::COMMA));
       begin = result[0].second;
+    } else if (std::regex_search(begin, end, result, std::regex("\\+\\+"), std::regex_constants::match_continuous)) {
+      tokens.push_back(WamonToken(Token::INCREMENT));
+      begin = result[0].second;
     } else if (std::regex_search(begin, end, result, std::regex("\\+"), std::regex_constants::match_continuous)) {
       tokens.push_back(WamonToken(Token::PLUS));
       begin = result[0].second;

@@ -663,6 +663,10 @@ TEST(interpreter, operator) {
   ret = interpreter.ExecExpression(tc, "main", "48 as byte");
   EXPECT_EQ(ret->GetTypeInfo(), "byte");
   EXPECT_EQ((char)wamon::AsByteVariable(ret)->GetValue(), '0');
+
+  ret = interpreter.ExecExpression(tc, "main", "++2");
+  EXPECT_EQ(ret->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 3);
 }
 
 TEST(interpreter, fibonacci) {
