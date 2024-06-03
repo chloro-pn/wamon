@@ -11,7 +11,7 @@ TEST(parser, basic) {
   wamon::Scanner scan;
   std::string str = "struct test [int a;]";
   auto tokens = scan.Scan(str);
-  EXPECT_THROW(wamon::Parse(tokens), wamon::WamonExecption);
+  EXPECT_THROW(wamon::Parse(tokens), wamon::WamonException);
 
   str = R"(
     package main;
@@ -41,7 +41,7 @@ TEST(parser, find_match) {
 
   str = "{{{";
   tokens = scan.Scan(str);
-  EXPECT_THROW(test_func(tokens), wamon::WamonExecption);
+  EXPECT_THROW(test_func(tokens), wamon::WamonException);
 }
 
 TEST(parser, find_next) {

@@ -50,7 +50,7 @@ class BuiltinFunctions {
 
   void Register(const std::string& name, CheckType ct, HandleType ht) {
     if (builtin_checks_.find(name) != builtin_checks_.end() || builtin_handles_.find(name) != builtin_handles_.end()) {
-      throw WamonExecption("BuiltinFunctions::Register failed, duplicate name {}", name);
+      throw WamonException("BuiltinFunctions::Register failed, duplicate name {}", name);
     }
     builtin_checks_[name] = std::move(ct);
     builtin_handles_[name] = std::move(ht);
@@ -58,10 +58,10 @@ class BuiltinFunctions {
 
   void SetTypeForFunction(const std::string& name, std::unique_ptr<Type>&& type) {
     if (builtin_checks_.find(name) == builtin_checks_.end() || builtin_handles_.find(name) == builtin_handles_.end()) {
-      throw WamonExecption("BuiltinFunctions::SetTypeForFunction failed, func {} not exist", name);
+      throw WamonException("BuiltinFunctions::SetTypeForFunction failed, func {} not exist", name);
     }
     if (!IsFuncType(type)) {
-      throw WamonExecption("BuiltinFunctions::SetTypeForFunction failed, type {} not func type", type->GetTypeInfo());
+      throw WamonException("BuiltinFunctions::SetTypeForFunction failed, type {} not func type", type->GetTypeInfo());
     }
     builtin_types_[name] = std::move(type);
   }

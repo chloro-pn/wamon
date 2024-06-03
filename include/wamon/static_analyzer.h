@@ -37,7 +37,7 @@ class StaticAnalyzer {
   const FunctionDef* FindFunction(const std::string& fname) const {
     auto func = pu_.FindFunction(fname);
     if (func == nullptr) {
-      throw WamonExecption("find function {} error, not exist", fname);
+      throw WamonException("find function {} error, not exist", fname);
     }
     return func;
   }
@@ -75,14 +75,14 @@ class StaticAnalyzer {
       type = IdExpr::Type::BuiltinFunc;
       return ftype;
     }
-    throw WamonExecption("GetTypeByName error, can't find name {}, maybe builtin function or invalid", name);
+    throw WamonException("GetTypeByName error, can't find name {}, maybe builtin function or invalid", name);
   }
 
   void RegisterFuncParamsToContext(const std::vector<ParameterListItem>& params, Context* func_context) {
     std::set<std::string> param_names;
     for (auto& each : params) {
       if (param_names.find(each.name) != param_names.end()) {
-        throw WamonExecption("func or method {} has duplicate param name {}",
+        throw WamonException("func or method {} has duplicate param name {}",
                              func_context->AssertFuncContextAndGetFuncName(), each.name);
       }
       func_context->RegisterVariable(each.name, each.type->Clone());
@@ -94,7 +94,7 @@ class StaticAnalyzer {
       IdExpr::Type type = IdExpr::Type::Invalid;
       auto id_type = GetTypeByName(each.id, type);
       if (type == IdExpr::Type::Invalid || type == IdExpr::Type::Function) {
-        throw WamonExecption("StaticAnalyzer.RegisterFuncParamsToContext, invalid or function id name {}", each.id);
+        throw WamonException("StaticAnalyzer.RegisterFuncParamsToContext, invalid or function id name {}", each.id);
       }
       func_context->RegisterVariable(each.id, std::move(id_type));
     }
@@ -103,7 +103,7 @@ class StaticAnalyzer {
   // 由于lambda的存在，函数作用域是可以嵌套的，因此这里不做限制，只需要解析的时候不在非全局作用域解析函数定义即可
   void Enter(std::unique_ptr<Context>&& c) {
     if (c->GetType() == Context::ContextType::GLOBAL) {
-      throw WamonExecption("enter context error, the global context should be unique");
+      throw WamonException("enter context error, the global context should be unique");
     }
     context_stack_.push_back(std::move(c));
   }
@@ -129,13 +129,13 @@ class StaticAnalyzer {
         return (*it)->AssertMethodContextAndGetTypeName();
       }
     }
-    throw WamonExecption("check method context error");
+    throw WamonException("check method context error");
   }
 
   void CheckForOrWhileContext() {
     for (auto it = context_stack_.rbegin(); it != context_stack_.rend(); ++it) {
       if ((*it)->GetLevel() == 1) {
-        throw WamonExecption("check for or while context error");
+        throw WamonException("check for or while context error");
       }
       Context* cur = (*it).get();
       if (cur->GetLevel() == 2 &&
@@ -143,7 +143,7 @@ class StaticAnalyzer {
         return;
       }
     }
-    throw WamonExecption("check for or while context error");
+    throw WamonException("check for or while context error");
   }
 
   std::unique_ptr<Type> CheckFuncOrMethodAndGetReturnType() {
@@ -163,7 +163,7 @@ class StaticAnalyzer {
         return method_def->GetReturnType()->Clone();
       }
     }
-    throw WamonExecption("check func or method error");
+    throw WamonException("check func or method error");
   }
 
   const std::vector<std::unique_ptr<VariableDefineStmt>>& GetGlobalVarDefStmt() const {

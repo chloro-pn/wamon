@@ -36,28 +36,28 @@ class Context {
 
   const std::string& AssertMethodContextAndGetTypeName() {
     if (type_ != ContextType::METHOD) {
-      throw WamonExecption("get context's type in non-method context");
+      throw WamonException("get context's type in non-method context");
     }
     return method_context_type_name_;
   }
 
   const std::string& AssertMethodContextAndGetMethodName() {
     if (type_ != ContextType::METHOD) {
-      throw WamonExecption("get context's method_name in non-method context");
+      throw WamonException("get context's method_name in non-method context");
     }
     return method_context_method_name_;
   }
 
   const std::string& AssertFuncContextAndGetFuncName() {
     if (type_ != ContextType::FUNC) {
-      throw WamonExecption("assert context's type error, should be func");
+      throw WamonException("assert context's type error, should be func");
     }
     return func_context_func_name_;
   }
 
   void RegisterVariable(const std::string& name, std::unique_ptr<Type>&& type) {
     if (vars_.find(name) != vars_.end()) {
-      throw WamonExecption("register variable error, duplicate name {}", name);
+      throw WamonException("register variable error, duplicate name {}", name);
     }
     vars_[name] = std::move(type);
   }

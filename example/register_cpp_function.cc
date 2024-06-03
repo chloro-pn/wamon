@@ -9,10 +9,10 @@
 
 auto my_cpp_func_check(const std::vector<std::unique_ptr<wamon::Type>>& params_type) -> std::unique_ptr<wamon::Type> {
   if (params_type.size() != 1) {
-    throw wamon::WamonExecption("invalid params count {}", params_type.size());
+    throw wamon::WamonException("invalid params count {}", params_type.size());
   }
   if (!wamon::IsStringType(params_type[0])) {
-    throw wamon::WamonExecption("invalid params type {}", params_type[0]->GetTypeInfo());
+    throw wamon::WamonException("invalid params type {}", params_type[0]->GetTypeInfo());
   }
   return wamon::TypeFactory<int>::Get();
 }

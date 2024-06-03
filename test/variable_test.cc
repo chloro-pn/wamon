@@ -60,5 +60,5 @@ TEST(variable, list) {
   params.push_back(
       wamon::VariableFactoryShared(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu));
   wamon::AsIntVariable(params[0])->SetValue(3);
-  EXPECT_THROW(interpreter.CallFunctionByName("main$my_erase", std::move(params)), wamon::WamonExecption);
+  EXPECT_THROW(interpreter.CallFunctionByName("main$my_erase", std::move(params)), wamon::WamonException);
 }

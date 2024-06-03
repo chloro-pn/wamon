@@ -667,6 +667,24 @@ TEST(interpreter, operator) {
   ret = interpreter.ExecExpression(tc, "main", "++2");
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 3);
+
+  ret = interpreter.ExecExpression(tc, "main", "2 < 3");
+  EXPECT_EQ(wamon::VarAs<bool>(ret), true);
+
+  ret = interpreter.ExecExpression(tc, "main", "2 <= 3");
+  EXPECT_EQ(wamon::VarAs<bool>(ret), true);
+
+  ret = interpreter.ExecExpression(tc, "main", "3 < 2");
+  EXPECT_EQ(wamon::VarAs<bool>(ret), false);
+
+  ret = interpreter.ExecExpression(tc, "main", "3 <= 3");
+  EXPECT_EQ(wamon::VarAs<bool>(ret), true);
+
+  ret = interpreter.ExecExpression(tc, "main", "2 > 3");
+  EXPECT_EQ(wamon::VarAs<bool>(ret), false);
+
+  ret = interpreter.ExecExpression(tc, "main", "3 >= 3");
+  EXPECT_EQ(wamon::VarAs<bool>(ret), true);
 }
 
 TEST(interpreter, fibonacci) {
@@ -724,10 +742,10 @@ TEST(interpreter, register_cpp_function) {
       "func111",
       [](const std::vector<std::unique_ptr<wamon::Type>>& params_type) -> std::unique_ptr<wamon::Type> {
         if (params_type.size() != 1) {
-          throw wamon::WamonExecption("invalid params count {}", params_type.size());
+          throw wamon::WamonException("invalid params count {}", params_type.size());
         }
         if (!wamon::IsStringType(params_type[0])) {
-          throw wamon::WamonExecption("invalid params type {}", params_type[0]->GetTypeInfo());
+          throw wamon::WamonException("invalid params type {}", params_type[0]->GetTypeInfo());
         }
         return wamon::TypeFactory<int>::Get();
       },
@@ -923,8 +941,8 @@ TEST(interpreter, alloc) {
   EXPECT_EQ(wamon::AsIntVariable(it)->GetValue(), 12);
   it.reset();
   interpreter.CallFunctionByName("main$test2", {});
-  EXPECT_THROW(interpreter.ExecExpression(tc, "main", "*v"), wamon::WamonExecption);
-  EXPECT_THROW(interpreter.ExecExpression(tc, "main", "*v2"), wamon::WamonExecption);
+  EXPECT_THROW(interpreter.ExecExpression(tc, "main", "*v"), wamon::WamonException);
+  EXPECT_THROW(interpreter.ExecExpression(tc, "main", "*v2"), wamon::WamonException);
 }
 
 TEST(interpreter, ref) {
@@ -995,7 +1013,7 @@ TEST(interpreter, ref) {
       wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu));
   params.push_back(
       wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu));
-  EXPECT_THROW(interpreter.CallFunctionByName("main$test", std::move(params)), wamon::WamonExecption);
+  EXPECT_THROW(interpreter.CallFunctionByName("main$test", std::move(params)), wamon::WamonException);
 
   interpreter.CallFunctionByName("main$test3", {});
   v = interpreter.FindVariableById("main$v");

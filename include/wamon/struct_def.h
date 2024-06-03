@@ -26,7 +26,7 @@ class StructDef {
   void AddDataMember(const std::string& name, std::unique_ptr<Type>&& type) {
     if (std::find_if(data_members_.begin(), data_members_.end(),
                      [&name](const auto& member) -> bool { return name == member.first; }) != data_members_.end()) {
-      throw WamonExecption("duplicate field {} in type {}", name, name_);
+      throw WamonException("duplicate field {} in type {}", name, name_);
     }
     data_members_.push_back({name, std::move(type)});
   }
@@ -34,7 +34,7 @@ class StructDef {
   void AddMethods(std::unique_ptr<methods_def>&& ms) {
     for (auto&& each : *ms) {
       if ((IsTrait() && !each->IsDeclaration()) || (!IsTrait() && each->IsDeclaration())) {
-        throw WamonExecption(
+        throw WamonException(
             "StructDef.AddMethods error, struct trait only need method declaration and struct must get method declare");
       }
       methods_.emplace_back(std::move(each));
@@ -60,7 +60,7 @@ class StructDef {
                            [&field_name](const auto& member) -> bool { return field_name == member.first; });
     if (it == data_members_.end()) {
       if constexpr (throw_if_not_found) {
-        throw WamonExecption("get data member' type error, field {} not exist", field_name);
+        throw WamonException("get data member' type error, field {} not exist", field_name);
       } else {
         return nullptr;
       }

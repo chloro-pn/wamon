@@ -8,10 +8,14 @@ namespace wamon {
 static void register_buildin_operators(std::unordered_map<Token, int>& ops) {
   ops[Token::COMPARE] = 0;
   ops[Token::ASSIGN] = 0;
-  ops[Token::PLUS] = 1;
-  ops[Token::MINUS] = 1;
-  ops[Token::MULTIPLY] = 2;
-  ops[Token::DIVIDE] = 2;
+  ops[Token::GT] = 1;
+  ops[Token::LT] = 1;
+  ops[Token::GTE] = 1;
+  ops[Token::LTE] = 1;
+  ops[Token::PLUS] = 2;
+  ops[Token::MINUS] = 2;
+  ops[Token::MULTIPLY] = 3;
+  ops[Token::DIVIDE] = 3;
   ops[Token::AND] = 5;
   ops[Token::OR] = 4;
   ops[Token::PIPE] = 6;
@@ -35,6 +39,12 @@ static void register_buildin_u_operators(std::unordered_map<Token, int>& ops) {
   ops[Token::INCREMENT] = 0;
 }
 
+#define WAMON_COMPARISON_HANDLE(op, variable_type)                                                            \
+  [](Interpreter&, std::shared_ptr<Variable> v1, std::shared_ptr<Variable> v2) -> std::shared_ptr<Variable> { \
+    bool v = As##variable_type(v1)->GetValue() op As##variable_type(v2)->GetValue();                          \
+    return std::make_shared<BoolVariable>(v, Variable::ValueCategory::RValue, "");                            \
+  }
+
 static void register_buildin_operator_handles(std::unordered_map<std::string, Operator::BinaryOperatorType>& handles) {
   // operator +
   std::vector<std::unique_ptr<Type>> operands;
@@ -46,6 +56,15 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
     int v = AsIntVariable(v1)->GetValue() + AsIntVariable(v2)->GetValue();
     return std::make_shared<IntVariable>(v, Variable::ValueCategory::RValue, "");
   };
+  // operand <, <=, >, >=
+  tmp = OperatorDef::CreateName(Token::LT, operands);
+  handles[tmp] = WAMON_COMPARISON_HANDLE(<, IntVariable);
+  tmp = OperatorDef::CreateName(Token::LTE, operands);
+  handles[tmp] = WAMON_COMPARISON_HANDLE(<=, IntVariable);
+  tmp = OperatorDef::CreateName(Token::GT, operands);
+  handles[tmp] = WAMON_COMPARISON_HANDLE(>, IntVariable);
+  tmp = OperatorDef::CreateName(Token::GTE, operands);
+  handles[tmp] = WAMON_COMPARISON_HANDLE(>=, IntVariable);
 
   operands.clear();
   operands.push_back(TypeFactory<double>::Get());
@@ -56,6 +75,16 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
     double v = AsDoubleVariable(v1)->GetValue() + AsDoubleVariable(v2)->GetValue();
     return std::make_shared<DoubleVariable>(v, Variable::ValueCategory::RValue, "");
   };
+
+  // operand <, <=, >, >=
+  tmp = OperatorDef::CreateName(Token::LT, operands);
+  handles[tmp] = WAMON_COMPARISON_HANDLE(<, DoubleVariable);
+  tmp = OperatorDef::CreateName(Token::LTE, operands);
+  handles[tmp] = WAMON_COMPARISON_HANDLE(<=, DoubleVariable);
+  tmp = OperatorDef::CreateName(Token::GT, operands);
+  handles[tmp] = WAMON_COMPARISON_HANDLE(>, DoubleVariable);
+  tmp = OperatorDef::CreateName(Token::GTE, operands);
+  handles[tmp] = WAMON_COMPARISON_HANDLE(>=, DoubleVariable);
 
   operands.clear();
   operands.push_back(TypeFactory<std::string>::Get());
@@ -213,7 +242,7 @@ static void register_buildin_uoperator_handles(std::unordered_map<std::string, O
   handles[GetTokenStr(Token::MULTIPLY)] = [](std::shared_ptr<Variable> v) -> std::shared_ptr<Variable> {
     auto ret = AsPointerVariable(v)->GetHoldVariable();
     if (ret == nullptr) {
-      throw WamonExecption("dereference to pointer error, invalid pointer(nullptr)");
+      throw WamonException("dereference to pointer error, invalid pointer(nullptr)");
     }
     return ret;
   };

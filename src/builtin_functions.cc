@@ -45,13 +45,13 @@ static auto _print_check(const std::vector<std::unique_ptr<Type>>& params_type) 
 
 static auto _to_string_check(const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
   if (params_type.size() != 1) {
-    throw WamonExecption("to_string type_check error ,params_type.size() == {}", params_type.size());
+    throw WamonException("to_string type_check error ,params_type.size() == {}", params_type.size());
   }
   auto& type = params_type[0];
   if (IsIntType(type) || IsDoubleType(type) || IsBoolType(type) || IsByteType(type)) {
     return TypeFactory<std::string>::Get();
   }
-  throw WamonExecption("to_string type_check error, type {} cant not be to_string", type->GetTypeInfo());
+  throw WamonException("to_string type_check error, type {} cant not be to_string", type->GetTypeInfo());
 }
 
 static void register_builtin_checks(std::unordered_map<std::string, BuiltinFunctions::CheckType>& checks) {
@@ -68,7 +68,7 @@ std::unique_ptr<Type> BuiltinFunctions::TypeCheck(const std::string& name,
                                                   const std::vector<std::unique_ptr<Type>>& params_type) const {
   auto check = builtin_checks_.find(name);
   if (check == builtin_checks_.end()) {
-    throw WamonExecption("BuiltinFunctions::TypeCheck error, not implemented {} now", name);
+    throw WamonException("BuiltinFunctions::TypeCheck error, not implemented {} now", name);
   }
   return check->second(params_type);
 }

@@ -58,8 +58,10 @@ enum class Token {
   NOT,
   ASSIGN,
   COMPARE,
-  GT,  // GREATER_THAN
-  LT,  // LESS_THAN,
+  GT,   // GREATER_THAN
+  LT,   // LESS_THAN,
+  GTE,  // GREATER_THAN_OR_EQ
+  LTE,  // LESS_THAN_OR_EQ
   ADDRESS_OF,
   PIPE,
   MEMBER_ACCESS,  // a.b == a MEMBER_ACCESS b
@@ -199,8 +201,12 @@ inline const char *GetTokenStr(Token token) {
       return "==";
     case Token::GT:
       return ">";
+    case Token::GTE:
+      return ">=";
     case Token::LT:
       return "<";
+    case Token::LTE:
+      return "<=";
     case Token::ADDRESS_OF:
       return "&";
     case Token::PIPE:
@@ -266,7 +272,7 @@ inline const char *GetTokenStr(Token token) {
     case Token::TEOF:
       return "TEOF";
     default:
-      throw WamonExecption("invalid token");
+      throw WamonException("invalid token");
   }
 }
 

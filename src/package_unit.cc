@@ -38,7 +38,7 @@ PackageUnit PackageUnit::_MergePackageUnits(std::vector<PackageUnit>&& packages)
 void PackageUnit::RegisterCppFunctions(const std::string& name, std::unique_ptr<Type> func_type,
                                        BuiltinFunctions::HandleType ht) {
   if (IsFuncType(func_type) == false) {
-    throw WamonExecption("RegisterCppFunctions error, {} have non-function type : {}", name, func_type->GetTypeInfo());
+    throw WamonException("RegisterCppFunctions error, {} have non-function type : {}", name, func_type->GetTypeInfo());
   }
   auto ftype = func_type->Clone();
   MoveWrapper<decltype(ftype)> mw(std::move(ftype));
@@ -48,12 +48,12 @@ void PackageUnit::RegisterCppFunctions(const std::string& name, std::unique_ptr<
     auto par_type = GetParamType(func_type);
     size_t param_size = par_type.size();
     if (param_size != params_type.size()) {
-      throw WamonExecption("RegisterCppFunctions error, func {} params type count {} != {}", name, params_type.size(),
+      throw WamonException("RegisterCppFunctions error, func {} params type count {} != {}", name, params_type.size(),
                            param_size);
     }
     for (size_t i = 0; i < param_size; ++i) {
       if (!IsSameType(par_type[i], params_type[i])) {
-        throw WamonExecption("RegisterCppFunctions error, func {} {}th param type mismatch : {} != {}", name, i,
+        throw WamonException("RegisterCppFunctions error, func {} {}th param type mismatch : {} != {}", name, i,
                              par_type[i]->GetTypeInfo(), params_type[i]->GetTypeInfo());
       }
     }

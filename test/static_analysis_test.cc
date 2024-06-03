@@ -51,7 +51,7 @@ TEST(static_analysis, globalvar_dependent) {
   pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc(pu);
-  EXPECT_THROW(tc.CheckAndRegisterGlobalVariable(), wamon::WamonExecption);
+  EXPECT_THROW(tc.CheckAndRegisterGlobalVariable(), wamon::WamonException);
 }
 
 TEST(static_analysis, duplicate_name) {
@@ -63,7 +63,7 @@ TEST(static_analysis, duplicate_name) {
   )";
 
   auto tokens = scan.Scan(str);
-  EXPECT_THROW(wamon::Parse(tokens), wamon::WamonExecption);
+  EXPECT_THROW(wamon::Parse(tokens), wamon::WamonException);
 
   str = R"(
     package main;
@@ -77,7 +77,7 @@ TEST(static_analysis, duplicate_name) {
     }
   )";
   tokens = scan.Scan(str);
-  EXPECT_THROW(wamon::Parse(tokens), wamon::WamonExecption);
+  EXPECT_THROW(wamon::Parse(tokens), wamon::WamonException);
 
   str = R"(
     package main;
@@ -91,7 +91,7 @@ TEST(static_analysis, duplicate_name) {
     };
   )";
   tokens = scan.Scan(str);
-  EXPECT_THROW(wamon::Parse(tokens), wamon::WamonExecption);
+  EXPECT_THROW(wamon::Parse(tokens), wamon::WamonException);
 }
 
 TEST(static_analysis, return_type) {
@@ -150,7 +150,7 @@ TEST(static_analysis, return_type) {
     wamon::PackageUnit pu = wamon::Parse(tokens);
     wamon::TypeChecker tc(pu);
     tc.CheckAndRegisterGlobalVariable();
-    EXPECT_THROW(tc.CheckFunctions(), wamon::WamonExecption);
+    EXPECT_THROW(tc.CheckFunctions(), wamon::WamonException);
   }
 }
 
@@ -212,7 +212,7 @@ TEST(static_analysis, type_dismatch) {
 
   wamon::TypeChecker tc(pu);
   EXPECT_NO_THROW(tc.CheckAndRegisterGlobalVariable());
-  EXPECT_THROW(tc.CheckFunctions(), wamon::WamonExecption);
+  EXPECT_THROW(tc.CheckFunctions(), wamon::WamonException);
 
   str = R"(
     package main;
@@ -224,7 +224,7 @@ TEST(static_analysis, type_dismatch) {
   pu = wamon::MergePackageUnits(std::move(pu));
 
   wamon::TypeChecker tc2(pu);
-  EXPECT_THROW(tc2.CheckAndRegisterGlobalVariable(), wamon::WamonExecption);
+  EXPECT_THROW(tc2.CheckAndRegisterGlobalVariable(), wamon::WamonException);
 }
 
 TEST(static_analysis, builtin_func_check) {
@@ -297,7 +297,7 @@ TEST(static_analysis, construct_check) {
     wamon::PackageUnit pu = wamon::Parse(tokens);
     pu = wamon::MergePackageUnits(std::move(pu));
     wamon::TypeChecker tc(pu);
-    EXPECT_THROW(tc.CheckAndRegisterGlobalVariable(), wamon::WamonExecption);
+    EXPECT_THROW(tc.CheckAndRegisterGlobalVariable(), wamon::WamonException);
   }
 }
 
@@ -497,5 +497,5 @@ TEST(static_analysis, struct_dependent_check) {
   pu = wamon::Parse(tokens);
   pu = wamon::MergePackageUnits(std::move(pu));
   wamon::TypeChecker tc2(pu);
-  EXPECT_THROW(tc2.CheckStructs(), wamon::WamonExecption);
+  EXPECT_THROW(tc2.CheckStructs(), wamon::WamonException);
 }

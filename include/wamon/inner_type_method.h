@@ -39,7 +39,7 @@ class InnerTypeMethod {
     std::string handle_id = GetHandleId(builtintype, method_name);
     auto handle = checks_.find(handle_id);
     if (handle == checks_.end()) {
-      throw WamonExecption("builtinTypeMethod check error, invalid handle id {}", handle_id);
+      throw WamonException("builtinTypeMethod check error, invalid handle id {}", handle_id);
     }
     return handle->second(builtintype, params_type);
   }

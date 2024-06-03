@@ -114,5 +114,5 @@ TEST(package_unit, import_check) {
   )";
 
   auto tokens = scan.Scan(main_script);
-  EXPECT_THROW(wamon::Parse(tokens), wamon::WamonExecption);
+  EXPECT_THROW(wamon::Parse(tokens), wamon::WamonException);
 }

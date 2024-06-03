@@ -37,7 +37,7 @@ void Interpreter::Dealloc(std::shared_ptr<Variable> v) {
   auto ptr_to = AsPointerVariable(v)->GetHoldVariable();
   auto it = heap_.find(ptr_to);
   if (it == heap_.end()) {
-    throw WamonExecption("Interpreter::Dealloc error, variable {}:{} not exist in heap", ptr_to->GetName(),
+    throw WamonException("Interpreter::Dealloc error, variable {}:{} not exist in heap", ptr_to->GetName(),
                          ptr_to->GetTypeInfo());
   }
   heap_.erase(it);
@@ -55,7 +55,7 @@ std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_
       assert(capture_name == function_def->GetCaptureIds().begin());
       if (param_name->is_ref == true) {
         if (param->IsRValue()) {
-          throw WamonExecption("Interpreter::CallFunction error, ref parameter {} can not be rvalue", param_name->name);
+          throw WamonException("Interpreter::CallFunction error, ref parameter {} can not be rvalue", param_name->name);
         }
         GetCurrentContext()->RegisterVariable(param, param_name->name);
       } else {
@@ -71,7 +71,7 @@ std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_
   }
   auto result = function_def->block_stmt_->Execute(*this);
   if (result.state_ != ExecuteState::Return) {
-    throw WamonExecption("interpreter call function {} error, diden't end by return stmt",
+    throw WamonException("interpreter call function {} error, diden't end by return stmt",
                          function_def->GetFunctionName());
   }
   LeaveContext();
@@ -84,7 +84,7 @@ std::shared_ptr<Variable> Interpreter::CallCallable(std::shared_ptr<Variable> ca
   auto obj = AsFunctionVariable(callable)->GetObj();
   auto& capture_variable = AsFunctionVariable(callable)->GetCaptureVariables();
   if (func_name.empty() && obj == nullptr) {
-    throw WamonExecption("Interpreter.CallCallable error, the callable is null state, cant not be called");
+    throw WamonException("Interpreter.CallCallable error, the callable is null state, cant not be called");
   }
   for (auto& each : capture_variable) {
     params.push_back(each);
@@ -103,7 +103,7 @@ std::shared_ptr<Variable> Interpreter::CallCallable(std::shared_ptr<Variable> ca
 std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj, const MethodDef* method_def,
                                                   std::vector<std::shared_ptr<Variable>>&& params) {
   if (method_def->IsDeclaration()) {
-    throw WamonExecption("Interpreter.CallMethod error, method {} is declaration", method_def->GetMethodName());
+    throw WamonException("Interpreter.CallMethod error, method {} is declaration", method_def->GetMethodName());
   }
   EnterContext<RuntimeContextType::Method>();
   auto param_name = method_def->GetParamList().begin();
@@ -111,7 +111,7 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
     assert(param_name != method_def->GetParamList().end());
     if (param_name->is_ref == true) {
       if (param->IsRValue() == true) {
-        throw WamonExecption("Interpreter::CallMethod error, ref parameter can not be rvalue");
+        throw WamonException("Interpreter::CallMethod error, ref parameter can not be rvalue");
       }
       GetCurrentContext()->RegisterVariable(param, param_name->name);
     } else {
@@ -122,7 +122,7 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
   GetCurrentContext()->RegisterVariable(obj, "__self__");
   auto result = method_def->GetBlockStmt()->Execute(*this);
   if (result.state_ != ExecuteState::Return) {
-    throw WamonExecption("interpreter call method {}.{} error, diden't end by return stmt", obj->GetName(),
+    throw WamonException("interpreter call method {}.{} error, diden't end by return stmt", obj->GetName(),
                          method_def->GetMethodName());
   }
   LeaveContext();

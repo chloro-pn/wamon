@@ -42,7 +42,7 @@ std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
   if (IsFuncType(type)) {
     return std::make_unique<FunctionVariable>(GetParamType(type), GetReturnType(type), vc, name);
   }
-  throw WamonExecption("VariableFactory error, not implement now.");
+  throw WamonException("VariableFactory error, not implement now.");
 }
 
 std::shared_ptr<Variable> VariableFactoryShared(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
@@ -78,7 +78,7 @@ void StructVariable::UpdateDataMemberByName(const std::string& name, std::shared
   auto it =
       std::find_if(data_members_.begin(), data_members_.end(), [&](auto& each) -> bool { return each.name == name; });
   if (it == data_members_.end()) {
-    throw WamonExecption("StructVariable.UpdateDataMemberByName error, data member {} not exist", name);
+    throw WamonException("StructVariable.UpdateDataMemberByName error, data member {} not exist", name);
   }
   it->data = data;
 }
@@ -99,11 +99,11 @@ void StructVariable::ConstructByFields(const std::vector<std::shared_ptr<Variabl
   }
   auto& members = def_->GetDataMembers();
   if (fields.size() != members.size()) {
-    throw WamonExecption("StructVariable's ConstructByFields method error : fields.size() == {}", fields.size());
+    throw WamonException("StructVariable's ConstructByFields method error : fields.size() == {}", fields.size());
   }
   for (size_t i = 0; i < members.size(); ++i) {
     if (fields[i]->GetTypeInfo() != members[i].second->GetTypeInfo()) {
-      throw WamonExecption("StructVariable's ConstructByFields method error : {}th type dismatch : {} != {}", i,
+      throw WamonException("StructVariable's ConstructByFields method error : {}th type dismatch : {} != {}", i,
                            fields[i]->GetTypeInfo(), members[i].second->GetTypeInfo());
     }
     if (fields[i]->IsRValue()) {
@@ -266,10 +266,10 @@ void StructVariable::Print(Output& output) {
 
 void PointerVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
   if (fields.size() != 1) {
-    throw WamonExecption("PointerVariable's ConstructByFields method error : fields.size() == {}", fields.size());
+    throw WamonException("PointerVariable's ConstructByFields method error : fields.size() == {}", fields.size());
   }
   if (GetTypeInfo() != fields[0]->GetTypeInfo()) {
-    throw WamonExecption("PointerVariable's ConstructByFields method error, type dismatch : {} != {}",
+    throw WamonException("PointerVariable's ConstructByFields method error, type dismatch : {} != {}",
                          fields[0]->GetTypeInfo(), GetTypeInfo());
   }
   obj_ = AsPointerVariable(fields[0])->GetHoldVariable();
@@ -294,7 +294,7 @@ void ListVariable::PushBack(std::shared_ptr<Variable> element) {
 
 void ListVariable::PopBack() {
   if (elements_.empty()) {
-    throw WamonExecption("List pop back error, empty list");
+    throw WamonException("List pop back error, empty list");
   }
   elements_.pop_back();
 }
@@ -302,7 +302,7 @@ void ListVariable::PopBack() {
 void ListVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
   for (auto& each : fields) {
     if (each->GetTypeInfo() != element_type_->GetTypeInfo()) {
-      throw WamonExecption("ListVariable::ConstructByFields error, type dismatch : {} != {}", each->GetTypeInfo(),
+      throw WamonException("ListVariable::ConstructByFields error, type dismatch : {} != {}", each->GetTypeInfo(),
                            element_type_->GetTypeInfo());
     }
     if (each->IsRValue()) {
@@ -333,7 +333,7 @@ std::unique_ptr<Variable> ListVariable::Clone() {
 
 void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
   if (fields.size() != 1) {
-    throw WamonExecption("FunctionVariable's ConstructByFields method error : fields.size() == {}", fields.size());
+    throw WamonException("FunctionVariable's ConstructByFields method error : fields.size() == {}", fields.size());
   }
   if (IsBasicType(fields[0]->GetType()) && !IsBuiltInType(fields[0]->GetType())) {
     // structtype
@@ -346,7 +346,7 @@ void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Varia
     return;
   }
   if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
-    throw WamonExecption("FunctionVariable's ConstructByFields method error, type dismatch : {} != {}",
+    throw WamonException("FunctionVariable's ConstructByFields method error, type dismatch : {} != {}",
                          fields[0]->GetTypeInfo(), GetTypeInfo());
   }
   auto other = AsFunctionVariable(fields[0]);

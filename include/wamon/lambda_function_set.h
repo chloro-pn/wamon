@@ -14,7 +14,7 @@ class LambdaFunctionSet {
 
   void RegisterLambdaFunction(const std::string& name, std::unique_ptr<FunctionDef>&& lambda) {
     if (funcs_.find(name) != funcs_.end()) {
-      throw WamonExecption("LambdaFunctionSet.RegisterLambdaFunction error, duplicate name {}", name);
+      throw WamonException("LambdaFunctionSet.RegisterLambdaFunction error, duplicate name {}", name);
     }
     funcs_.insert({name, std::move(lambda)});
   }

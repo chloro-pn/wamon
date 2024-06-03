@@ -30,13 +30,13 @@ enum class RuntimeContextType {
 struct RuntimeContext {
   void check_not_exist(const std::string& name) {
     if (symbol_table_.find(name) != symbol_table_.end()) {
-      throw WamonExecption("runtimeContext symbol_table get dumplicate variable name {}", name);
+      throw WamonException("runtimeContext symbol_table get dumplicate variable name {}", name);
     }
   }
 
   void check_exist(const std::string& name) {
     if (symbol_table_.find(name) == symbol_table_.end()) {
-      throw WamonExecption("runtimeContext symbol_table get not exist variable name {}", name);
+      throw WamonException("runtimeContext symbol_table get not exist variable name {}", name);
     }
   }
 
@@ -142,7 +142,7 @@ class Interpreter {
     } else {
       return ret;
     }
-    throw WamonExecption("operator {} calculate error, handle not exist", GetTokenStr(op));
+    throw WamonException("operator {} calculate error, handle not exist", GetTokenStr(op));
   }
 
   template <bool throw_if_not_found = true>
@@ -164,7 +164,7 @@ class Interpreter {
     }
     auto result = package_context_.FindVariable(id_name);
     if (result == nullptr && throw_if_not_found == true) {
-      throw WamonExecption("Interpreter.FindVariableById error, not found {}", id_name);
+      throw WamonException("Interpreter.FindVariableById error, not found {}", id_name);
     }
     return result;
   }
@@ -177,7 +177,7 @@ class Interpreter {
                                          std::vector<std::shared_ptr<Variable>>&& params) {
     auto func = GetPackageUnit().GetBuiltinFunctions().Get(builtin_name);
     if (func == nullptr) {
-      throw WamonExecption("CallFunction error, {} not exist", builtin_name);
+      throw WamonException("CallFunction error, {} not exist", builtin_name);
     }
     EnterContext<RuntimeContextType::Function>();
     auto ret = (*func)(std::move(params));
@@ -193,7 +193,7 @@ class Interpreter {
     }
     auto function_def = pu_.FindFunction(func_name);
     if (function_def == nullptr) {
-      throw WamonExecption("Interpreter::CallFunctionByName error, function {} not exist", func_name);
+      throw WamonException("Interpreter::CallFunctionByName error, function {} not exist", func_name);
     }
     return CallFunction(function_def, std::move(params));
   }
@@ -222,14 +222,14 @@ class Interpreter {
     auto type = obj->GetTypeInfo();
     auto struct_def = pu_.FindStruct(type);
     if (struct_def == nullptr) {
-      throw WamonExecption("CallMethodByName error, struct {} not exist", type);
+      throw WamonException("CallMethodByName error, struct {} not exist", type);
     }
     if (struct_def->IsTrait()) {
       return CallMethodByName(AsStructVariable(obj)->GetTraitObj(), method_name, std::move(params));
     }
     auto method_def = struct_def->GetMethod(method_name);
     if (method_def == nullptr) {
-      throw WamonExecption("CallMethodByName error, method {} not exist", method_name);
+      throw WamonException("CallMethodByName error, method {} not exist", method_name);
     }
     return CallMethod(obj, method_def, std::move(params));
   }

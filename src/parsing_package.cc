@@ -17,7 +17,7 @@ void AssertInImportListOrThrow(const std::string& package_name) {
       return;
     }
   }
-  throw WamonExecption("AssertInImportsOrThrow error, package {} not in packge {}'s import list", package_name,
+  throw WamonException("AssertInImportsOrThrow error, package {} not in packge {}'s import list", package_name,
                        current_parsing_package);
 }
 

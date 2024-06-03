@@ -33,7 +33,7 @@ bool TypeChecker::CheckAll(std::string& reason) {
     CheckStructs();
     CheckFunctions();
     CheckMethods();
-  } catch (const wamon::WamonExecption& e) {
+  } catch (const wamon::WamonException& e) {
     reason = e.what();
     type_check_succ = false;
   }
@@ -151,7 +151,7 @@ void TypeChecker::CheckStructs() {
     }
   }
   if (graph.TopologicalSort() == false) {
-    throw WamonExecption("struct dependent check error");
+    throw WamonException("struct dependent check error");
   }
 }
 
@@ -257,12 +257,12 @@ std::unique_ptr<Type> CheckAndGetSSResultType(const TypeChecker& tc, BinaryExpr*
   auto right_type = tc.GetExpressionType(binary_expr->right_.get());
   // 且不考虑编译期常量的支持
   if (right_type->GetTypeInfo() != "int") {
-    throw WamonExecption("the list's index type should be int, but {}", right_type->GetTypeInfo());
+    throw WamonException("the list's index type should be int, but {}", right_type->GetTypeInfo());
   }
   auto left_type = tc.GetExpressionType(binary_expr->left_.get());
   auto list_type = dynamic_cast<ListType*>(left_type.get());
   if (list_type == nullptr) {
-    throw WamonExecption("the object call operator[] should have list type, but {}", left_type->GetTypeInfo());
+    throw WamonException("the object call operator[] should have list type, but {}", left_type->GetTypeInfo());
   }
   return list_type->GetHoldType();
 }
@@ -273,7 +273,7 @@ std::unique_ptr<Type> CheckAndGetMemberAccessResultType(const TypeChecker& tc, B
   // 这里保证数据成员访问运算符第二个操作数一定是IdExpr类型
   auto right_expr = dynamic_cast<IdExpr*>(binary_expr->right_.get());
   if (right_expr == nullptr) {
-    throw WamonExecption("member access's right operand should be id expr");
+    throw WamonException("member access's right operand should be id expr");
   }
   const std::string& id = right_expr->GetId();
   return tc.GetStaticAnalyzer().GetDataMemberType(left_type->GetTypeInfo(), id);
@@ -326,8 +326,20 @@ std::unique_ptr<Type> CheckAndGetAsResultType(std::unique_ptr<Type> lt, std::uni
   if (CheckTraitConstraint(pu, rt, lt, reason)) {
     return rt;
   }
-  throw WamonExecption("CheckAndGetAsResutlType error, lt : {}, rt : {}, reason : {}", lt->GetTypeInfo(),
+  throw WamonException("CheckAndGetAsResutlType error, lt : {}, rt : {}, reason : {}", lt->GetTypeInfo(),
                        rt->GetTypeInfo(), reason);
+}
+
+std::unique_ptr<Type> CheckAndGetComparisonOperatorResultType(Token op, std::unique_ptr<Type> lt,
+                                                              std::unique_ptr<Type> rt, const PackageUnit& pu) {
+  if (IsSameType(lt, TypeFactory<int>::Get()) || IsSameType(rt, TypeFactory<int>::Get())) {
+    return TypeFactory<bool>::Get();
+  }
+  if (IsSameType(lt, TypeFactory<double>::Get()) || IsSameType(rt, TypeFactory<double>::Get())) {
+    return TypeFactory<bool>::Get();
+  }
+  throw WamonException("CheckAndGetComparisonOperatorResultType error, op {}, lt {}, rt {}", GetTokenStr(op),
+                       lt->GetTypeInfo(), rt->GetTypeInfo());
 }
 
 // 首先尝试内置支持的运算符类型，如果失败则尝试自定义运算符重载
@@ -354,6 +366,9 @@ std::unique_ptr<Type> CheckAndGetBinaryOperatorResultType(Token op, std::unique_
   if (op == Token::AS) {
     ret = CheckAndGetAsResultType(std::move(lt), std::move(rt), pu);
   }
+  if (op == Token::LT || op == Token::GT || op == Token::LTE || op == Token::GTE) {
+    ret = CheckAndGetComparisonOperatorResultType(op, std::move(lt), std::move(rt), pu);
+  }
   if (ret == nullptr) {
     std::vector<std::unique_ptr<Type>*> tmp = {&lt_copy, &rt_copy};
     std::string op_func_name = OperatorDef::CreateName(op, std::move(tmp));
@@ -365,7 +380,7 @@ std::unique_ptr<Type> CheckAndGetBinaryOperatorResultType(Token op, std::unique_
   if (ret != nullptr) {
     return ret;
   } else {
-    throw WamonExecption("invalid operand type for {} : {} and {}", GetTokenStr(op), lt_copy->GetTypeInfo(),
+    throw WamonException("invalid operand type for {} : {} and {}", GetTokenStr(op), lt_copy->GetTypeInfo(),
                          rt_copy->GetTypeInfo());
   }
 }
@@ -384,12 +399,12 @@ std::unique_ptr<Type> CheckAndGetUnaryMinusResultType(std::unique_ptr<Type> oper
       return operand->Clone();
     }
   }
-  throw WamonExecption("invalid operand type for unary_minus, {}", operand->GetTypeInfo());
+  throw WamonException("invalid operand type for unary_minus, {}", operand->GetTypeInfo());
 }
 
 std::unique_ptr<Type> CheckAndGetUnaryMultiplyResultType(std::unique_ptr<Type> operand) {
   if (IsPtrType(operand) == false) {
-    throw WamonExecption("invalid operand type for deref, {}", operand->GetTypeInfo());
+    throw WamonException("invalid operand type for deref, {}", operand->GetTypeInfo());
   }
   return dynamic_cast<PointerType*>(operand.get())->hold_type_->Clone();
 }
@@ -410,14 +425,14 @@ std::unique_ptr<Type> CheckAndGetUnaryNotResultType(std::unique_ptr<Type> operan
   if (operand->GetTypeInfo() == "bool") {
     return operand;
   }
-  throw WamonExecption("invalid operand type for not, {}", operand->GetTypeInfo());
+  throw WamonException("invalid operand type for not, {}", operand->GetTypeInfo());
 }
 
 std::unique_ptr<Type> CheckAndGetUnaryIncrementResultType(std::unique_ptr<Type> operand) {
   if (operand->GetTypeInfo() == "int") {
     return operand;
   }
-  throw WamonExecption("invalid operand type for increment, {}", operand->GetTypeInfo());
+  throw WamonException("invalid operand type for increment, {}", operand->GetTypeInfo());
 }
 
 std::unique_ptr<Type> CheckAndGetUnaryOperatorResultType(Token op, std::unique_ptr<Type> operand_type) {
@@ -439,7 +454,7 @@ std::unique_ptr<Type> CheckAndGetUnaryOperatorResultType(Token op, std::unique_p
   if (op == Token::INCREMENT) {
     return CheckAndGetUnaryIncrementResultType(std::move(operand_type));
   }
-  throw WamonExecption("operator {} is not support now", GetTokenStr(op));
+  throw WamonException("operator {} is not support now", GetTokenStr(op));
 }
 
 std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype,
@@ -447,13 +462,13 @@ std::unique_ptr<Type> CheckAndGetCallableReturnType(const TypeChecker& tc, const
   auto type = dynamic_cast<FuncType*>(ctype.get());
   assert(type != nullptr);
   if (type->param_type_.size() != call_expr->parameters_.size()) {
-    throw WamonExecption("callable_object_call error, The number of parameters does not match : {} != {}",
+    throw WamonException("callable_object_call error, The number of parameters does not match : {} != {}",
                          type->param_type_.size(), call_expr->parameters_.size());
   }
   for (size_t arg_i = 0; arg_i < type->param_type_.size(); ++arg_i) {
     auto arg_i_type = tc.GetExpressionType(call_expr->parameters_[arg_i].get());
     if (!IsSameType(type->param_type_[arg_i], arg_i_type)) {
-      throw WamonExecption("callable_object_call error, arg_{}'s type dismatch {} != {}", arg_i,
+      throw WamonException("callable_object_call error, arg_{}'s type dismatch {} != {}", arg_i,
                            type->param_type_[arg_i]->GetTypeInfo(), arg_i_type->GetTypeInfo());
     }
   }
@@ -465,7 +480,7 @@ std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& t
                                                             FuncCallExpr* call_expr) {
   auto struct_type = dynamic_cast<BasicType*>(ctype.get());
   if (struct_type == nullptr) {
-    throw WamonExecption("invalid type {} for call op", ctype->GetTypeInfo());
+    throw WamonException("invalid type {} for call op", ctype->GetTypeInfo());
   }
   std::vector<std::unique_ptr<Type>> param_types;
   for (auto& each : call_expr->parameters_) {
@@ -474,7 +489,7 @@ std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& t
   std::string op_func_name = OperatorDef::CreateName(Token::LEFT_PARENTHESIS, param_types);
   auto method_def = tc.GetStaticAnalyzer().FindTypeMethod(struct_type->GetTypeInfo(), op_func_name);
   if (method_def == nullptr) {
-    throw WamonExecption("invalid type {} for call op", ctype->GetTypeInfo());
+    throw WamonException("invalid type {} for call op", ctype->GetTypeInfo());
   }
   call_expr->method_name = op_func_name;
   return method_def->GetReturnType()->Clone();
@@ -494,13 +509,13 @@ std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const M
                                                   const MethodCallExpr* call_expr) {
   assert(method != nullptr);
   if (method->param_list_.size() != call_expr->parameters_.size()) {
-    throw WamonExecption("method_call {} error, The number of parameters does not match : {} != {}",
+    throw WamonException("method_call {} error, The number of parameters does not match : {} != {}",
                          call_expr->method_name_, method->param_list_.size(), call_expr->parameters_.size());
   }
   for (size_t arg_i = 0; arg_i < method->param_list_.size(); ++arg_i) {
     auto arg_i_type = tc.GetExpressionType(call_expr->parameters_[arg_i].get());
     if (!IsSameType(method->param_list_[arg_i].type, arg_i_type)) {
-      throw WamonExecption("method_call {} error, arg_{}'s type dismatch {} != {}", call_expr->method_name_, arg_i,
+      throw WamonException("method_call {} error, arg_{}'s type dismatch {} != {}", call_expr->method_name_, arg_i,
                            method->param_list_[arg_i].type->GetTypeInfo(), arg_i_type->GetTypeInfo());
     }
   }
@@ -511,13 +526,13 @@ std::unique_ptr<Type> CheckAndGetMethodReturnType(const TypeChecker& tc, const M
 std::unique_ptr<Type> CheckAndGetFuncReturnType(const TypeChecker& tc, const FunctionDef* function,
                                                 const FuncCallExpr* call_expr) {
   if (function->param_list_.size() != call_expr->parameters_.size()) {
-    throw WamonExecption("func_call {} error, The number of parameters does not match : {} != {}", function->name_,
+    throw WamonException("func_call {} error, The number of parameters does not match : {} != {}", function->name_,
                          function->param_list_.size(), call_expr->parameters_.size());
   }
   for (size_t arg_i = 0; arg_i < function->param_list_.size(); ++arg_i) {
     auto arg_i_type = tc.GetExpressionType(call_expr->parameters_[arg_i].get());
     if (!IsSameType(function->param_list_[arg_i].type, arg_i_type)) {
-      throw WamonExecption("func_call {} error, arg_{}'s type dismatch {} != {}", function->name_, arg_i,
+      throw WamonException("func_call {} error, arg_{}'s type dismatch {} != {}", function->name_, arg_i,
                            function->param_list_[arg_i].type->GetTypeInfo(), arg_i_type->GetTypeInfo());
     }
   }
@@ -561,7 +576,7 @@ std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecke
     auto func = tc.GetStaticAnalyzer().FindFunction(func_name);
     return CheckAndGetFuncReturnType(tc, func, call_expr);
   }
-  throw WamonExecption("CheckParamTypeAndGetResultTypeForFunction error, invalid format");
+  throw WamonException("CheckParamTypeAndGetResultTypeForFunction error, invalid format");
 }
 
 std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker& tc, MethodCallExpr* method_call_expr) {
@@ -616,7 +631,7 @@ std::unique_ptr<Type> CheckAndGetTypeForDeallocExpr(TypeChecker& tc, DeallocExpr
   auto& expr = dealloc_expr->GetDeallocParam();
   auto type = tc.GetExpressionType(expr.get());
   if (!IsPtrType(type)) {
-    throw WamonExecption("check dealloc expr's type error, not pointer : {}", type->GetTypeInfo());
+    throw WamonException("check dealloc expr's type error, not pointer : {}", type->GetTypeInfo());
   }
   return GetVoidType();
 }
@@ -686,7 +701,7 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   }
   auto tmp = dynamic_cast<IdExpr*>(expr);
   if (tmp == nullptr) {
-    throw WamonExecption("type check error, invalid expression type.");
+    throw WamonException("type check error, invalid expression type.");
   }
   // 在上下文栈上向上查找这个id对应的类型并返回
   IdExpr::Type type = IdExpr::Type::Invalid;
@@ -715,7 +730,7 @@ void TypeChecker::CheckStatement(Statement* stmt) {
     auto check_type = GetExpressionType(tmp->check_.get());
     GetExpressionType(tmp->update_.get());
     if (!IsBoolType(check_type)) {
-      throw WamonExecption("for_stmt's check expr should return the value which has bool type, but {}",
+      throw WamonException("for_stmt's check expr should return the value which has bool type, but {}",
                            check_type->GetTypeInfo());
     }
     CheckBlockStatement(*this, tmp->block_.get());
@@ -724,14 +739,14 @@ void TypeChecker::CheckStatement(Statement* stmt) {
   if (auto tmp = dynamic_cast<IfStmt*>(stmt)) {
     auto check_type = GetExpressionType(tmp->check_.get());
     if (!IsBoolType(check_type)) {
-      throw WamonExecption("if_stmt's check expr should return the value which has bool type, but {}",
+      throw WamonException("if_stmt's check expr should return the value which has bool type, but {}",
                            check_type->GetTypeInfo());
     }
     CheckBlockStatement(*this, tmp->if_block_.get());
     for (auto& each : tmp->elif_item_) {
       check_type = GetExpressionType(each.elif_check.get());
       if (!IsBoolType(check_type)) {
-        throw WamonExecption("elif's check expr should return the bool type value, but {}", check_type->GetTypeInfo());
+        throw WamonException("elif's check expr should return the bool type value, but {}", check_type->GetTypeInfo());
       }
       CheckBlockStatement(*this, each.elif_block.get());
     }
@@ -743,7 +758,7 @@ void TypeChecker::CheckStatement(Statement* stmt) {
   if (auto tmp = dynamic_cast<WhileStmt*>(stmt)) {
     auto check_type = GetExpressionType(tmp->check_.get());
     if (!IsBoolType(check_type)) {
-      throw WamonExecption("while_stmt's check expr should return the value which has bool type, but {}",
+      throw WamonException("while_stmt's check expr should return the value which has bool type, but {}",
                            check_type->GetTypeInfo());
     }
     CheckBlockStatement(*this, tmp->block_.get());
@@ -759,12 +774,12 @@ void TypeChecker::CheckStatement(Statement* stmt) {
     if (tmp->return_ != nullptr) {
       auto return_type = GetExpressionType(tmp->return_.get());
       if (!IsSameType(return_type, define_return_type)) {
-        throw WamonExecption("return type dismatch, {} != {}", define_return_type->GetTypeInfo(),
+        throw WamonException("return type dismatch, {} != {}", define_return_type->GetTypeInfo(),
                              return_type->GetTypeInfo());
       }
     } else {
       if (!IsSameType(define_return_type, GetVoidType())) {
-        throw WamonExecption("defined return void, but return expr has type {}", define_return_type->GetTypeInfo());
+        throw WamonException("defined return void, but return expr has type {}", define_return_type->GetTypeInfo());
       }
     }
     return;
@@ -786,7 +801,7 @@ void TypeChecker::CheckStatement(Statement* stmt) {
     static_analyzer_.GetCurrentContext()->RegisterVariable(tmp->GetVarName(), tmp->GetType()->Clone());
     return;
   }
-  throw WamonExecption("invalid stmt type {}, check error", stmt->GetStmtName());
+  throw WamonException("invalid stmt type {}, check error", stmt->GetStmtName());
 }
 
 void TypeChecker::CheckExpression(ExpressionStmt* expr) {

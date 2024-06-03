@@ -31,7 +31,7 @@ bool AssertToken(const std::vector<WamonToken> &tokens, size_t &begin, Token tok
  */
 void AssertTokenOrThrow(const std::vector<WamonToken> &tokens, size_t &begin, Token token, const char *file, int line) {
   if (tokens.size() <= begin || tokens[begin].token != token) {
-    throw WamonExecption("assert token error, assert {}, but {}, file : {}, line {}", GetTokenStr(token),
+    throw WamonException("assert token error, assert {}, but {}, file : {}, line {}", GetTokenStr(token),
                          GetTokenStr(tokens[begin].token), file, line);
   }
   begin += 1;
@@ -40,7 +40,7 @@ void AssertTokenOrThrow(const std::vector<WamonToken> &tokens, size_t &begin, To
 // package_name, var_name
 std::pair<std::string, std::string> ParseIdentifier(const std::vector<WamonToken> &tokens, size_t &begin) {
   if (tokens.size() <= begin || tokens[begin].token != Token::ID || tokens[begin].type != WamonToken::ValueType::STR) {
-    throw WamonExecption("parse identifier error : {}", GetTokenStr(tokens[begin].token));
+    throw WamonException("parse identifier error : {}", GetTokenStr(tokens[begin].token));
   }
   std::string v1 = tokens[begin].Get<std::string>();
   begin += 1;
@@ -49,7 +49,7 @@ std::pair<std::string, std::string> ParseIdentifier(const std::vector<WamonToken
   }
   begin += 1;
   if (tokens[begin].token != Token::ID || tokens[begin].type != WamonToken::ValueType::STR) {
-    throw WamonExecption("parse identifier error : {}", GetTokenStr(tokens[begin].token));
+    throw WamonException("parse identifier error : {}", GetTokenStr(tokens[begin].token));
   }
   std::string v2 = tokens[begin].Get<std::string>();
   begin += 1;
@@ -59,7 +59,7 @@ std::pair<std::string, std::string> ParseIdentifier(const std::vector<WamonToken
 
 std::pair<std::string, std::string> ParseBasicType(const std::vector<WamonToken> &tokens, size_t &begin) {
   if (tokens.size() <= begin) {
-    throw WamonExecption("parse basic type error, invalid index {}", begin);
+    throw WamonException("parse basic type error, invalid index {}", begin);
   }
   std::string package_name;
   std::string ret;
@@ -98,7 +98,7 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
     auto nested_type = ParseType(tokens, begin);
     auto tmp = std::make_unique<PointerType>(std::move(nested_type));
     if (right_parent != begin) {
-      throw WamonExecption("parse ptr type error");
+      throw WamonException("parse ptr type error");
     }
     begin += 1;
     return tmp;
@@ -151,7 +151,7 @@ void ParseTypeList(const std::vector<WamonToken> &tokens, size_t begin, size_t e
     return_type = GetVoidType();
   }
   if (begin != end) {
-    throw WamonExecption("parse type list error");
+    throw WamonException("parse type list error");
   }
 }
 
@@ -179,7 +179,7 @@ void ParseCaptureIdList(const std::vector<WamonToken> &tokens, size_t begin, siz
     id = package_name + "$" + id;
     auto it = std::find_if(ids.begin(), ids.end(), [&id](auto &item) -> bool { return item.id == id; });
     if (it != ids.end()) {
-      throw WamonExecption("ParseCpatureIdList error, duplicate id {}", id);
+      throw WamonException("ParseCpatureIdList error, duplicate id {}", id);
     }
     item.id = id;
     ids.push_back(item);
@@ -268,7 +268,7 @@ static void PushBoperators(std::stack<Token> &b_operators, std::stack<std::uniqu
          Operator::Instance().GetLevel(current_token) <= Operator::Instance().GetLevel(b_operators.top())) {
     std::unique_ptr<BinaryExpr> bin_expr(new BinaryExpr());
     if (operands.size() < 2 || b_operators.empty() == true) {
-      throw WamonExecption("parse expression error");
+      throw WamonException("parse expression error");
     }
     bin_expr->SetOp(b_operators.top());
     b_operators.pop();
@@ -463,7 +463,7 @@ std::unique_ptr<Expression> ParseExpression(PackageUnit &pu, const std::vector<W
   }
   while (b_operators.empty() == false) {
     if (operands.size() < 2 || b_operators.empty() == true) {
-      throw WamonExecption("parse expression error");
+      throw WamonException("parse expression error");
     }
     std::unique_ptr<BinaryExpr> bin_expr(new BinaryExpr());
     bin_expr->SetOp(b_operators.top());
@@ -477,10 +477,10 @@ std::unique_ptr<Expression> ParseExpression(PackageUnit &pu, const std::vector<W
     operands.push(std::move(bin_expr));
   }
   if (operands.size() != 1 || b_operators.empty() != true || u_operators.empty() != true) {
-    throw WamonExecption("parse expression error, operands.size() != 1");
+    throw WamonException("parse expression error, operands.size() != 1");
   }
   if (parse_state != ParseExpressionState::NO_OP) {
-    throw WamonExecption("parse expression error, parse_state != NO_OP");
+    throw WamonException("parse expression error, parse_state != NO_OP");
   }
   return std::move(operands.top());
 }
@@ -545,7 +545,7 @@ std::unique_ptr<Statement> TryToParseForStmt(PackageUnit &pu, const std::vector<
 
   tnext = FindNextToken<Token::SEMICOLON>(tokens, begin, end);
   if (tnext != end) {
-    throw WamonExecption("parse for stmt error");
+    throw WamonException("parse for stmt error");
   }
   auto update = ParseExpression(pu, tokens, begin, end);
   ret->SetUpdate(std::move(update));
@@ -717,7 +717,7 @@ std::vector<ParameterListItem> ParseParameterList(const std::vector<WamonToken> 
     }
   }
   if (begin != end + 1) {
-    throw WamonExecption("parse parameter list error, {} != {}", begin, end + 1);
+    throw WamonException("parse parameter list error, {} != {}", begin, end + 1);
   }
   return ret;
 }
@@ -789,12 +789,12 @@ std::unique_ptr<OperatorDef> TryToParseOperatorOverride(PackageUnit &pu, const s
     ret.reset(new OperatorDef(Token::LEFT_PARENTHESIS));
   } else {
     if (begin >= tokens.size()) {
-      throw WamonExecption("parse operator override error");
+      throw WamonException("parse operator override error");
     }
     Token op = tokens[begin].token;
     bool succ = Operator::Instance().CanBeOverride(op);
     if (succ == false) {
-      throw WamonExecption("operator {} can't be override", GetTokenStr(op));
+      throw WamonException("operator {} can't be override", GetTokenStr(op));
     }
     token = op;
     ret.reset(new OperatorDef(op));
@@ -875,11 +875,11 @@ std::unique_ptr<methods_def> TryToParseMethodDeclaration(PackageUnit &pu, const 
       Token op_token;
       auto call_op = TryToParseOperatorOverride(pu, tokens, begin, op_token);
       if (call_op == nullptr) {
-        throw WamonExecption("parse method error, invalid operator override and method {}", method->GetFunctionName());
+        throw WamonException("parse method error, invalid operator override and method {}", method->GetFunctionName());
       }
       // 目前仅支持()运算符重载
       if (op_token != Token::LEFT_PARENTHESIS) {
-        throw WamonExecption("only support override () operator as struct's method from now on, error_info : {}, {}",
+        throw WamonException("only support override () operator as struct's method from now on, error_info : {}, {}",
                              GetTokenStr(op_token), method->GetFunctionName());
       }
       // 对于成员函数的运算符重载，我们总是将其转换为方法
@@ -983,7 +983,7 @@ std::vector<std::string> ParseImportPackages(const std::vector<WamonToken> &toke
 // 函数声明、结构体声明、变量定义声明（均位于package作用域，顺序无关）
 PackageUnit Parse(const std::vector<WamonToken> &tokens) {
   if (tokens.empty() == true || tokens.back().token != Token::TEOF) {
-    throw WamonExecption("invalid tokens");
+    throw WamonException("invalid tokens");
   }
   PackageUnit package_unit;
   size_t current_index = 0;
@@ -1030,7 +1030,7 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
       continue;
     }
     if (old_index == current_index) {
-      throw WamonExecption("parse error, invalid token {}", GetTokenStr(token.token));
+      throw WamonException("parse error, invalid token {}", GetTokenStr(token.token));
     }
   }
 

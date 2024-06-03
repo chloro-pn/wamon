@@ -44,7 +44,7 @@ std::shared_ptr<Variable> FuncCallExpr::Calculate(Interpreter& interpreter) {
     auto result = interpreter.CallMethod(obj, method_def, std::move(params));
     return result;
   }
-  throw WamonExecption("FuncCallExpr calculate error, invalid type");
+  throw WamonException("FuncCallExpr calculate error, invalid type");
 }
 
 std::shared_ptr<Variable> MethodCallExpr::Calculate(Interpreter& interpreter) {
@@ -101,7 +101,7 @@ std::shared_ptr<Variable> UnaryExpr::Calculate(Interpreter& interpreter) {
 // 如果id指向的是变量，则从调用栈中找到该变量返回，如果id指向的是函数，则构造一个右值的FunctionVariable对象返回
 std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
   if (type_ == Type::Invalid) {
-    throw WamonExecption("IdExpr {} {} Calculate error, type invalid", package_name_, id_name_);
+    throw WamonException("IdExpr {} {} Calculate error, type invalid", package_name_, id_name_);
   }
   if (type_ == Type::Variable || type_ == Type::Callable) {
     return interpreter.FindVariableById(GenerateIdent());
@@ -142,7 +142,7 @@ std::shared_ptr<Variable> LambdaExpr::Calculate(Interpreter& interpreter) {
       capture_variables.push_back(v);
     } else if (each.type == CaptureIdItem::Type::REF) {
       if (v->IsRValue()) {
-        throw WamonExecption("LambdaExpr::Calculate error, ref id can not be rvalue");
+        throw WamonException("LambdaExpr::Calculate error, ref id can not be rvalue");
       }
       capture_variables.push_back(v);
     } else {
@@ -312,7 +312,7 @@ ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
     if (IsRef()) {
       // if rvalue
       if (fields[0]->IsRValue()) {
-        throw WamonExecption("VariableDefineStmt::Execute failed, let ref can not be constructed by rvalue");
+        throw WamonException("VariableDefineStmt::Execute failed, let ref can not be constructed by rvalue");
       } else {
         v = fields[0];
       }

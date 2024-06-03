@@ -33,7 +33,7 @@ class PackageUnit {
     if (std::find_if(var_define_.begin(), var_define_.end(), [&vd](const auto& v) -> bool {
           return vd->GetVarName() == v->GetVarName();
         }) != var_define_.end()) {
-      throw WamonExecption("duplicate global value {}", vd->GetVarName());
+      throw WamonException("duplicate global value {}", vd->GetVarName());
     }
     var_define_.push_back(std::move(vd));
   }
@@ -41,7 +41,7 @@ class PackageUnit {
   void AddFuncDef(std::unique_ptr<FunctionDef>&& func_def) {
     auto name = func_def->GetFunctionName();
     if (funcs_.find(name) != funcs_.end()) {
-      throw WamonExecption("duplicate func {}", func_def->GetFunctionName());
+      throw WamonException("duplicate func {}", func_def->GetFunctionName());
     }
     funcs_[name] = std::move(func_def);
   }
@@ -49,7 +49,7 @@ class PackageUnit {
   void AddStructDef(std::unique_ptr<StructDef>&& struct_def) {
     auto name = struct_def->GetStructName();
     if (structs_.find(name) != structs_.end()) {
-      throw WamonExecption("duplicate struct {}", struct_def->GetStructName());
+      throw WamonException("duplicate struct {}", struct_def->GetStructName());
     }
     structs_[name] = std::move(struct_def);
   }
@@ -57,7 +57,7 @@ class PackageUnit {
   void AddMethod(const std::string& type_name, std::unique_ptr<methods_def>&& methods) {
     assert(type_name.empty() == false);
     if (structs_.find(type_name) == structs_.end()) {
-      throw WamonExecption("add method error, invalid type : {}", type_name);
+      throw WamonException("add method error, invalid type : {}", type_name);
     }
     structs_[type_name]->AddMethods(std::move(methods));
   }
@@ -65,7 +65,7 @@ class PackageUnit {
   void AddLambdaFunction(const std::string& lambda_name, std::unique_ptr<FunctionDef>&& lambda) {
     assert(LambdaExpr::IsLambdaName(lambda_name));
     if (funcs_.find(lambda_name) != funcs_.end()) {
-      throw WamonExecption("PackageUnit.AddLambdaFunction error, duplicate function name {}", lambda_name);
+      throw WamonException("PackageUnit.AddLambdaFunction error, duplicate function name {}", lambda_name);
     }
     funcs_[lambda_name] = std::move(lambda);
   }
@@ -89,11 +89,11 @@ class PackageUnit {
   const MethodDef* FindTypeMethod(const std::string& type_name, const std::string& method_name) const {
     auto it = structs_.find(type_name);
     if (it == structs_.end()) {
-      throw WamonExecption("FindTypeMethod error, type {} not exist", type_name, method_name);
+      throw WamonException("FindTypeMethod error, type {} not exist", type_name, method_name);
     }
     auto ret = it->second->GetMethod(method_name);
     if (ret == nullptr) {
-      throw WamonExecption("FindTypeMethod error, type {}'s method {} not exist", type_name, method_name);
+      throw WamonException("FindTypeMethod error, type {}'s method {} not exist", type_name, method_name);
     }
     return ret;
   }
@@ -101,7 +101,7 @@ class PackageUnit {
   std::unique_ptr<Type> GetDataMemberType(const std::string& type_name, const std::string& field_name) const {
     auto it = structs_.find(type_name);
     if (it == structs_.end()) {
-      throw WamonExecption("get data member'type error, type {} not exist", type_name);
+      throw WamonException("get data member'type error, type {} not exist", type_name);
     }
     return it->second->GetDataMemberType(field_name);
   }
@@ -130,7 +130,7 @@ class PackageUnit {
   const std::vector<std::string>& GetImportsFromPackageName(const std::string& package) {
     auto it = package_imports_.find(package);
     if (it == package_imports_.end()) {
-      throw WamonExecption("PackageUnit.GetImportsFromPackageName error ,package {} not exist", package);
+      throw WamonException("PackageUnit.GetImportsFromPackageName error ,package {} not exist", package);
     }
     return it->second;
   }

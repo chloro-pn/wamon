@@ -9,7 +9,7 @@ std::string concat(const std::string& type, const std::string& method) { return 
 
 static void throw_params_type_check_error_exception(const std::string& type_info, const std::string& method,
                                                     const std::string& reason) {
-  throw WamonExecption("builtin type method check error , type {} , method {}, reason {}", type_info, method, reason);
+  throw WamonException("builtin type method check error , type {} , method {}, reason {}", type_info, method, reason);
 }
 
 static void register_builtin_type_method_check(std::unordered_map<std::string, InnerTypeMethod::CheckType>& handles) {
@@ -17,7 +17,7 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
       [](const std::unique_ptr<Type>& builtin_type,
          const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
     if (params_type.empty() == false) {
-      throw WamonExecption("string.len error, params.size() == {}", params_type.size());
+      throw WamonException("string.len error, params.size() == {}", params_type.size());
     }
     return TypeFactory<int>::Get();
   };
@@ -25,10 +25,10 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
   handles[concat("string", "at")] = [](const std::unique_ptr<Type>& builtin_type,
                                        const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
     if (params_type.size() != 1) {
-      throw WamonExecption("string.at error, params.size() == {}", params_type.size());
+      throw WamonException("string.at error, params.size() == {}", params_type.size());
     }
     if (!IsIntType(params_type[0])) {
-      throw WamonExecption("string.at error, param's type == {}", params_type[0]->GetTypeInfo());
+      throw WamonException("string.at error, param's type == {}", params_type[0]->GetTypeInfo());
     }
     return TypeFactory<unsigned char>::Get();
   };
@@ -37,10 +37,10 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
       [](const std::unique_ptr<Type>& builtin_type,
          const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
     if (params_type.size() != 1) {
-      throw WamonExecption("string.append error, params.size() == {}", params_type.size());
+      throw WamonException("string.append error, params.size() == {}", params_type.size());
     }
     if (!IsStringType(params_type[0]) && !IsByteType(params_type[0])) {
-      throw WamonExecption("string.append error, param's type == {}", params_type[0]->GetTypeInfo());
+      throw WamonException("string.append error, param's type == {}", params_type[0]->GetTypeInfo());
     }
     return TypeFactory<void>::Get();
   };
@@ -48,7 +48,7 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
   handles[concat("list", "size")] = [](const std::unique_ptr<Type>& builtin_type,
                                        const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
     if (params_type.size() != 0) {
-      throw WamonExecption("list.size error, params.size() == {}", params_type.size());
+      throw WamonException("list.size error, params.size() == {}", params_type.size());
     }
     return TypeFactory<int>::Get();
   };
@@ -75,10 +75,10 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
       [](const std::unique_ptr<Type>& builtin_type,
          const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
     if (params_type.size() != 1) {
-      throw WamonExecption("list.push_back error, params.size() == {}", params_type.size());
+      throw WamonException("list.push_back error, params.size() == {}", params_type.size());
     }
     if (!IsSameType(GetElementType(builtin_type), params_type[0])) {
-      throw WamonExecption("list.push_back error, params type dismatch : {} != {}",
+      throw WamonException("list.push_back error, params type dismatch : {} != {}",
                            GetElementType(builtin_type)->GetTypeInfo(), params_type[0]->GetTypeInfo());
     }
     return GetVoidType();
@@ -88,7 +88,7 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
       [](const std::unique_ptr<Type>& builtin_type,
          const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
     if (params_type.size() != 0) {
-      throw WamonExecption("list.pop_back error, params.size() == {}", params_type.size());
+      throw WamonException("list.pop_back error, params.size() == {}", params_type.size());
     }
     return GetVoidType();
   };
@@ -97,10 +97,10 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
       [](const std::unique_ptr<Type>& builtin_type,
          const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
     if (params_type.size() != 1) {
-      throw WamonExecption("list.resize error, params.size() == {}", params_type.size());
+      throw WamonException("list.resize error, params.size() == {}", params_type.size());
     }
     if (!IsIntType(params_type[0])) {
-      throw WamonExecption("list.resize error, params type == {}", params_type[0]->GetTypeInfo());
+      throw WamonException("list.resize error, params type == {}", params_type[0]->GetTypeInfo());
     }
     return GetVoidType();
   };
@@ -109,10 +109,10 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
       [](const std::unique_ptr<Type>& builtin_type,
          const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
     if (params_type.size() != 1) {
-      throw WamonExecption("list.erase error, params.size() == {}", params_type.size());
+      throw WamonException("list.erase error, params.size() == {}", params_type.size());
     }
     if (!IsIntType(params_type[0])) {
-      throw WamonExecption("list.erase error, params type == {}", params_type[0]->GetTypeInfo());
+      throw WamonException("list.erase error, params type == {}", params_type[0]->GetTypeInfo());
     }
     return GetVoidType();
   };
@@ -132,7 +132,7 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
     const std::string& v = AsStringVariable(obj)->GetValue();
     int index = AsIntVariable(params[0])->GetValue();
     if (static_cast<size_t>(index) >= v.size()) {
-      throw WamonExecption("string.at error, index out of range : {} >= {}", index, v.size());
+      throw WamonException("string.at error, index out of range : {} >= {}", index, v.size());
     }
     return std::make_shared<ByteVariable>(v[index], Variable::ValueCategory::RValue, "");
   };

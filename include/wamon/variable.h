@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "wamon/exception.h"
 #include "wamon/output.h"
 #include "wamon/type.h"
 
@@ -84,10 +85,10 @@ class VoidVariable : public Variable {
       : Variable(std::move(type), ValueCategory::RValue) {}
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
-    throw WamonExecption("VoidVariable should not call ConstructByFields method");
+    throw WamonException("VoidVariable should not call ConstructByFields method");
   }
 
-  void DefaultConstruct() override { throw WamonExecption("VoidVariable should not call DefaultConstruct method"); }
+  void DefaultConstruct() override { throw WamonException("VoidVariable should not call DefaultConstruct method"); }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -95,10 +96,10 @@ class VoidVariable : public Variable {
   }
 
   void Assign(const std::shared_ptr<Variable>& other) override {
-    throw WamonExecption("VoidVariable.Assign should not be called");
+    throw WamonException("VoidVariable.Assign should not be called");
   }
 
-  void Print(Output& output) override { throw WamonExecption("VoidVariable.Print should not be called"); }
+  void Print(Output& output) override { throw WamonException("VoidVariable.Print should not be called"); }
 
   std::unique_ptr<Variable> Clone() override { return std::make_unique<VoidVariable>(); }
 };
@@ -127,10 +128,10 @@ class StringVariable : public Variable {
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     if (fields.size() != 1) {
-      throw WamonExecption("StringVariable's ConstructByFields method error : fields.size() == {}", fields.size());
+      throw WamonException("StringVariable's ConstructByFields method error : fields.size() == {}", fields.size());
     }
     if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
-      throw WamonExecption("StringVariable's ConstructByFields method error, type dismatch : {} != {}",
+      throw WamonException("StringVariable's ConstructByFields method error, type dismatch : {} != {}",
                            fields[0]->GetTypeInfo(), GetTypeInfo());
     }
     StringVariable* ptr = static_cast<StringVariable*>(fields[0].get());
@@ -190,10 +191,10 @@ class BoolVariable : public Variable {
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     if (fields.size() != 1) {
-      throw WamonExecption("BoolVariable's ConstructByFields method error : fields.size() == {}", fields.size());
+      throw WamonException("BoolVariable's ConstructByFields method error : fields.size() == {}", fields.size());
     }
     if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
-      throw WamonExecption("BoolVariable's ConstructByFields method error, type dismatch : {} != {}",
+      throw WamonException("BoolVariable's ConstructByFields method error, type dismatch : {} != {}",
                            fields[0]->GetTypeInfo(), GetTypeInfo());
     }
     BoolVariable* ptr = static_cast<BoolVariable*>(fields[0].get());
@@ -237,10 +238,10 @@ class IntVariable : public Variable {
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     if (fields.size() != 1) {
-      throw WamonExecption("IntVariable's ConstructByFields method error : fields.size() == {}", fields.size());
+      throw WamonException("IntVariable's ConstructByFields method error : fields.size() == {}", fields.size());
     }
     if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
-      throw WamonExecption("IntVariable's ConstructByFields method error, type dismatch : {} != {}",
+      throw WamonException("IntVariable's ConstructByFields method error, type dismatch : {} != {}",
                            fields[0]->GetTypeInfo(), GetTypeInfo());
     }
     IntVariable* ptr = static_cast<IntVariable*>(fields[0].get());
@@ -287,10 +288,10 @@ class DoubleVariable : public Variable {
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     if (fields.size() != 1) {
-      throw WamonExecption("DoubleVariable's ConstructByFields method error : fields.size() == {}", fields.size());
+      throw WamonException("DoubleVariable's ConstructByFields method error : fields.size() == {}", fields.size());
     }
     if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
-      throw WamonExecption("DoubleVariable's ConstructByFields method error, type dismatch : {} != {}",
+      throw WamonException("DoubleVariable's ConstructByFields method error, type dismatch : {} != {}",
                            fields[0]->GetTypeInfo(), GetTypeInfo());
     }
     DoubleVariable* ptr = static_cast<DoubleVariable*>(fields[0].get());
@@ -337,10 +338,10 @@ class ByteVariable : public Variable {
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     if (fields.size() != 1) {
-      throw WamonExecption("ByteVariable's ConstructByFields method error : fields.size() == {}", fields.size());
+      throw WamonException("ByteVariable's ConstructByFields method error : fields.size() == {}", fields.size());
     }
     if (fields[0]->GetTypeInfo() != GetTypeInfo()) {
-      throw WamonExecption("ByteVariable's ConstructByFields method error, type dismatch : {} != {}",
+      throw WamonException("ByteVariable's ConstructByFields method error, type dismatch : {} != {}",
                            fields[0]->GetTypeInfo(), GetTypeInfo());
     }
     ByteVariable* ptr = static_cast<ByteVariable*>(fields[0].get());
@@ -395,7 +396,7 @@ class StructVariable : public Variable {
 
   void check_trait_not_null(const char* file, int line) {
     if (trait_proxy_ == nullptr) {
-      throw WamonExecption("check trait not null feiled, {} {}", file, line);
+      throw WamonException("check trait not null feiled, {} {}", file, line);
     }
   }
 
@@ -504,7 +505,7 @@ class ListVariable : public CompoundVariable {
 
   void Erase(size_t index) {
     if (index >= elements_.size()) {
-      throw WamonExecption("List.Erase error, index out of range : {} >= {}", index, elements_.size());
+      throw WamonException("List.Erase error, index out of range : {} >= {}", index, elements_.size());
     }
     auto it = elements_.begin();
     std::advance(it, index);
@@ -513,7 +514,7 @@ class ListVariable : public CompoundVariable {
 
   void Insert(size_t index, std::shared_ptr<Variable> v) {
     if (index > Size()) {
-      throw WamonExecption("List.Insert error, index = {}, size = {}", index, Size());
+      throw WamonException("List.Insert error, index = {}, size = {}", index, Size());
     }
     auto it = elements_.begin();
     std::advance(it, index);
@@ -522,14 +523,14 @@ class ListVariable : public CompoundVariable {
 
   std::shared_ptr<Variable> at(size_t i) {
     if (i >= Size()) {
-      throw WamonExecption("ListVariable.at error, index {} out of range", i);
+      throw WamonException("ListVariable.at error, index {} out of range", i);
     }
     return elements_[i];
   }
 
   std::string get_string_only_for_byte_list() {
     if (!IsByteType(element_type_)) {
-      throw WamonExecption("ListVariable.get_string_only_for_byte_list can only be called by List(byte) type");
+      throw WamonException("ListVariable.get_string_only_for_byte_list can only be called by List(byte) type");
     }
     std::string ret;
     for (auto& each : elements_) {
@@ -666,5 +667,32 @@ inline FunctionVariable* AsFunctionVariable(const std::shared_ptr<Variable>& v) 
 }
 
 inline FunctionVariable* AsFunctionVariable(Variable* v) { return static_cast<FunctionVariable*>(v); }
+
+template <typename T>
+T VarAs(const std::shared_ptr<Variable>& v) {
+  if constexpr (std::is_same_v<int, T>) {
+    assert(IsSameType(TypeFactory<int>::Get(), v->GetType()));
+    return AsIntVariable(v)->GetValue();
+  }
+  if constexpr (std::is_same_v<double, T>) {
+    assert(IsSameType(TypeFactory<double>::Get(), v->GetType()));
+    return AsDoubleVariable(v)->GetValue();
+  }
+  if constexpr (std::is_same_v<unsigned char, T>) {
+    assert(IsSameType(TypeFactory<unsigned char>::Get(), v->GetType()));
+    return AsByteVariable(v)->GetValue();
+  }
+  if constexpr (std::is_same_v<bool, T>) {
+    assert(IsSameType(TypeFactory<bool>::Get(), v->GetType()));
+    return AsBoolVariable(v)->GetValue();
+  }
+  if constexpr (std::is_same_v<std::string, T>) {
+    assert(IsSameType(TypeFactory<std::string>::Get(), v->GetType()));
+    return AsStringVariable(v)->GetValue();
+  }
+  throw WamonException("VarAs error, not support type {} now", v->GetTypeInfo());
+  // unreachable
+  return T{};
+}
 
 }  // namespace wamon
