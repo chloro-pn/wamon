@@ -60,10 +60,10 @@ cc_binary(
   ],
 )
 
-# cc_binary(
-#   name = "merge_sort",
-#   srcs = ["example/merge_sort.cc"],
-#   deps = [
-#     ":wamon"
-#   ],
-# )
+cc_binary(
+  name = "merge_sort",
+  srcs = ["example/merge_sort.cc"],
+  deps = [
+    ":wamon"
+  ],
+)

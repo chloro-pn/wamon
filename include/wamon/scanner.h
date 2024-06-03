@@ -1,6 +1,7 @@
 #pragma once
 
 #include <any>
+#include <iostream>
 #include <sstream>
 #include <vector>
 
@@ -44,6 +45,14 @@ class Scanner {
     scan(str, tokens_);
     tokens_.push_back(WamonToken(Token::TEOF));
     return tokens_;
+  }
+
+  void PrintTokens() {
+    size_t index = 0;
+    for (auto &each : tokens_) {
+      std::cout << index << " : " << GetTokenStr(each.token) << std::endl;
+      index += 1;
+    }
   }
 
  private:

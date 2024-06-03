@@ -576,7 +576,12 @@ class ListVariable : public CompoundVariable {
   }
 
   void Print(Output& output) override {
-    output.OutputFormat("list ({}) size : {}", element_type_->GetTypeInfo(), elements_.size());
+    output.OutputFormat("list ({}) size : {}\n", element_type_->GetTypeInfo(), elements_.size());
+    for (size_t i = 0; i < elements_.size(); ++i) {
+      std::cout << i << " : ";
+      elements_[i]->Print(output);
+      std::cout << std::endl;
+    }
   }
 
  private:

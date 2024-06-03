@@ -13,6 +13,10 @@ int main() {
 
     let datas : list(int) = (5, 1, 3, 2, 4, 8, 6, 7);
 
+    func MergeSort() -> list(int) {
+      return call merge_sort:(datas, 0, call datas:size() - 1);
+    }
+
     func merge_sort(list(int) ref datas, int begin, int end) -> list(int) {
       if (end < begin) {
         return new list(int)();
@@ -22,9 +26,9 @@ int main() {
       }
       let ret : list(int) = ();
   
-      int mid = (begin + end) / 2;
-      let ll : list(int) = merge_sort(datas, begin, mid);
-      let rl : list(int) = merge_sort(datas, mid + 1, end);
+      let mid : int = ((begin + end) / 2);
+      let ll : list(int) = call merge_sort:(datas, begin, mid);
+      let rl : list(int) = call merge_sort:(datas, mid + 1, end);
       let li : int = 0;
       let ri : int = 0;
 
@@ -61,8 +65,12 @@ int main() {
     return -1;
   }
   wamon::Interpreter ip(package_unit);
-  auto ret = ip.CallFunctionByName("sort$merge_sort", {});
-  wamon::StdOutput out;
-  ret->Print(out);
+  auto ret = ip.CallFunctionByName("sort$MergeSort", {});
+  auto v = wamon::AsListVariable(ret);
+  std::cout << "after merge sort : ";
+  for (size_t i = 0; i < v->Size(); ++i) {
+    std::cout << wamon::AsIntVariable(v->at(i))->GetValue() << " ";
+  }
+  std::cout << std::endl;
   return 0;
 }
