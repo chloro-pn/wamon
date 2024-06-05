@@ -5,6 +5,7 @@
 
 #include "wamon/exception.h"
 #include "wamon/key_words.h"
+#include "wamon/reserved_id.h"
 
 namespace wamon {
 
@@ -69,6 +70,9 @@ void Scanner::scan(const std::string &str, std::vector<WamonToken> &tokens) {
       if (KeyWords::Instance().Find(id) == true) {
         tokens.push_back(WamonToken(KeyWords::Instance().Get(id), id));
       } else {
+        if (IsReservedId(id)) {
+          throw WamonException("Scanner::scan error, reserved id {}", id);
+        }
         tokens.push_back(WamonToken(Token::ID, id));
       }
       begin = result[0].second;

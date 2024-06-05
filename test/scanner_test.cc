@@ -1,6 +1,7 @@
 #include "wamon/scanner.h"
 
 #include "gtest/gtest.h"
+#include "wamon/exception.h"
 
 TEST(scanner, basic) {
   std::string str(R"(
@@ -83,4 +84,10 @@ TEST(scanner, pipe) {
   auto tokens = scan.Scan(str);
   EXPECT_EQ(tokens.size(), 4);
   EXPECT_EQ(tokens[1].token, wamon::Token::PIPE);
+}
+
+TEST(scanner, reserved_id) {
+  std::string str("__myself__");
+  wamon::Scanner scan;
+  EXPECT_THROW(scan.Scan(str), wamon::WamonException);
 }
