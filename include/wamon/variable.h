@@ -496,7 +496,7 @@ class ListVariable : public CompoundVariable {
       elements_.resize(new_size);
     } else {
       for (size_t i = 0; i < (new_size - old_size); ++i) {
-        auto v = VariableFactory(element_type_, Variable::ValueCategory::RValue, "", pu);
+        auto v = VariableFactory(element_type_, vc_, "", pu);
         v->DefaultConstruct();
         elements_.push_back(std::move(v));
       }
