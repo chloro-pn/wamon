@@ -132,8 +132,7 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
 std::shared_ptr<Variable> Interpreter::ExecExpression(TypeChecker& tc, const std::string& package_name,
                                                       const std::string& script) {
   // 恢复parse上下文以正常处理符号定位问题
-  current_parsing_package = package_name;
-  current_parsing_imports = pu_.GetImportsFromPackageName(package_name);
+  tc.GetStaticAnalyzer().GetPackageUnit().SetCurrentParsingPackage(package_name);
   Scanner scan;
   auto tokens = scan.Scan(script);
   auto expr = ParseExpression(pu_, tokens, 0, tokens.size() - 1);

@@ -38,14 +38,15 @@ void AssertTokenOrThrow(const std::vector<WamonToken> &tokens, size_t &begin, To
 }
 
 // package_name, var_name
-std::pair<std::string, std::string> ParseIdentifier(const std::vector<WamonToken> &tokens, size_t &begin) {
+std::pair<std::string, std::string> ParseIdentifier(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                    size_t &begin) {
   if (tokens.size() <= begin || tokens[begin].token != Token::ID || tokens[begin].type != WamonToken::ValueType::STR) {
     throw WamonException("parse identifier error : {}", GetTokenStr(tokens[begin].token));
   }
   std::string v1 = tokens[begin].Get<std::string>();
   begin += 1;
   if (tokens.size() <= begin || tokens[begin].token != Token::SCOPE) {
-    return {current_parsing_package, v1};
+    return {pu.GetCurrentParsingPackage(), v1};
   }
   begin += 1;
   if (tokens[begin].token != Token::ID || tokens[begin].type != WamonToken::ValueType::STR) {
@@ -53,11 +54,12 @@ std::pair<std::string, std::string> ParseIdentifier(const std::vector<WamonToken
   }
   std::string v2 = tokens[begin].Get<std::string>();
   begin += 1;
-  AssertInImportListOrThrow(v1);
+  AssertInImportListOrThrow(pu, v1);
   return {v1, v2};
 }
 
-std::pair<std::string, std::string> ParseBasicType(const std::vector<WamonToken> &tokens, size_t &begin) {
+std::pair<std::string, std::string> ParseBasicType(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                   size_t &begin) {
   if (tokens.size() <= begin) {
     throw WamonException("parse basic type error, invalid index {}", begin);
   }
@@ -82,7 +84,7 @@ std::pair<std::string, std::string> ParseBasicType(const std::vector<WamonToken>
     ret = "void";
     begin += 1;
   } else {
-    auto tmp = ParseIdentifier(tokens, begin);
+    auto tmp = ParseIdentifier(pu, tokens, begin);
     package_name = tmp.first;
     ret = tmp.second;
   }
@@ -91,11 +93,11 @@ std::pair<std::string, std::string> ParseBasicType(const std::vector<WamonToken>
 
 // 从tokens[begin]开始解析一个类型信息，更新begin，并返回解析到的类型
 // 仅从语法分析的角度进行解析，不一定是合法的类型。
-std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &begin) {
+std::unique_ptr<Type> ParseType(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t &begin) {
   if (AssertToken(tokens, begin, Token::PTR)) {
     size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
     begin += 1;
-    auto nested_type = ParseType(tokens, begin);
+    auto nested_type = ParseType(pu, tokens, begin);
     auto tmp = std::make_unique<PointerType>(std::move(nested_type));
     if (right_parent != begin) {
       throw WamonException("parse ptr type error");
@@ -105,7 +107,7 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
   } else if (AssertToken(tokens, begin, Token::LIST)) {
     size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
     begin += 1;
-    auto nested_type = ParseType(tokens, begin);
+    auto nested_type = ParseType(pu, tokens, begin);
     std::unique_ptr<ListType> tmp(new ListType(std::move(nested_type)));
     begin = right_parent + 1;
     return tmp;
@@ -114,7 +116,7 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
     begin += 1;
     std::vector<std::unique_ptr<Type>> param_list;
     std::unique_ptr<Type> return_type;
-    ParseTypeList(tokens, begin, right_parent, param_list, return_type);
+    ParseTypeList(pu, tokens, begin, right_parent, param_list, return_type);
 
     std::unique_ptr<FuncType> tmp(new FuncType(std::move(param_list), std::move(return_type)));
     begin = right_parent + 1;
@@ -122,7 +124,7 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
   }
   // parse basic type
   std::unique_ptr<Type> ret;
-  auto [package_name, type_name] = ParseBasicType(tokens, begin);
+  auto [package_name, type_name] = ParseBasicType(pu, tokens, begin);
   ret = std::make_unique<BasicType>(type_name);
   static_cast<BasicType *>(ret.get())->SetScope(package_name);
   return ret;
@@ -132,12 +134,12 @@ std::unique_ptr<Type> ParseType(const std::vector<WamonToken> &tokens, size_t &b
  *  ( ( type1, type2, type3, ..., typen ) -> return_type )
  * begin                                              end
  */
-void ParseTypeList(const std::vector<WamonToken> &tokens, size_t begin, size_t end,
+void ParseTypeList(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin, size_t end,
                    std::vector<std::unique_ptr<Type>> &param_list, std::unique_ptr<Type> &return_type) {
   size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
   begin += 1;
   while (begin != right_parent) {
-    auto type = ParseType(tokens, begin);
+    auto type = ParseType(pu, tokens, begin);
     param_list.push_back(std::move(type));
     if (AssertToken(tokens, begin, Token::COMMA) == false) {
       break;
@@ -145,7 +147,7 @@ void ParseTypeList(const std::vector<WamonToken> &tokens, size_t begin, size_t e
   }
   AssertTokenOrThrow(tokens, begin, Token::RIGHT_PARENTHESIS, __FILE__, __LINE__);
   if (AssertToken(tokens, begin, Token::ARROW) == true) {
-    return_type = ParseType(tokens, begin);
+    return_type = ParseType(pu, tokens, begin);
   } else {
     // bug fix : 如果没有指定也要初始化为void
     return_type = GetVoidType();
@@ -159,7 +161,7 @@ void ParseTypeList(const std::vector<WamonToken> &tokens, size_t begin, size_t e
  * [ id1, id2, ... , idn ]
  * todo : update to : [ [move|ref] id1, [move|ref] id2, ...]
  */
-void ParseCaptureIdList(const std::vector<WamonToken> &tokens, size_t begin, size_t end,
+void ParseCaptureIdList(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin, size_t end,
                         std::vector<CaptureIdItem> &ids) {
   AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACKETS, __FILE__, __LINE__);
   while (true) {
@@ -175,7 +177,7 @@ void ParseCaptureIdList(const std::vector<WamonToken> &tokens, size_t begin, siz
     } else {
       item.type = CaptureIdItem::Type::NORMAL;
     }
-    auto [package_name, id] = ParseIdentifier(tokens, begin);
+    auto [package_name, id] = ParseIdentifier(pu, tokens, begin);
     id = package_name + "$" + id;
     auto it = std::find_if(ids.begin(), ids.end(), [&id](auto &item) -> bool { return item.id == id; });
     if (it != ids.end()) {
@@ -203,18 +205,18 @@ std::string ParseLambda(PackageUnit &pu, const std::vector<WamonToken> &tokens, 
   AssertTokenOrThrow(tokens, begin, Token::LAMBDA, __FILE__, __LINE__);
   size_t capture_end = FindMatchedToken<Token::LEFT_BRACKETS, Token::RIGHT_BRACKETS>(tokens, begin);
   std::vector<CaptureIdItem> capture_ids;
-  ParseCaptureIdList(tokens, begin, capture_end, capture_ids);
+  ParseCaptureIdList(pu, tokens, begin, capture_end, capture_ids);
   lambda_def->SetCaptureIds(std::move(capture_ids));
 
   begin = capture_end + 1;
   size_t param_end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
-  auto param_list = ParseParameterList(tokens, begin, param_end);
+  auto param_list = ParseParameterList(pu, tokens, begin, param_end);
   for (auto &&each : param_list) {
     lambda_def->AddParamList(std::move(each));
   }
   begin = param_end + 1;
   AssertTokenOrThrow(tokens, begin, Token::ARROW, __FILE__, __LINE__);
-  auto return_type = ParseType(tokens, begin);
+  auto return_type = ParseType(pu, tokens, begin);
   lambda_def->SetReturnType(std::move(return_type));
 
   auto end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
@@ -323,7 +325,7 @@ std::unique_ptr<Expression> ParseExpression(PackageUnit &pu, const std::vector<W
       parse_state = ParseExpressionState::B_OP;
       if (current_token == Token::AS) {
         ++i;
-        auto type = ParseType(tokens, i);
+        auto type = ParseType(pu, tokens, i);
         std::unique_ptr<TypeExpr> type_expr(new TypeExpr());
         type_expr->SetType(std::move(type));
         operands.push(AttachUnaryOperators(std::move(type_expr), u_operators));
@@ -359,7 +361,7 @@ std::unique_ptr<Expression> ParseExpression(PackageUnit &pu, const std::vector<W
           operands.push(AttachUnaryOperators(std::move(func_call_expr), u_operators));
           i = tmp3;
         } else {
-          auto [package_name, method_name] = ParseIdentifier(tokens, tmp2);
+          auto [package_name, method_name] = ParseIdentifier(pu, tokens, tmp2);
           size_t tmp3 = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp2);
           auto param_list = ParseExprList(pu, tokens, tmp2, tmp3);
           std::unique_ptr<MethodCallExpr> method_call_expr(new MethodCallExpr());
@@ -422,7 +424,7 @@ std::unique_ptr<Expression> ParseExpression(PackageUnit &pu, const std::vector<W
       if (current_token == Token::NEW) {
         std::unique_ptr<NewExpr> new_expr(new NewExpr());
         i += 1;
-        auto type = ParseType(tokens, i);
+        auto type = ParseType(pu, tokens, i);
         size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, i);
         auto expr_list = ParseExprList(pu, tokens, i, right_parent);
         new_expr->SetNewType(std::move(type));
@@ -434,7 +436,7 @@ std::unique_ptr<Expression> ParseExpression(PackageUnit &pu, const std::vector<W
       if (current_token == Token::ALLOC) {
         std::unique_ptr<AllocExpr> alloc_expr(new AllocExpr());
         i += 1;
-        auto type = ParseType(tokens, i);
+        auto type = ParseType(pu, tokens, i);
         size_t right_parent = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, i);
         auto expr_list = ParseExprList(pu, tokens, i, right_parent);
         alloc_expr->SetAllocType(std::move(type));
@@ -452,7 +454,7 @@ std::unique_ptr<Expression> ParseExpression(PackageUnit &pu, const std::vector<W
         continue;
       }
       size_t tmp = i;
-      auto [package_name, var_name] = ParseIdentifier(tokens, tmp);
+      auto [package_name, var_name] = ParseIdentifier(pu, tokens, tmp);
       // id表达式
       std::unique_ptr<IdExpr> id_expr(new IdExpr());
       id_expr->SetPackageName(package_name);
@@ -586,7 +588,7 @@ std::unique_ptr<Statement> TryToParseVarDefStmt(PackageUnit &pu, const std::vect
     return ret;
   }
   auto vn = static_cast<VariableDefineStmt *>(ret.get())->GetVarName();
-  static_cast<VariableDefineStmt *>(ret.get())->SetVarName(current_parsing_package + "$" + vn);
+  static_cast<VariableDefineStmt *>(ret.get())->SetVarName(pu.GetCurrentParsingPackage() + "$" + vn);
   next = begin;
   return ret;
 }
@@ -695,19 +697,20 @@ std::unique_ptr<Statement> TryToParseBlockStmt(PackageUnit &pu, const std::vecto
 
 //   (  type id, type id, ... )
 // begin                     end
-std::vector<ParameterListItem> ParseParameterList(const std::vector<WamonToken> &tokens, size_t begin, size_t end) {
+std::vector<ParameterListItem> ParseParameterList(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t begin,
+                                                  size_t end) {
   std::vector<ParameterListItem> ret;
   AssertTokenOrThrow(tokens, begin, Token::LEFT_PARENTHESIS, __FILE__, __LINE__);
   if (AssertToken(tokens, begin, Token::RIGHT_PARENTHESIS)) {
     return ret;
   }
   while (true) {
-    auto type = ParseType(tokens, begin);
+    auto type = ParseType(pu, tokens, begin);
     bool is_ref = false;
     if (AssertToken(tokens, begin, Token::REF)) {
       is_ref = true;
     }
-    auto [package_name, id] = ParseIdentifier(tokens, begin);
+    auto [package_name, id] = ParseIdentifier(pu, tokens, begin);
     id = package_name + "$" + id;
     ret.push_back({id, std::move(type), is_ref});
     bool succ = AssertToken(tokens, begin, Token::COMMA);
@@ -746,18 +749,18 @@ std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(PackageUnit &pu, cons
   if (succ == false) {
     return ret;
   }
-  auto [package_name, func_name] = ParseIdentifier(tokens, begin);
+  auto [package_name, func_name] = ParseIdentifier(pu, tokens, begin);
   //
   ret.reset(new FunctionDef(func_name));
   size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
-  auto param_list = ParseParameterList(tokens, begin, end);
+  auto param_list = ParseParameterList(pu, tokens, begin, end);
   for (auto &&each : param_list) {
     //
     ret->AddParamList(std::move(each));
   }
   begin = end + 1;
   AssertTokenOrThrow(tokens, begin, Token::ARROW, __FILE__, __LINE__);
-  auto return_type = ParseType(tokens, begin);
+  auto return_type = ParseType(pu, tokens, begin);
   //
   ret->SetReturnType(std::move(return_type));
   if (AssertToken(tokens, begin, Token::SEMICOLON)) {
@@ -801,14 +804,14 @@ std::unique_ptr<OperatorDef> TryToParseOperatorOverride(PackageUnit &pu, const s
     begin += 1;
   }
   size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
-  auto param_list = ParseParameterList(tokens, begin, end);
+  auto param_list = ParseParameterList(pu, tokens, begin, end);
   for (auto &&each : param_list) {
     //
     ret->AddParamList(std::move(each));
   }
   begin = end + 1;
   AssertTokenOrThrow(tokens, begin, Token::ARROW, __FILE__, __LINE__);
-  auto return_type = ParseType(tokens, begin);
+  auto return_type = ParseType(pu, tokens, begin);
   //
   ret->SetReturnType(std::move(return_type));
 
@@ -859,7 +862,7 @@ std::unique_ptr<methods_def> TryToParseMethodDeclaration(PackageUnit &pu, const 
   }
   ret.reset(new methods_def());
   // 只允许为结构体类型自定义方法，这里需要判断是否为复合类型以及是否为内置类型。
-  auto [package_name, typen] = ParseBasicType(tokens, begin);
+  auto [package_name, typen] = ParseBasicType(pu, tokens, begin);
   type_name = typen;
   size_t end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
   begin += 1;
@@ -891,7 +894,8 @@ std::unique_ptr<methods_def> TryToParseMethodDeclaration(PackageUnit &pu, const 
   return ret;
 }
 
-std::unique_ptr<StructDef> TryToParseStructDeclaration(const std::vector<WamonToken> &tokens, size_t &begin) {
+std::unique_ptr<StructDef> TryToParseStructDeclaration(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                       size_t &begin) {
   std::unique_ptr<StructDef> ret(nullptr);
   bool succ = AssertToken(tokens, begin, Token::STRUCT);
   if (succ == false) {
@@ -901,12 +905,12 @@ std::unique_ptr<StructDef> TryToParseStructDeclaration(const std::vector<WamonTo
   if (AssertToken(tokens, begin, Token::TRAIT)) {
     is_trait = true;
   }
-  auto [package_name, struct_name] = ParseIdentifier(tokens, begin);
+  auto [package_name, struct_name] = ParseIdentifier(pu, tokens, begin);
   ret.reset(new StructDef(struct_name, is_trait));
   AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACE, __FILE__, __LINE__);
   while (AssertToken(tokens, begin, Token::RIGHT_BRACE) == false) {
-    auto type = ParseType(tokens, begin);
-    auto [pack_name, field_name] = ParseIdentifier(tokens, begin);
+    auto type = ParseType(pu, tokens, begin);
+    auto [pack_name, field_name] = ParseIdentifier(pu, tokens, begin);
     AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
     ret->AddDataMember(field_name, std::move(type));
   }
@@ -927,9 +931,9 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(PackageUnit &p
   if (AssertToken(tokens, begin, Token::REF)) {
     is_ref = true;
   }
-  auto [package_name, var_name] = ParseIdentifier(tokens, begin);
+  auto [package_name, var_name] = ParseIdentifier(pu, tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::COLON, __FILE__, __LINE__);
-  auto type = ParseType(tokens, begin);
+  auto type = ParseType(pu, tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::ASSIGN, __FILE__, __LINE__);
   ret.reset(new VariableDefineStmt());
   ret->SetType(std::move(type));
@@ -955,21 +959,21 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(PackageUnit &p
   return ret;
 }
 
-std::string ParsePackageName(const std::vector<WamonToken> &tokens, size_t &begin) {
+std::string ParsePackageName(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t &begin) {
   AssertTokenOrThrow(tokens, begin, Token::PACKAGE, __FILE__, __LINE__);
-  auto [nothing, package_name] = ParseIdentifier(tokens, begin);
+  auto [nothing, package_name] = ParseIdentifier(pu, tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
   return package_name;
 }
 
-std::vector<std::string> ParseImportPackages(const std::vector<WamonToken> &tokens, size_t &begin) {
+std::vector<std::string> ParseImportPackages(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t &begin) {
   std::vector<std::string> packages;
   while (true) {
     bool succ = AssertToken(tokens, begin, Token::IMPORT);
     if (succ == false) {
       break;
     }
-    auto [pack_name, package_name] = ParseIdentifier(tokens, begin);
+    auto [pack_name, package_name] = ParseIdentifier(pu, tokens, begin);
     AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
     packages.push_back(package_name);
   }
@@ -987,13 +991,12 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
   }
   PackageUnit package_unit;
   size_t current_index = 0;
-  std::string package_name = ParsePackageName(tokens, current_index);
+  std::string package_name = ParsePackageName(package_unit, tokens, current_index);
   package_unit.SetName(package_name);
-  current_parsing_package = package_name;
+  package_unit.SetCurrentParsingPackage(package_name);
 
-  std::vector<std::string> import_packages = ParseImportPackages(tokens, current_index);
+  std::vector<std::string> import_packages = ParseImportPackages(package_unit, tokens, current_index);
   package_unit.SetImportPackage(import_packages);
-  current_parsing_imports = import_packages;
 
   while (current_index < tokens.size()) {
     WamonToken token = tokens[current_index];
@@ -1006,7 +1009,7 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
       package_unit.AddFuncDef(std::move(func_def));
       continue;
     }
-    auto struct_def = TryToParseStructDeclaration(tokens, current_index);
+    auto struct_def = TryToParseStructDeclaration(package_unit, tokens, current_index);
     if (struct_def != nullptr) {
       package_unit.AddStructDef(std::move(struct_def));
       continue;
@@ -1033,9 +1036,6 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
       throw WamonException("parse error, invalid token {}", GetTokenStr(token.token));
     }
   }
-
-  current_parsing_package.clear();
-  current_parsing_imports.clear();
   return package_unit;
 }
 

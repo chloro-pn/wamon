@@ -31,7 +31,7 @@ inline std::string GetIdFromIdent(const std::string& name) {
 // 静态分析器，在词法分析和语法分析之后的第三个阶段，执行上下文相关的语义分析，包括类型诊断、定义声明规则诊断、语句合法性诊断等。
 class StaticAnalyzer {
  public:
-  explicit StaticAnalyzer(const PackageUnit& pu) : pu_(pu), global_context_(Context::ContextType::GLOBAL) {}
+  explicit StaticAnalyzer(PackageUnit& pu) : pu_(pu), global_context_(Context::ContextType::GLOBAL) {}
 
   // 直接在全局函数表中查找函数
   const FunctionDef* FindFunction(const std::string& fname) const {
@@ -176,8 +176,10 @@ class StaticAnalyzer {
 
   const PackageUnit& GetPackageUnit() const { return pu_; }
 
+  PackageUnit& GetPackageUnit() { return pu_; }
+
  private:
-  const PackageUnit& pu_;
+  PackageUnit& pu_;
   Context global_context_;
   std::vector<std::unique_ptr<Context>> context_stack_;
 };

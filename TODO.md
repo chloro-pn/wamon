@@ -4,7 +4,7 @@
   - call expression :(parmas)
   - call expression : method_name (params)
   这种语法形式，这样可以通过call和:这些token确定expression的边界
-* 将Operator和BuiltinFunction等全局单例对象重构为解释器持有对象，因此不同的解释器实例可以注册不同的运算符重载和cpp函数，在构造的时候可以继承内置的一些重载和函数。这也意味着语法分析和语义分析需要依赖解释器（比如查找某些函数是否被定义：通过源文件或者注册定义）
+* [done] 将Operator和BuiltinFunction等全局单例对象重构为解释器持有对象，因此不同的解释器实例可以注册不同的运算符重载和cpp函数，在构造的时候可以继承内置的一些重载和函数。这也意味着语法分析和语义分析需要依赖解释器（比如查找某些函数是否被定义：通过源文件或者注册定义）
 * [done] 支持move关键字与move操作
 * [done] 支持闭包
   - [done] 闭包的语法 ： lambda [capture_variables] (param_list) { block stmt };
@@ -24,6 +24,7 @@
 * 优化内置方法的错误提示
 * [done] 支持变量引用（不涉及类型系统）
 * [done] 支持自增运算符
-* 支持list:slice方法
+* [delete] 支持list:slice方法
 * [done] 支持elif
 * [done] 支持比较运算符 < , <=, >, >=
+* 支持新的数据类型 Map

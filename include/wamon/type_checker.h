@@ -38,7 +38,7 @@ class TypeChecker {
 
   friend class BuiltinFunctions;
 
-  explicit TypeChecker(const PackageUnit& sa);
+  explicit TypeChecker(PackageUnit& sa);
 
   bool CheckAll(std::string& reason);
 

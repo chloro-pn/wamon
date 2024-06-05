@@ -23,7 +23,7 @@ void CheckBlockStatement(TypeChecker& tc, BlockStmt* stmt) {
   }
 }
 
-TypeChecker::TypeChecker(const PackageUnit& pu) : static_analyzer_(pu) {}
+TypeChecker::TypeChecker(PackageUnit& pu) : static_analyzer_(pu) {}
 
 bool TypeChecker::CheckAll(std::string& reason) {
   bool type_check_succ = true;

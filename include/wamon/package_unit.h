@@ -28,7 +28,10 @@ class PackageUnit {
   PackageUnit& operator=(PackageUnit&&) = default;
 
   void SetName(const std::string& name) { package_name_ = name; }
-  void SetImportPackage(const std::vector<std::string>& import_packages) { import_packages_ = import_packages; }
+  void SetImportPackage(const std::vector<std::string>& import_packages) {
+    import_packages_ = import_packages;
+    package_imports_[package_name_] = import_packages;
+  }
   void AddVarDef(std::unique_ptr<VariableDefineStmt>&& vd) {
     if (std::find_if(var_define_.begin(), var_define_.end(), [&vd](const auto& v) -> bool {
           return vd->GetVarName() == v->GetVarName();
@@ -127,7 +130,7 @@ class PackageUnit {
     package_imports_[package] = imports;
   }
 
-  const std::vector<std::string>& GetImportsFromPackageName(const std::string& package) {
+  const std::vector<std::string>& GetImportsFromPackageName(const std::string& package) const {
     auto it = package_imports_.find(package);
     if (it == package_imports_.end()) {
       throw WamonException("PackageUnit.GetImportsFromPackageName error ,package {} not exist", package);
@@ -141,6 +144,14 @@ class PackageUnit {
 
   void RegisterCppFunctions(const std::string& name, std::unique_ptr<Type> func_type, BuiltinFunctions::HandleType ht);
 
+  const std::vector<std::string>& GetCurrentParsingImports() const {
+    return GetImportsFromPackageName(current_parsing_package_);
+  }
+
+  const std::string& GetCurrentParsingPackage() const { return current_parsing_package_; }
+
+  void SetCurrentParsingPackage(const std::string& cpp) { current_parsing_package_ = cpp; }
+
  private:
   std::string package_name_;
   std::vector<std::string> import_packages_;
@@ -151,6 +162,9 @@ class PackageUnit {
   BuiltinFunctions builtin_functions_;
   // 只有通过Merge生成的PackageUnit才使用这项
   std::unordered_map<std::string, std::vector<std::string>> package_imports_;
+
+  // 以下成员只有在parse对应的包的时候，以及执行ExecExpression的时候才会被设置
+  std::string current_parsing_package_;
 };
 
 template <typename... T>

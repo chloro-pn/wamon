@@ -4,6 +4,7 @@
 #define private public
 
 #include "wamon/exception.h"
+#include "wamon/package_unit.h"
 #include "wamon/parser.h"
 #include "wamon/scanner.h"
 
@@ -64,7 +65,8 @@ TEST(parser, parse_parameter_list) {
   wamon::Scanner scan;
   std::string str = "(int a, double b, string c)";
   auto tokens = scan.Scan(str);
-  auto param_list = wamon::ParseParameterList(tokens, 0, tokens.size() - 2);
+  wamon::PackageUnit pu;
+  auto param_list = wamon::ParseParameterList(pu, tokens, 0, tokens.size() - 2);
   EXPECT_EQ(param_list[0].name, "$a");
   EXPECT_EQ(param_list[0].type->GetTypeInfo(), "int");
   EXPECT_EQ(param_list[1].name, "$b");
@@ -74,7 +76,7 @@ TEST(parser, parse_parameter_list) {
   EXPECT_EQ(param_list.size(), 3);
   str = "()";
   tokens = scan.Scan(str);
-  param_list = wamon::ParseParameterList(tokens, 0, tokens.size() - 2);
+  param_list = wamon::ParseParameterList(pu, tokens, 0, tokens.size() - 2);
   EXPECT_EQ(param_list.size(), 0);
 }
 
@@ -287,8 +289,9 @@ TEST(parse, parse_package) {
   std::string str = "package main; import net; import os;";
   auto tokens = scan.Scan(str);
   size_t begin = 0;
-  std::string package_name = wamon::ParsePackageName(tokens, begin);
-  auto imports = wamon::ParseImportPackages(tokens, begin);
+  wamon::PackageUnit pu;
+  std::string package_name = wamon::ParsePackageName(pu, tokens, begin);
+  auto imports = wamon::ParseImportPackages(pu, tokens, begin);
   EXPECT_EQ(package_name, "main");
   EXPECT_EQ(imports.size(), 2);
   EXPECT_EQ(imports[0], "net");
@@ -300,21 +303,22 @@ TEST(parse, parse_type) {
   std::string str = "string";
   auto tokens = scan.Scan(str);
   size_t begin = 0;
-  auto type = wamon::ParseType(tokens, begin);
+  wamon::PackageUnit pu;
+  auto type = wamon::ParseType(pu, tokens, begin);
   EXPECT_EQ(type->GetTypeInfo(), "string");
   EXPECT_EQ(begin, tokens.size() - 1);
 
   str = "mystruct";
   tokens = scan.Scan(str);
   begin = 0;
-  type = wamon::ParseType(tokens, begin);
+  type = wamon::ParseType(pu, tokens, begin);
   EXPECT_EQ(type->GetTypeInfo(), "mystruct");
   EXPECT_EQ(begin, tokens.size() - 1);
 
   str = "ptr(int)";
   tokens = scan.Scan(str);
   begin = 0;
-  type = wamon::ParseType(tokens, begin);
+  type = wamon::ParseType(pu, tokens, begin);
   EXPECT_EQ(type->GetTypeInfo(), "ptr(int)");
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
@@ -322,7 +326,7 @@ TEST(parse, parse_type) {
   str = "list(int)";
   tokens = scan.Scan(str);
   begin = 0;
-  type = wamon::ParseType(tokens, begin);
+  type = wamon::ParseType(pu, tokens, begin);
   EXPECT_EQ(type->GetTypeInfo(), "list(int)");
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
@@ -330,7 +334,7 @@ TEST(parse, parse_type) {
   str = "list(ptr(int))";
   tokens = scan.Scan(str);
   begin = 0;
-  type = wamon::ParseType(tokens, begin);
+  type = wamon::ParseType(pu, tokens, begin);
   EXPECT_EQ(type->GetTypeInfo(), "list(ptr(int))");
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
@@ -338,7 +342,7 @@ TEST(parse, parse_type) {
   str = "f((int, string) -> double)";
   tokens = scan.Scan(str);
   begin = 0;
-  type = wamon::ParseType(tokens, begin);
+  type = wamon::ParseType(pu, tokens, begin);
   EXPECT_EQ(type->GetTypeInfo(), "f((int, string) -> double)");
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
@@ -346,7 +350,7 @@ TEST(parse, parse_type) {
   str = "f(() -> double)";
   tokens = scan.Scan(str);
   begin = 0;
-  type = wamon::ParseType(tokens, begin);
+  type = wamon::ParseType(pu, tokens, begin);
   EXPECT_EQ(type->GetTypeInfo(), "f(() -> double)");
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
@@ -354,7 +358,7 @@ TEST(parse, parse_type) {
   str = "f(())";
   tokens = scan.Scan(str);
   begin = 0;
-  type = wamon::ParseType(tokens, begin);
+  type = wamon::ParseType(pu, tokens, begin);
   EXPECT_EQ(type->GetTypeInfo(), "f(() -> void)");
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
@@ -362,7 +366,7 @@ TEST(parse, parse_type) {
   str = "f((int, mystruct, ptr(int), list(ptr(double))) -> void)";
   tokens = scan.Scan(str);
   begin = 0;
-  type = wamon::ParseType(tokens, begin);
+  type = wamon::ParseType(pu, tokens, begin);
   EXPECT_EQ(type->GetTypeInfo(), "f((int, mystruct, ptr(int), list(ptr(double))) -> void)");
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
