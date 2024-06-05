@@ -739,7 +739,7 @@ std::shared_ptr<Variable> ToVar(char (&cstr)[n]) {
 
 template <typename T>
 concept WAMON_SUPPORT_TOVAR = std::same_as<T, int> || std::same_as<T, double> || std::same_as<T, unsigned char> ||
-                              std::same_as<T, bool> || std::same_as<T, std::string>;
+    std::same_as<T, bool> || std::same_as<T, std::string>;
 
 template <typename T>
 requires WAMON_SUPPORT_TOVAR<std::remove_cvref_t<T>> std::shared_ptr<Variable> ToVar(T&& v) {
