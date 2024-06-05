@@ -43,4 +43,10 @@ class WamonCompareTypeDismatch : public WamonException {
   explicit WamonCompareTypeDismatch(const std::string& t1, const std::string& t2)
       : WamonException("wamon compare type dismatch : {} != {}", t1, t2) {}
 };
+
+inline void Unreachable(const char* file, int line) {
+  throw WamonException("wamon unreachable error : {} {}", file, line);
+}
+
+#define WAMON_UNREACHABLE Unreachable(__FILE__, __LINE__);
 }  // namespace wamon

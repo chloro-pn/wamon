@@ -389,13 +389,11 @@ TEST(interpreter, callable) {
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("main$mycallable");
   auto a = interpreter.FindVariableById("main$v");
-  std::vector<std::shared_ptr<wamon::Variable>> params;
-  params.push_back(a);
-  auto ret = interpreter.CallCallable(v, std::move(params));
+
+  auto ret = interpreter.CallCallable(v, {a});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
 
-  params.clear();
-  ret = interpreter.CallFunctionByName("main$call_test", std::move(params));
+  ret = interpreter.CallFunctionByName("main$call_test", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 56);
 }
@@ -578,81 +576,56 @@ TEST(interpreter, operator) {
   EXPECT_EQ(succ, true) << reason;
 
   wamon::Interpreter interpreter(pu);
-  std::vector<std::shared_ptr<wamon::Variable>> params;
-  params.push_back(std::shared_ptr<wamon::StringVariable>(
-      new wamon::StringVariable("hello ", wamon::Variable::ValueCategory::RValue, "")));
-  params.push_back(std::shared_ptr<wamon::StringVariable>(
-      new wamon::StringVariable("world", wamon::Variable::ValueCategory::RValue, "")));
-  auto ret = interpreter.CallFunctionByName("main$stradd", std::move(params));
+  auto ret = interpreter.CallFunctionByName("main$stradd", {wamon::ToVar("hello"), wamon::ToVar(" world")});
   EXPECT_EQ(ret->GetTypeInfo(), "string");
   EXPECT_EQ(wamon::AsStringVariable(ret)->GetValue(), "hello world");
 
-  params.clear();
-  params.push_back(
-      std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(10, wamon::Variable::ValueCategory::RValue, "")));
-  params.push_back(
-      std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(5, wamon::Variable::ValueCategory::RValue, "")));
-  auto tmp_params = params;
-  ret = interpreter.CallFunctionByName("main$intminus", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$intminus", {wamon::ToVar(10), wamon::ToVar(5)});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
-  tmp_params = params;
-  ret = interpreter.CallFunctionByName("main$intmulti", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$intmulti", {wamon::ToVar(10), wamon::ToVar(5)});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 50);
 
-  tmp_params = params;
-  ret = interpreter.CallFunctionByName("main$intdivide", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$intdivide", {wamon::ToVar(10), wamon::ToVar(5)});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 2);
 
-  tmp_params.clear();
-  tmp_params.push_back(
-      std::shared_ptr<wamon::IntVariable>(new wamon::IntVariable(10, wamon::Variable::ValueCategory::RValue, "")));
-  ret = interpreter.CallFunctionByName("main$intuoperator", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$intuoperator", {wamon::ToVar(10)});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), -10);
 
-  tmp_params.clear();
-  tmp_params.push_back(
-      std::shared_ptr<wamon::BoolVariable>(new wamon::BoolVariable(true, wamon::Variable::ValueCategory::RValue, "")));
-  ret = interpreter.CallFunctionByName("main$boolnot", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$boolnot", {wamon::ToVar(true)});
   EXPECT_EQ(ret->GetTypeInfo(), "bool");
   EXPECT_EQ(wamon::AsBoolVariable(ret)->GetValue(), false);
 
-  tmp_params.clear();
-  ret = interpreter.CallFunctionByName("main$op_override", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$op_override", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
-  tmp_params.clear();
   auto v1 = interpreter.FindVariableById("main$v1");
   auto v2 = interpreter.FindVariableById("main$v2");
-  ret = interpreter.CallFunctionByName("main$op_override2", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$op_override2", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
-  tmp_params.clear();
-  auto int_v = wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu);
+  auto int_v =
+      wamon::VariableFactoryShared(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu);
   wamon::AsIntVariable(int_v)->SetValue(2);
-  tmp_params.push_back(std::move(int_v));
-  ret = interpreter.CallFunctionByName("main$as_test", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$as_test", {int_v});
   EXPECT_EQ(ret->GetTypeInfo(), "double");
   EXPECT_DOUBLE_EQ(wamon::AsDoubleVariable(ret)->GetValue(), 2.0);
 
-  tmp_params.clear();
-  ret = interpreter.CallFunctionByName("main$as_test_2", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$as_test_2", {});
   EXPECT_EQ(ret->GetTypeInfo(), "main$st");
   EXPECT_DOUBLE_EQ(wamon::AsIntVariable(wamon::AsStructVariable(ret)->GetDataMemberByName("a"))->GetValue(), 2);
 
-  tmp_params.clear();
-  ret = interpreter.CallFunctionByName("main$as_test_3", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$as_test_3", {});
   EXPECT_EQ(ret->GetTypeInfo(), "string");
   EXPECT_EQ(wamon::AsStringVariable(ret)->GetValue(), "abc");
 
-  tmp_params.clear();
-  ret = interpreter.CallFunctionByName("main$as_test_4", std::move(tmp_params));
+  ret = interpreter.CallFunctionByName("main$as_test_4", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 3);
 
@@ -716,9 +689,7 @@ TEST(interpreter, fibonacci) {
 
   wamon::Interpreter interpreter(pu);
   auto a = interpreter.FindVariableById("main$v");
-  std::vector<std::shared_ptr<wamon::Variable>> params;
-  params.push_back(a);
-  auto ret = interpreter.CallFunctionByName("main$Fibonacci", std::move(params));
+  auto ret = interpreter.CallFunctionByName("main$Fibonacci", {a});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 55);
 }

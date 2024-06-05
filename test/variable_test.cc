@@ -45,20 +45,33 @@ TEST(variable, list) {
   EXPECT_EQ(wamon::AsIntVariable(wamon::AsListVariable(v)->at(2))->GetValue(), 4);
   EXPECT_EQ(wamon::AsIntVariable(wamon::AsListVariable(v)->at(3))->GetValue(), 5);
 
-  std::vector<std::shared_ptr<wamon::Variable>> params;
-  params.push_back(
-      wamon::VariableFactoryShared(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu));
-  wamon::AsIntVariable(params[0])->SetValue(0);
-  interpreter.CallFunctionByName("main$my_erase", std::move(params));
+  interpreter.CallFunctionByName("main$my_erase", {wamon::ToVar(0)});
   v = interpreter.FindVariableById("main$a");
   EXPECT_EQ(v->GetTypeInfo(), "list(int)");
   EXPECT_EQ(wamon::AsIntVariable(wamon::AsListVariable(v)->at(0))->GetValue(), 3);
   EXPECT_EQ(wamon::AsIntVariable(wamon::AsListVariable(v)->at(1))->GetValue(), 4);
   EXPECT_EQ(wamon::AsIntVariable(wamon::AsListVariable(v)->at(2))->GetValue(), 5);
 
-  params.clear();
-  params.push_back(
-      wamon::VariableFactoryShared(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu));
-  wamon::AsIntVariable(params[0])->SetValue(3);
-  EXPECT_THROW(interpreter.CallFunctionByName("main$my_erase", std::move(params)), wamon::WamonException);
+  EXPECT_THROW(interpreter.CallFunctionByName("main$my_erase", {wamon::ToVar(3)}), wamon::WamonException);
+}
+
+TEST(variable, vo_var) {
+  using namespace wamon;
+  auto v = ToVar(2);
+  EXPECT_EQ(v->GetTypeInfo(), "int");
+  v = ToVar(2.5);
+  EXPECT_EQ(v->GetTypeInfo(), "double");
+  v = ToVar(true);
+  EXPECT_EQ(v->GetTypeInfo(), "bool");
+  v = ToVar((unsigned char)(12));
+  EXPECT_EQ(v->GetTypeInfo(), "byte");
+  v = ToVar(std::string("hello"));
+  EXPECT_EQ(v->GetTypeInfo(), "string");
+  EXPECT_EQ(AsStringVariable(v)->GetValue(), "hello");
+  v = ToVar(std::vector<int>{2, 3, 4});
+  EXPECT_EQ(v->GetTypeInfo(), "list(int)");
+  EXPECT_EQ(AsListVariable(v)->Size(), 3);
+  v = ToVar(std::vector<bool>{true, true, false});
+  EXPECT_EQ(v->GetTypeInfo(), "list(bool)");
+  EXPECT_EQ(AsBoolVariable(AsListVariable(v)->at(0))->GetValue(), true);
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <string>
 #include <vector>
 
@@ -72,10 +73,16 @@ class Variable {
 
 class PackageUnit;
 std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
+                                          const std::string& name, const PackageUnit* pu = nullptr);
+
+std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
                                           const std::string& name, const PackageUnit& pu);
 
 std::shared_ptr<Variable> VariableFactoryShared(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
                                                 const std::string& name, const PackageUnit& pu);
+
+std::shared_ptr<Variable> VariableFactoryShared(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
+                                                const std::string& name, const PackageUnit* pu = nullptr);
 
 std::unique_ptr<Variable> GetVoidVariable();
 
@@ -124,7 +131,7 @@ class StringVariable : public Variable {
 
   std::string& GetValue() { return value_; }
 
-  void SetValue(const std::string& v) { value_ = v; }
+  void SetValue(std::string_view v) { value_ = v; }
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     if (fields.size() != 1) {
@@ -188,6 +195,8 @@ class BoolVariable : public Variable {
       : Variable(TypeFactory<bool>::Get(), vc, name), value_(v) {}
 
   bool GetValue() const { return value_; }
+
+  void SetValue(bool b) { value_ = b; }
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     if (fields.size() != 1) {
@@ -335,6 +344,8 @@ class ByteVariable : public Variable {
       : Variable(TypeFactory<unsigned char>::Get(), vc, name), value_(v) {}
 
   unsigned char GetValue() const { return value_; }
+
+  void SetValue(unsigned char c) { value_ = c; }
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override {
     if (fields.size() != 1) {
@@ -673,6 +684,10 @@ inline FunctionVariable* AsFunctionVariable(const std::shared_ptr<Variable>& v) 
 
 inline FunctionVariable* AsFunctionVariable(Variable* v) { return static_cast<FunctionVariable*>(v); }
 
+/* ********************************************************************
+ * API : VarAs
+ *
+ * ********************************************************************/
 template <typename T>
 T VarAs(const std::shared_ptr<Variable>& v) {
   if constexpr (std::is_same_v<int, T>) {
@@ -696,8 +711,65 @@ T VarAs(const std::shared_ptr<Variable>& v) {
     return AsStringVariable(v)->GetValue();
   }
   throw WamonException("VarAs error, not support type {} now", v->GetTypeInfo());
-  // unreachable
-  return T{};
+  WAMON_UNREACHABLE;
+  return *static_cast<T*>(nullptr);
+}
+
+/* ********************************************************************
+ * API : ToVar
+ *
+ * ********************************************************************/
+#define WAMON_TO_VAR(basic_type, transform_type)                                                           \
+  if constexpr (std::is_same_v<type, basic_type>) {                                                        \
+    auto ret = VariableFactoryShared(TypeFactory<basic_type>::Get(), Variable::ValueCategory::LValue, ""); \
+    As##transform_type##Variable(ret)->SetValue(std::forward<T>(v));                                       \
+    return ret;                                                                                            \
+  }
+
+inline std::shared_ptr<Variable> ToVar(std::string_view strv) {
+  auto ret = VariableFactoryShared(TypeFactory<std::string>::Get(), Variable::ValueCategory::LValue, "");
+  AsStringVariable(ret)->SetValue(strv);
+  return ret;
+}
+
+template <size_t n>
+std::shared_ptr<Variable> ToVar(char (&cstr)[n]) {
+  return ToVar(std::string_view(cstr));
+}
+
+template <typename T>
+concept WAMON_SUPPORT_TOVAR = std::same_as<T, int> || std::same_as<T, double> || std::same_as<T, unsigned char> ||
+                              std::same_as<T, bool> || std::same_as<T, std::string>;
+
+template <typename T>
+requires WAMON_SUPPORT_TOVAR<std::remove_cvref_t<T>> std::shared_ptr<Variable> ToVar(T&& v) {
+  using type = std::remove_cvref_t<T>;
+  WAMON_TO_VAR(int, Int)
+  WAMON_TO_VAR(double, Double)
+  WAMON_TO_VAR(unsigned char, Byte)
+  WAMON_TO_VAR(bool, Bool)
+  WAMON_TO_VAR(std::string, String)
+
+  WAMON_UNREACHABLE;
+  return nullptr;
+}
+
+inline std::shared_ptr<Variable> ToVar(std::shared_ptr<Variable> v) { return v; }
+
+template <typename EleType>
+std::shared_ptr<Variable> ToVar(std::vector<EleType>&& v) {
+  auto ret = VariableFactoryShared(TypeFactory<std::vector<EleType>>::Get(), Variable::ValueCategory::LValue, "");
+  for (size_t i = 0; i < v.size(); ++i) {
+    // sad for vector<bool>
+    if constexpr (std::same_as<bool, std::remove_cvref_t<EleType>>) {
+      auto e = ToVar(bool(v[i]));
+      AsListVariable(ret)->PushBack(e);
+    } else {
+      auto e = ToVar(std::forward<std::vector<EleType>>(v)[i]);
+      AsListVariable(ret)->PushBack(e);
+    }
+  }
+  return ret;
 }
 
 }  // namespace wamon

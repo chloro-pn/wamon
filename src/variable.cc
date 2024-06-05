@@ -6,7 +6,7 @@
 namespace wamon {
 
 std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                          const std::string& name, const PackageUnit& pu) {
+                                          const std::string& name, const PackageUnit* pu) {
   if (IsBuiltInType(type)) {
     std::string typeinfo = type->GetTypeInfo();
     if (typeinfo == "string") {
@@ -29,9 +29,14 @@ std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
     }
   }
   if (type->IsBasicType() == true) {
-    auto struct_def = pu.FindStruct(type->GetTypeInfo());
-    assert(struct_def != nullptr);
-    return std::make_unique<StructVariable>(struct_def, vc, pu, name);
+    if (pu == nullptr) {
+      throw WamonException("VariableFactory error, pu == nullptr");
+    }
+    auto struct_def = pu->FindStruct(type->GetTypeInfo());
+    if (struct_def == nullptr) {
+      throw WamonException("pu.FindStruct error, type {} invalid", type->GetTypeInfo());
+    }
+    return std::make_unique<StructVariable>(struct_def, vc, *pu, name);
   }
   if (IsPtrType(type)) {
     return std::make_unique<PointerVariable>(GetHoldType(type), vc, name);
@@ -45,8 +50,18 @@ std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
   throw WamonException("VariableFactory error, not implement now.");
 }
 
+std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
+                                          const std::string& name, const PackageUnit& pu) {
+  return VariableFactory(type, vc, name, &pu);
+}
+
 std::shared_ptr<Variable> VariableFactoryShared(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
                                                 const std::string& name, const PackageUnit& pu) {
+  return std::shared_ptr<Variable>(VariableFactory(type, vc, name, &pu));
+}
+
+std::shared_ptr<Variable> VariableFactoryShared(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
+                                                const std::string& name, const PackageUnit* pu) {
   return std::shared_ptr<Variable>(VariableFactory(type, vc, name, pu));
 }
 
