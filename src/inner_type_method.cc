@@ -7,11 +7,6 @@ namespace wamon {
 
 std::string concat(const std::string& type, const std::string& method) { return type + method; }
 
-static void throw_params_type_check_error_exception(const std::string& type_info, const std::string& method,
-                                                    const std::string& reason) {
-  throw WamonException("builtin type method check error , type {} , method {}, reason {}", type_info, method, reason);
-}
-
 static void register_builtin_type_method_check(std::unordered_map<std::string, InnerTypeMethod::CheckType>& handles) {
   handles[concat("string", "len")] =
       [](const std::unique_ptr<Type>& builtin_type,
@@ -55,8 +50,11 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
 
   handles[concat("list", "at")] = [](const std::unique_ptr<Type>& builtin_type,
                                      const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
-    if (params_type.size() != 1 || !IsIntType(params_type[0])) {
-      throw_params_type_check_error_exception("list", "at", "invalid params count or invalid params type");
+    if (params_type.size() != 1) {
+      throw WamonException("list.at error, params.size() == {}", params_type.size());
+    }
+    if (!IsIntType(params_type[0])) {
+      throw WamonException("list.at error, param's type == {}", params_type[0]->GetTypeInfo());
     }
     return GetElementType(builtin_type);
   };
@@ -64,9 +62,13 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
   handles[concat("list", "insert")] =
       [](const std::unique_ptr<Type>& builtin_type,
          const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
-    if (params_type.size() != 2 || !IsIntType(params_type[0]) ||
-        static_cast<ListType*>(builtin_type.get())->GetHoldType()->GetTypeInfo() != params_type[1]->GetTypeInfo()) {
-      throw_params_type_check_error_exception("list", "at", "invalid params count or invalid params type");
+    if (params_type.size() != 2) {
+      throw WamonException("list.insert error, params.size() == {}", params_type.size());
+    }
+
+    if (!IsIntType(params_type[0]) || !IsSameType(GetElementType(builtin_type), params_type[1])) {
+      throw WamonException("list.insert error, param's type == {} {}", params_type[0]->GetTypeInfo(),
+                           params_type[1]->GetTypeInfo());
     }
     return GetVoidType();
   };
