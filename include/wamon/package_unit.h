@@ -32,6 +32,11 @@ class PackageUnit {
     import_packages_ = import_packages;
     package_imports_[package_name_] = import_packages;
   }
+
+  const std::string& GetName() const { return package_name_; }
+
+  const std::vector<std::string>& GetImportPackage() const { return import_packages_; }
+
   void AddVarDef(std::unique_ptr<VariableDefineStmt>&& vd) {
     if (std::find_if(var_define_.begin(), var_define_.end(), [&vd](const auto& v) -> bool {
           return vd->GetVarName() == v->GetVarName();

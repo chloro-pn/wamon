@@ -1,6 +1,5 @@
 #include "gtest/gtest.h"
 // just for test
-#define private public
 #include "wamon/interpreter.h"
 #include "wamon/package_unit.h"
 #include "wamon/parser.h"
@@ -39,17 +38,17 @@ TEST(package_unit, basic) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
-  EXPECT_EQ(pu.package_name_, "main");
-  EXPECT_EQ(pu.import_packages_.size(), 2);
-  EXPECT_EQ(pu.funcs_.size(), 1);
-  EXPECT_EQ(pu.structs_.size(), 1);
-  EXPECT_EQ(pu.var_define_.size(), 1);
+  EXPECT_EQ(pu.GetName(), "main");
+  EXPECT_EQ(pu.GetImportPackage().size(), 2);
+  EXPECT_EQ(pu.GetFunctions().size(), 1);
+  EXPECT_EQ(pu.GetStructs().size(), 1);
+  EXPECT_EQ(pu.GetGlobalVariDefStmt().size(), 1);
   bool find = false;
-  find = pu.funcs_.count("my_func") > 0;
+  find = pu.GetFunctions().count("my_func") > 0;
   EXPECT_EQ(find, true);
-  find = pu.structs_.count("my_struct_name") > 0;
+  find = pu.GetStructs().count("my_struct_name") > 0;
   EXPECT_EQ(find, true);
-  const auto& tmp = pu.var_define_[0]->GetType();
+  const auto& tmp = pu.GetGlobalVariDefStmt()[0]->GetType();
   EXPECT_EQ(wamon::IsBoolType(tmp), true);
 }
 

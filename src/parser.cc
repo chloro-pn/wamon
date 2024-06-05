@@ -179,7 +179,9 @@ void ParseCaptureIdList(PackageUnit &pu, const std::vector<WamonToken> &tokens, 
     }
     auto [package_name, id] = ParseIdentifier(pu, tokens, begin);
     id = package_name + "$" + id;
-    auto it = std::find_if(ids.begin(), ids.end(), [&id](auto &item) -> bool { return item.id == id; });
+    // fix: src/parser.cc:182:54: error: 'id' in capture list does not name a variable
+    std::string_view id_view(id);
+    auto it = std::find_if(ids.begin(), ids.end(), [&id_view](auto &item) -> bool { return item.id == id_view; });
     if (it != ids.end()) {
       throw WamonException("ParseCpatureIdList error, duplicate id {}", id);
     }

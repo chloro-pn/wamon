@@ -119,7 +119,13 @@ class BinaryExpr : public Expression {
 
   void SetRight(std::unique_ptr<Expression>&& right) { right_ = std::move(right); }
 
+  std::unique_ptr<Expression>& GetLeft() { return left_; }
+
+  std::unique_ptr<Expression>& GetRight() { return right_; }
+
   void SetOp(Token op) { op_ = op; }
+
+  Token GetOp() const { return op_; }
 
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
 
@@ -135,7 +141,11 @@ class UnaryExpr : public Expression {
 
   void SetOp(Token op) { op_ = op; }
 
+  Token GetOp() const { return op_; }
+
   void SetOperand(std::unique_ptr<Expression>&& operand) { operand_ = std::move(operand); }
+
+  std::unique_ptr<Expression>& GetOperand() { return operand_; }
 
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;
 
@@ -194,7 +204,7 @@ class IntIteralExpr : public Expression {
   void SetIntIter(const int64_t& n) { num_ = n; }
 
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
-    return std::make_shared<IntVariable>(num_, Variable::ValueCategory::RValue, "");
+    return std::make_shared<IntVariable>(static_cast<int>(num_), Variable::ValueCategory::RValue, "");
   }
 
  private:
@@ -259,7 +269,7 @@ class LambdaExpr : public Expression {
   }
 
   static bool IsLambdaName(const std::string& name) {
-    constexpr int len = strlen("__lambda_");
+    const int len = strlen("__lambda_");
     return name.size() >= len && name.substr(0, len) == "__lambda_";
   }
 

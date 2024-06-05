@@ -135,7 +135,7 @@ void TypeChecker::CheckStructs() {
   const auto& structs = pu.GetStructs();
   auto built_in_types = detail::GetBuiltInTypesWithoutVoid();
   // 保证不同类型的TypeInfo不相同，因此可以用其代表一个类型进行循环依赖分析
-  bool all_succ = true;
+  [[maybe_unused]] bool all_succ = true;
   Graph<std::string> graph;
   for (const auto& each : built_in_types) {
     all_succ &= graph.AddNode(each);

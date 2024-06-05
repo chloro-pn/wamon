@@ -1,10 +1,6 @@
 #include <set>
 
 #include "gtest/gtest.h"
-
-// for test
-#define private public
-
 #include "wamon/exception.h"
 #include "wamon/parser.h"
 #include "wamon/scanner.h"

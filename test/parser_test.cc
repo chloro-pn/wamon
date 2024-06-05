@@ -1,11 +1,8 @@
+#include "wamon/parser.h"
+
 #include "gtest/gtest.h"
-
-// for test
-#define private public
-
 #include "wamon/exception.h"
 #include "wamon/package_unit.h"
-#include "wamon/parser.h"
 #include "wamon/scanner.h"
 
 TEST(parser, basic) {
@@ -130,10 +127,10 @@ TEST(parser, operator_priority) {
   auto expr = wamon::ParseExpression(pu, tokens, 0, tokens.size() - 2);
   auto be = dynamic_cast<wamon::BinaryExpr*>(expr.get());
   EXPECT_NE(be, nullptr);
-  EXPECT_EQ(be->op_, wamon::Token::SUBSCRIPT);
-  auto left = dynamic_cast<wamon::BinaryExpr*>(be->left_.get());
+  EXPECT_EQ(be->GetOp(), wamon::Token::SUBSCRIPT);
+  auto left = dynamic_cast<wamon::BinaryExpr*>(be->GetLeft().get());
   EXPECT_NE(left, nullptr);
-  EXPECT_EQ(left->op_, wamon::Token::MEMBER_ACCESS);
+  EXPECT_EQ(left->GetOp(), wamon::Token::MEMBER_ACCESS);
 
   str = "call mf:(a, b)[4]";
   tokens = scan.Scan(str);
@@ -242,7 +239,7 @@ TEST(parse, parse_expression) {
   EXPECT_NE(expr, nullptr);
   EXPECT_NE(dynamic_cast<wamon::BinaryExpr*>(expr.get()), nullptr);
   auto ptr = dynamic_cast<wamon::BinaryExpr*>(expr.get());
-  EXPECT_EQ(ptr->op_, wamon::Token::PIPE);
+  EXPECT_EQ(ptr->GetOp(), wamon::Token::PIPE);
 
   str = "new int(2)";
   tokens = scan.Scan(str);
@@ -250,7 +247,7 @@ TEST(parse, parse_expression) {
   EXPECT_NE(expr, nullptr);
   auto ptr2 = dynamic_cast<wamon::NewExpr*>(expr.get());
   EXPECT_EQ(ptr2->GetNewType()->GetTypeInfo(), "int");
-  EXPECT_EQ(ptr2->parameters_.size(), 1);
+  EXPECT_EQ(ptr2->GetParameters().size(), 1);
 
   str = "alloc int(2)";
   tokens = scan.Scan(str);
@@ -258,7 +255,7 @@ TEST(parse, parse_expression) {
   EXPECT_NE(expr, nullptr);
   auto ptr3 = dynamic_cast<wamon::AllocExpr*>(expr.get());
   EXPECT_EQ(ptr3->GetAllocType()->GetTypeInfo(), "int");
-  EXPECT_EQ(ptr3->parameters_.size(), 1);
+  EXPECT_EQ(ptr3->GetParameters().size(), 1);
 
   str = "dealloc ptr_id";
   tokens = scan.Scan(str);
@@ -276,12 +273,12 @@ TEST(parse, unary_operator) {
   auto tokens = scan.Scan(str);
   auto expr = wamon::ParseExpression(pu, tokens, 0, tokens.size() - 1);
   EXPECT_NE(expr, nullptr);
-  auto tmp = dynamic_cast<wamon::BinaryExpr*>(expr.get())->right_.get();
+  auto tmp = dynamic_cast<wamon::BinaryExpr*>(expr.get())->GetRight().get();
   auto tmp2 = dynamic_cast<wamon::UnaryExpr*>(tmp);
   EXPECT_NE(tmp2, nullptr);
-  EXPECT_EQ(tmp2->op_, wamon::Token::MINUS);
-  tmp2 = dynamic_cast<wamon::UnaryExpr*>(tmp2->operand_.get());
-  EXPECT_EQ(tmp2->op_, wamon::Token::ADDRESS_OF);
+  EXPECT_EQ(tmp2->GetOp(), wamon::Token::MINUS);
+  tmp2 = dynamic_cast<wamon::UnaryExpr*>(tmp2->GetOperand().get());
+  EXPECT_EQ(tmp2->GetOp(), wamon::Token::ADDRESS_OF);
 }
 
 TEST(parse, parse_package) {
