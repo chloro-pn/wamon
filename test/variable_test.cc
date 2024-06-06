@@ -123,9 +123,12 @@ TEST(variable, print) {
   auto pu = GetPackageUnitFromScript(script);
   wamon::Interpreter ip(pu);
   v = ip.FindVariableById("main$v");
-  EXPECT_EQ(v->Print().dump(), "{\"point_to\":2}");
+  std::string print_result = R"({"point_to":2})";
+  EXPECT_EQ(v->Print().dump(), print_result);
   v = ip.FindVariableById("main$v2");
-  EXPECT_EQ(v->Print().dump(), "{\"function\":\"__lambda_0main\",\"function_type\":\"f((int) -> int)\"}");
+  print_result = R"_({"function":"__lambda_0main","function_type":"f((int) -> int)"})_";
+  EXPECT_EQ(v->Print().dump(), print_result);
   v = ip.FindVariableById("main$v3");
-  EXPECT_EQ(v->Print().dump(), "{\"members\":{\"a\":2,\"b\":2.3,\"c\":true},\"struct\":\"main$ms\"}");
+  print_result = R"({"members":{"a":2,"b":2.3,"c":true},"struct":"main$ms"})";
+  EXPECT_EQ(v->Print().dump(), print_result);
 }
