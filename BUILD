@@ -21,6 +21,7 @@ cc_test(
     ":wamon",
     "@googletest//:gtest",
     "@googletest//:gtest_main",
+    "@nlohmann_json//:json",
   ],
 )
 
