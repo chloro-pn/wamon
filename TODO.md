@@ -30,4 +30,6 @@
 * 支持新的数据类型 Map
 * 支持函数重载
 * 支持注册函数的包管理
-* Output to json format
+* [done] Output to json format
+* for语句支持变量定义
+

@@ -16,10 +16,11 @@ namespace wamon {
 class Type;
 class FuncCallExpr;
 class TypeChecker;
+class Interpreter;
 
 class BuiltinFunctions {
  public:
-  using HandleType = std::function<std::shared_ptr<Variable>(std::vector<std::shared_ptr<Variable>>&&)>;
+  using HandleType = std::function<std::shared_ptr<Variable>(Interpreter&, std::vector<std::shared_ptr<Variable>>&&)>;
   using CheckType = std::function<std::unique_ptr<Type>(const std::vector<std::unique_ptr<Type>>& params_type)>;
 
   BuiltinFunctions();

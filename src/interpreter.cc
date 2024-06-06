@@ -14,6 +14,7 @@ namespace wamon {
 
 Interpreter::Interpreter(PackageUnit& pu) : pu_(pu) {
   package_context_.type_ = RuntimeContextType::Global;
+  package_context_.desc_ = "global";
   // 将packge unit中的包变量进行求解并插入包符号表中
   const auto& vars = pu_.GetGlobalVariDefStmt();
   for (const auto& each : vars) {
@@ -47,7 +48,7 @@ void Interpreter::Dealloc(std::shared_ptr<Variable> v) {
 std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_def,
                                                     std::vector<std::shared_ptr<Variable>>&& params) {
   assert(function_def != nullptr);
-  EnterContext<RuntimeContextType::Function>();
+  EnterContext<RuntimeContextType::Function>(function_def->GetFunctionName());
   auto param_name = function_def->GetParamList().begin();
   auto capture_name = function_def->GetCaptureIds().begin();
   for (auto param : params) {
@@ -105,7 +106,7 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
   if (method_def->IsDeclaration()) {
     throw WamonException("Interpreter.CallMethod error, method {} is declaration", method_def->GetMethodName());
   }
-  EnterContext<RuntimeContextType::Method>();
+  EnterContext<RuntimeContextType::Method>(obj->GetTypeInfo() + "::" + method_def->GetMethodName());
   auto param_name = method_def->GetParamList().begin();
   for (auto param : params) {
     assert(param_name != method_def->GetParamList().end());

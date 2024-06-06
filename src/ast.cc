@@ -185,7 +185,7 @@ std::shared_ptr<Variable> DeallocExpr::Calculate(Interpreter& interpreter) {
 }
 
 ExecuteResult BlockStmt::Execute(Interpreter& interpreter) {
-  interpreter.EnterContext<RuntimeContextType::Block>();
+  interpreter.EnterContext<RuntimeContextType::Block>("block");
   for (auto& each : block_) {
     ExecuteResult step = each->Execute(interpreter);
     if (step.state_ != ExecuteState::Next) {
@@ -198,7 +198,7 @@ ExecuteResult BlockStmt::Execute(Interpreter& interpreter) {
 }
 
 ExecuteResult ForStmt::Execute(Interpreter& interpreter) {
-  interpreter.EnterContext<RuntimeContextType::FOR>();
+  interpreter.EnterContext<RuntimeContextType::FOR>("for");
   init_->Calculate(interpreter);
   while (true) {
     auto v = check_->Calculate(interpreter);
@@ -228,7 +228,7 @@ ExecuteResult IfStmt::Execute(Interpreter& interpreter) {
   ExecuteResult er = ExecuteResult::Next();
   bool executed = false;
   if (check == true) {
-    interpreter.EnterContext<RuntimeContextType::IF>();
+    interpreter.EnterContext<RuntimeContextType::IF>("if");
     executed = true;
     er = if_block_->Execute(interpreter);
   }
@@ -237,7 +237,7 @@ ExecuteResult IfStmt::Execute(Interpreter& interpreter) {
       v = each.elif_check->Calculate(interpreter);
       check = AsBoolVariable(v)->GetValue();
       if (check == true) {
-        interpreter.EnterContext<RuntimeContextType::ELSE>();
+        interpreter.EnterContext<RuntimeContextType::ELSE>("elif");
         executed = true;
         er = each.elif_block->Execute(interpreter);
         break;
@@ -245,7 +245,7 @@ ExecuteResult IfStmt::Execute(Interpreter& interpreter) {
     }
   }
   if (executed == false && else_block_ != nullptr) {
-    interpreter.EnterContext<RuntimeContextType::ELSE>();
+    interpreter.EnterContext<RuntimeContextType::ELSE>("else");
     executed = true;
     er = else_block_->Execute(interpreter);
   }
@@ -260,7 +260,7 @@ ExecuteResult IfStmt::Execute(Interpreter& interpreter) {
 }
 
 ExecuteResult WhileStmt::Execute(Interpreter& interpreter) {
-  interpreter.EnterContext<RuntimeContextType::WHILE>();
+  interpreter.EnterContext<RuntimeContextType::WHILE>("while");
   while (true) {
     auto v = check_->Calculate(interpreter);
     bool check = AsBoolVariable(v)->GetValue();

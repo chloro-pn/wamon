@@ -17,12 +17,14 @@ auto my_cpp_func_check(const std::vector<std::unique_ptr<wamon::Type>>& params_t
   return wamon::TypeFactory<int>::Get();
 }
 
-auto my_cpp_func(std::vector<std::shared_ptr<wamon::Variable>>&& params) -> std::shared_ptr<wamon::Variable> {
+auto my_cpp_func(wamon::Interpreter&, std::vector<std::shared_ptr<wamon::Variable>>&& params)
+    -> std::shared_ptr<wamon::Variable> {
   auto len = wamon::AsStringVariable(params[0])->GetValue().size();
   return std::make_shared<wamon::IntVariable>(static_cast<int>(len), wamon::Variable::ValueCategory::RValue, "");
 }
 
-auto my_type_cpp_func(std::vector<std::shared_ptr<wamon::Variable>>&& params) -> std::shared_ptr<wamon::Variable> {
+auto my_type_cpp_func(wamon::Interpreter&, std::vector<std::shared_ptr<wamon::Variable>>&& params)
+    -> std::shared_ptr<wamon::Variable> {
   return std::make_shared<wamon::IntVariable>(12138, wamon::Variable::ValueCategory::RValue, "");
 }
 

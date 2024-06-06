@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -18,7 +19,6 @@ namespace wamon {
 enum class RuntimeContextType {
   Global,
   Function,
-  Callable,
   Method,
   FOR,
   IF,
@@ -75,15 +75,18 @@ struct RuntimeContext {
   RuntimeContext() = default;
 
   RuntimeContext(const RuntimeContext&) = delete;
-  RuntimeContext(RuntimeContext&& other) : type_(other.type_), symbol_table_(std::move(other.symbol_table_)) {}
+  RuntimeContext(RuntimeContext&& other)
+      : type_(other.type_), desc_(std::move(other.desc_)), symbol_table_(std::move(other.symbol_table_)) {}
   RuntimeContext& operator=(const RuntimeContext& other) = delete;
   RuntimeContext& operator=(RuntimeContext&& other) {
     type_ = other.type_;
+    desc_ = other.desc_;
     symbol_table_ = std::move(other.symbol_table_);
     return *this;
   }
 
   RuntimeContextType type_;
+  std::string desc_;
   std::unordered_map<std::string, std::shared_ptr<Variable>> symbol_table_;
 };
 
@@ -101,14 +104,17 @@ class Interpreter {
 
  private:
   template <RuntimeContextType type>
-  void EnterContext() {
+  void EnterContext(const std::string& desc) {
     auto rs = std::make_unique<RuntimeContext>();
     rs->type_ = type;
+    rs->desc_ = desc;
     runtime_stack_.push_back(std::move(rs));
   }
 
   void LeaveContext() {
-    assert(runtime_stack_.empty() == false);
+    if (runtime_stack_.empty()) {
+      throw WamonException("Interpreter.LeaveContext error, empty");
+    }
     runtime_stack_.pop_back();
   }
 
@@ -118,6 +124,17 @@ class Interpreter {
       return &package_context_;
     }
     return runtime_stack_.back().get();
+  }
+
+  std::vector<std::string> GetContextStack() const {
+    std::vector<std::string> ret;
+    for (auto it = runtime_stack_.rbegin(); it != runtime_stack_.rend(); ++it) {
+      if ((*it)->type_ == RuntimeContextType::Function || (*it)->type_ == RuntimeContextType::Method) {
+        ret.push_back((*it)->desc_);
+      }
+    }
+    ret.push_back(package_context_.desc_);
+    return ret;
   }
 
   std::shared_ptr<Variable> Alloc(const std::unique_ptr<Type>& type, std::vector<std::shared_ptr<Variable>>&& params);
@@ -134,7 +151,7 @@ class Interpreter {
       auto override_name = OperatorDef::CreateName(op, {operand...});
       auto func_def = GetPackageUnit().FindFunction(override_name);
       if (func_def != nullptr) {
-        EnterContext<RuntimeContextType::Function>();
+        EnterContext<RuntimeContextType::Function>(func_def->GetFunctionName());
         ret = CallFunction(func_def, {operand...});
         LeaveContext();
         return ret;
@@ -179,8 +196,8 @@ class Interpreter {
     if (func == nullptr) {
       throw WamonException("CallFunction error, {} not exist", builtin_name);
     }
-    EnterContext<RuntimeContextType::Function>();
-    auto ret = (*func)(std::move(params));
+    EnterContext<RuntimeContextType::Function>(builtin_name);
+    auto ret = (*func)(*this, std::move(params));
     LeaveContext();
     return ret->IsRValue() ? std::move(ret) : ret->Clone();
   }
@@ -207,7 +224,7 @@ class Interpreter {
   std::shared_ptr<Variable> CallMethod(std::shared_ptr<Variable> obj, const std::string& method_name,
                                        std::vector<std::shared_ptr<Variable>>&& params) {
     auto method = InnerTypeMethod::Instance().Get(obj, method_name);
-    EnterContext<RuntimeContextType::Method>();
+    EnterContext<RuntimeContextType::Method>(obj->GetTypeInfo() + "::" + method_name);
     auto ret = method(obj, std::move(params), pu_);
     LeaveContext();
     return ret->IsRValue() ? std::move(ret) : ret->Clone();

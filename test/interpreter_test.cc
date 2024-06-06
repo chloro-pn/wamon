@@ -720,7 +720,8 @@ TEST(interpreter, register_cpp_function) {
         }
         return wamon::TypeFactory<int>::Get();
       },
-      [](std::vector<std::shared_ptr<wamon::Variable>>&& params) -> std::shared_ptr<wamon::Variable> {
+      [](wamon::Interpreter&,
+         std::vector<std::shared_ptr<wamon::Variable>>&& params) -> std::shared_ptr<wamon::Variable> {
         auto len = wamon::AsStringVariable(params[0])->GetValue().size();
         return std::make_shared<wamon::IntVariable>(static_cast<int>(len), wamon::Variable::ValueCategory::RValue, "");
       });

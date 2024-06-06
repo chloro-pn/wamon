@@ -783,6 +783,7 @@ requires WAMON_SUPPORT_TOVAR<std::remove_cvref_t<T>> std::shared_ptr<Variable> T
 
 inline std::shared_ptr<Variable> ToVar(std::shared_ptr<Variable> v) { return v; }
 
+// todo : 万能引用 + type trait
 template <typename EleType>
 std::shared_ptr<Variable> ToVar(std::vector<EleType>&& v) {
   auto ret = VariableFactoryShared(TypeFactory<std::vector<EleType>>::Get(), Variable::ValueCategory::LValue, "");
