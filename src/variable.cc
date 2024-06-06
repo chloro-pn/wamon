@@ -265,18 +265,18 @@ void StructVariable::ChangeTo(ValueCategory vc) {
   }
 }
 
-void StructVariable::Print(Output& output) {
+nlohmann::json StructVariable::Print() {
   assert(def_ != nullptr);
+  nlohmann::json obj;
   if (def_->IsTrait()) {
-    output.OutputFormat("struct trait {}", def_->GetStructName());
-    return;
+    obj["struct trait"] = def_->GetStructName();
+    return obj;
   }
-  output.OutputFormat("struct {} : [ ", def_->GetStructName());
+  obj["struct"] = def_->GetStructName();
   for (size_t index = 0; index < data_members_.size(); ++index) {
-    data_members_[index].data->Print(output);
-    output.OutPutString(" ");
+    obj["members"][data_members_[index].name] = data_members_[index].data->Print();
   }
-  output.OutPutString(" ]");
+  return obj;
 }
 
 void PointerVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {

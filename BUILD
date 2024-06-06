@@ -10,6 +10,7 @@ cc_library(
   copts = WAMON_COPTS,
   deps = [
     "@fmt//:fmt",
+    "@nlohmann_json//:json",
   ]
 )
 

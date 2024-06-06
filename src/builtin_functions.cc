@@ -1,20 +1,21 @@
 #include "wamon/builtin_functions.h"
 
+#include <iostream>
 #include <string>
 
+#include "nlohmann/json.hpp"
 #include "wamon/ast.h"
 #include "wamon/exception.h"
-#include "wamon/output.h"
 #include "wamon/type_checker.h"
 
 namespace wamon {
 
 static auto _print(std::vector<std::shared_ptr<Variable>>&& params) -> std::shared_ptr<Variable> {
-  StdOutput output;
+  nlohmann::json j;
   for (auto& each : params) {
-    each->Print(output);
-    output.OutPutString(" ");
+    j.push_back(each->Print());
   }
+  std::cout << j.dump() << std::endl;
   return std::make_shared<VoidVariable>();
 }
 

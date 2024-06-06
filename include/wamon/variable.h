@@ -2,10 +2,11 @@
 
 #include <concepts>
 #include <string>
+#include <string_view>
 #include <vector>
 
+#include "nlohmann/json.hpp"
 #include "wamon/exception.h"
-#include "wamon/output.h"
 #include "wamon/type.h"
 
 namespace wamon {
@@ -37,7 +38,7 @@ class Variable {
 
   virtual void Assign(const std::shared_ptr<Variable>& other) = 0;
 
-  virtual void Print(Output& output) = 0;
+  virtual nlohmann::json Print() = 0;
 
   virtual ~Variable() = default;
 
@@ -106,7 +107,7 @@ class VoidVariable : public Variable {
     throw WamonException("VoidVariable.Assign should not be called");
   }
 
-  void Print(Output& output) override { throw WamonException("VoidVariable.Print should not be called"); }
+  nlohmann::json Print() override { throw WamonException("VoidVariable.Print should not be called"); }
 
   std::unique_ptr<Variable> Clone() override { return std::make_unique<VoidVariable>(); }
 };
@@ -175,7 +176,7 @@ class StringVariable : public Variable {
     }
   }
 
-  void Print(Output& output) override { output.OutPutString(value_); }
+  nlohmann::json Print() override { return nlohmann::json(value_); }
 
  private:
   std::string value_;
@@ -227,7 +228,7 @@ class BoolVariable : public Variable {
     value_ = static_cast<BoolVariable*>(other.get())->value_;
   }
 
-  void Print(Output& output) override { output.OutPutBool(value_); }
+  nlohmann::json Print() override { return nlohmann::json(value_); }
 
  private:
   bool value_;
@@ -274,7 +275,7 @@ class IntVariable : public Variable {
     value_ = static_cast<IntVariable*>(other.get())->value_;
   }
 
-  void Print(Output& output) override { output.OutPutInt(value_); }
+  nlohmann::json Print() override { return nlohmann::json(value_); }
 
  private:
   int value_;
@@ -324,7 +325,7 @@ class DoubleVariable : public Variable {
     value_ = static_cast<DoubleVariable*>(other.get())->value_;
   }
 
-  void Print(Output& output) override { output.OutPutDouble(value_); }
+  nlohmann::json Print() override { return nlohmann::json(value_); }
 
  private:
   double value_;
@@ -336,6 +337,23 @@ inline DoubleVariable* AsDoubleVariable(const std::shared_ptr<Variable>& v) {
 
 inline DoubleVariable* AsDoubleVariable(const std::unique_ptr<Variable>& v) {
   return static_cast<DoubleVariable*>(v.get());
+}
+
+inline void byte_to_string(unsigned char c, char (&buf)[4]) {
+  buf[0] = '0';
+  buf[1] = 'X';
+  int h = static_cast<int>(c) / 16;
+  int l = static_cast<int>(c) - h * 16;
+  if (h >= 0 && h <= 9) {
+    buf[2] = h + '0';
+  } else {
+    buf[2] = h - 10 + 'A';
+  }
+  if (l >= 0 && l <= 9) {
+    buf[3] = l + '0';
+  } else {
+    buf[3] = l - 10 + 'A';
+  }
 }
 
 class ByteVariable : public Variable {
@@ -376,7 +394,11 @@ class ByteVariable : public Variable {
     value_ = static_cast<ByteVariable*>(other.get())->value_;
   }
 
-  void Print(Output& output) override { output.OutPutByte(value_); }
+  nlohmann::json Print() override {
+    char buf[4];
+    byte_to_string(value_, buf);
+    return nlohmann::json(std::string(buf, 4));
+  }
 
  private:
   unsigned char value_;
@@ -418,7 +440,7 @@ class StructVariable : public Variable {
 
   void ChangeTo(ValueCategory vc) override;
 
-  void Print(Output& output) override;
+  nlohmann::json Print() override;
 
  private:
   const StructDef* def_;
@@ -469,13 +491,14 @@ class PointerVariable : public CompoundVariable {
     obj_ = static_cast<PointerVariable*>(other.get())->obj_;
   }
 
-  void Print(Output& output) override {
+  nlohmann::json Print() override {
     auto v = obj_.lock();
     if (v) {
-      output.OutPutString("pointer to : ");
-      v->Print(output);
+      nlohmann::json ptr_to;
+      ptr_to["point_to"] = v->Print();
+      return ptr_to;
     } else {
-      output.OutPutString("nullptr");
+      return nlohmann::json("nullptr");
     }
   }
 
@@ -586,14 +609,12 @@ class ListVariable : public CompoundVariable {
     }
   }
 
-  void Print(Output& output) override {
-    output.OutputFormat("list ({}) size : {}\n", element_type_->GetTypeInfo(), elements_.size());
+  nlohmann::json Print() override {
+    nlohmann::json list;
     for (size_t i = 0; i < elements_.size(); ++i) {
-      output.OutPutInt(static_cast<int>(i));
-      output.OutPutString(" ");
-      elements_[i]->Print(output);
-      output.OutPutString("\n");
+      list.push_back(elements_[i]->Print());
     }
+    return list;
   }
 
  private:
@@ -664,13 +685,18 @@ class FunctionVariable : public CompoundVariable {
     }
   }
 
-  void Print(Output& output) override {
-    output.OutputFormat("func {} ", GetTypeInfo());
+  nlohmann::json Print() override {
+    nlohmann::json j;
+    j["function_type"] = GetTypeInfo();
     if (obj_) {
-      output.OutPutString("callable");
+      j["functor"] = obj_->Print();
     } else {
-      output.OutputFormat("function {}", func_name_);
+      j["function"] = func_name_;
     }
+    for (auto& each : capture_variables_) {
+      j["capture_variables"].push_back(each->Print());
+    }
+    return j;
   }
 
  private:

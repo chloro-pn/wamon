@@ -75,3 +75,57 @@ TEST(variable, vo_var) {
   EXPECT_EQ(v->GetTypeInfo(), "list(bool)");
   EXPECT_EQ(AsBoolVariable(AsListVariable(v)->at(0))->GetValue(), true);
 }
+
+wamon::PackageUnit GetPackageUnitFromScript(const std::string& script) {
+  wamon::Scanner scan;
+  auto tokens = scan.Scan(script);
+  auto pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
+
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  if (succ == false) {
+    throw wamon::WamonException("{}", reason);
+  }
+  return pu;
+}
+
+TEST(variable, print) {
+  using namespace wamon;
+  auto v = ToVar(24);
+  EXPECT_EQ(v->Print().dump(), "24");
+  v = ToVar((unsigned char)(33));
+  EXPECT_EQ(v->Print().dump(), "\"0X21\"");
+  v = ToVar(true);
+  EXPECT_EQ(v->Print().dump(), "true");
+  v = ToVar("hello world");
+  EXPECT_EQ(v->Print().dump(), "\"hello world\"");
+  v = ToVar(2.14);
+  EXPECT_EQ(v->Print().dump(), "2.14");
+  v = ToVar(std::vector<int>{1, 2, 1, 3, 8});
+  EXPECT_EQ(v->Print().dump(), "[1,2,1,3,8]");
+
+  std::string script = R"(
+    package main;
+
+    let v : ptr(int) = alloc int(2);
+    let v2 : f((int) -> int) = lambda [](int v) -> int { return v + 1; };
+
+    struct ms {
+      int a;
+      double b;
+      bool c;
+    }
+
+    let v3 : ms = (2, 2.3, true);
+  )";
+  auto pu = GetPackageUnitFromScript(script);
+  wamon::Interpreter ip(pu);
+  v = ip.FindVariableById("main$v");
+  EXPECT_EQ(v->Print().dump(), "{\"point_to\":2}");
+  v = ip.FindVariableById("main$v2");
+  EXPECT_EQ(v->Print().dump(), "{\"function\":\"__lambda_4\",\"function_type\":\"f((int) -> int)\"}");
+  v = ip.FindVariableById("main$v3");
+  EXPECT_EQ(v->Print().dump(), "{\"members\":{\"a\":2,\"b\":2.3,\"c\":true},\"struct\":\"main$ms\"}");
+}
