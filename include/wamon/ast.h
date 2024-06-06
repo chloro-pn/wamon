@@ -261,14 +261,6 @@ class SelfExpr : public Expression {
 
 class LambdaExpr : public Expression {
  public:
-  // 应该由其他组件提供，这样处理的话Wamon环境不独立
-  static std::string CreateUniqueLambdaName() {
-    static size_t lambda_count = 0;
-    auto ret = "__lambda_" + std::to_string(lambda_count);
-    lambda_count += 1;
-    return ret;
-  }
-
   static bool IsLambdaName(const std::string& name) {
     const int len = strlen("__lambda_");
     return name.size() >= len && name.substr(0, len) == "__lambda_";

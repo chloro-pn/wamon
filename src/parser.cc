@@ -201,7 +201,7 @@ void ParseCaptureIdList(PackageUnit &pu, const std::vector<WamonToken> &tokens, 
  * PackageUnit需要传递进parser中，不然无法注册
  */
 std::string ParseLambda(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t &begin) {
-  auto name = LambdaExpr::CreateUniqueLambdaName();
+  auto name = pu.CreateUniqueLambdaName();
   std::unique_ptr<FunctionDef> lambda_def(new FunctionDef(name));
 
   AssertTokenOrThrow(tokens, begin, Token::LAMBDA, __FILE__, __LINE__);

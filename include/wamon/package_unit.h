@@ -22,12 +22,19 @@ class PackageUnit {
  public:
   static PackageUnit _MergePackageUnits(std::vector<PackageUnit>&& packages);
 
+  std::string CreateUniqueLambdaName() {
+    auto ret = "__lambda_" + std::to_string(lambda_count_) + GetName();
+    lambda_count_ += 1;
+    return ret;
+  }
+
   PackageUnit() = default;
 
   PackageUnit(PackageUnit&&) = default;
   PackageUnit& operator=(PackageUnit&&) = default;
 
   void SetName(const std::string& name) { package_name_ = name; }
+
   void SetImportPackage(const std::vector<std::string>& import_packages) {
     import_packages_ = import_packages;
     package_imports_[package_name_] = import_packages;
@@ -165,6 +172,7 @@ class PackageUnit {
   std::unordered_map<std::string, std::unique_ptr<FunctionDef>> funcs_;
   std::unordered_map<std::string, std::unique_ptr<StructDef>> structs_;
   BuiltinFunctions builtin_functions_;
+  size_t lambda_count_{0};
   // 只有通过Merge生成的PackageUnit才使用这项
   std::unordered_map<std::string, std::vector<std::string>> package_imports_;
 

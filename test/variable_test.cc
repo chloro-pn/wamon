@@ -125,7 +125,7 @@ TEST(variable, print) {
   v = ip.FindVariableById("main$v");
   EXPECT_EQ(v->Print().dump(), "{\"point_to\":2}");
   v = ip.FindVariableById("main$v2");
-  EXPECT_EQ(v->Print().dump(), "{\"function\":\"__lambda_4\",\"function_type\":\"f((int) -> int)\"}");
+  EXPECT_EQ(v->Print().dump(), "{\"function\":\"__lambda_0main\",\"function_type\":\"f((int) -> int)\"}");
   v = ip.FindVariableById("main$v3");
   EXPECT_EQ(v->Print().dump(), "{\"members\":{\"a\":2,\"b\":2.3,\"c\":true},\"struct\":\"main$ms\"}");
 }

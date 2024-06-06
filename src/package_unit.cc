@@ -6,7 +6,7 @@
 namespace wamon {
 
 PackageUnit PackageUnit::_MergePackageUnits(std::vector<PackageUnit>&& packages) {
-  PackageUnit result;  // name == ""; import_package == empty;
+  PackageUnit result;  // name == ""; import_package == empty; lambda_count == 0;
   for (auto it = packages.begin(); it != packages.end(); ++it) {
     auto package_name = it->package_name_;
     result.AddPackageImports(package_name, it->import_packages_);
@@ -20,7 +20,8 @@ PackageUnit PackageUnit::_MergePackageUnits(std::vector<PackageUnit>&& packages)
       auto func_name = func_define->first;
       if (!OperatorDef::IsOperatorOverrideName(func_name) && !LambdaExpr::IsLambdaName(func_name)) {
         // 运算符重载不能添加前缀，因为相同类型的重载即便在不同包，也不应该重复定义。
-        // lambda函数不添加前缀
+        // lambda函数不添加前缀，因为构造lambda名字的时候已经添加了包名作为后缀
+        // todo：支持一个包可以由多个PackageUnit合并得到的情况下，lambda的名字可能会冲突
         func_define->second->SetFunctionName(package_name + "$" + func_name);
       }
       result.AddFuncDef(std::move(func_define->second));
@@ -32,6 +33,7 @@ PackageUnit PackageUnit::_MergePackageUnits(std::vector<PackageUnit>&& packages)
       result.AddStructDef(std::move(struct_define->second));
     }
   }
+  // 不需要更新 lambda_count_，因为merge之后的PackageUnit不会再进行解析了。
   return result;
 }
 
