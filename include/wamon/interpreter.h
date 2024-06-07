@@ -34,6 +34,12 @@ struct RuntimeContext {
     }
   }
 
+  void value_category_check(const std::shared_ptr<Variable>& v, const std::string& name) {
+    if (v->IsRValue()) {
+      throw WamonException("value category check error, {} is rvalue", name);
+    }
+  }
+
   void check_exist(const std::string& name) {
     if (symbol_table_.find(name) == symbol_table_.end()) {
       throw WamonException("runtimeContext symbol_table get not exist variable name {}", name);
@@ -43,6 +49,7 @@ struct RuntimeContext {
   // 方法调用里，调用者在方法栈中注册为__self__
   void RegisterVariable(const std::shared_ptr<Variable>& variable, const std::string& tmp_name) {
     check_not_exist(tmp_name);
+    value_category_check(variable, tmp_name);
     symbol_table_.insert({tmp_name, variable});
   }
 
@@ -184,12 +191,12 @@ class Interpreter {
       throw WamonException("CallFunction error, {} not exist", builtin_name);
     }
     EnterContext<RuntimeContextType::Function>(builtin_name);
+    // todo : handle valuecategory
     auto ret = (*func)(*this, std::move(params));
     LeaveContext();
     return ret->IsRValue() ? std::move(ret) : ret->Clone();
   }
 
-  // todo : builtin funcs need type check
   std::shared_ptr<Variable> CallFunctionByName(const std::string& func_name,
                                                std::vector<std::shared_ptr<Variable>>&& params) {
     if (GetPackageUnit().GetBuiltinFunctions().Find(func_name)) {

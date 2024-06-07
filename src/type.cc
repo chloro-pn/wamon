@@ -8,7 +8,6 @@ namespace wamon {
 
 std::unique_ptr<Type> BasicType::Clone() const {
   auto tmp = std::make_unique<BasicType>(type_name_);
-  tmp->SetScope(package_name_);
   return tmp;
 }
 
@@ -88,12 +87,16 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
   if (IsVoidType(var_type)) {
     throw WamonException("CheckCanConstructBy check error, var's type should not be void");
   }
+  std::vector<std::string> type_infos;
+  for (auto& each : param_types) {
+    type_infos.push_back(each->GetTypeInfo());
+  }
   // 原生函数到callable_object类型
   if (IsFuncType(var_type)) {
     if (param_types.size() == 1 && IsSameType(var_type, param_types[0])) {
       return;
     }
-    if (param_types.size() == 1 && IsBasicType(param_types[0]) && !IsBuiltInType(param_types[0])) {
+    if (param_types.size() == 1 && IsStructType(param_types[0])) {
       // 重载了()运算符的结构体类型的对象
       auto method_name = OperatorDef::CreateName(Token::LEFT_PARENTHESIS, GetParamType(var_type));
       auto struct_def = pu.FindStruct(param_types[0]->GetTypeInfo());
@@ -123,10 +126,7 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
   if (param_types.size() == 1 && IsSameType(var_type, param_types[0])) {
     return;
   }
-  std::vector<std::string> type_infos;
-  for (auto& each : param_types) {
-    type_infos.push_back(each->GetTypeInfo());
-  }
+
   if (is_ref == true) {
     // ref构造如果执行到这里，则表示不是相同类型的单个对象，因此直接失败
     throw WamonException("ref construct check error, type ref {} can not be constructed by {}", var_type->GetTypeInfo(),
@@ -143,7 +143,7 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
     return;
   }
   // struct 类型
-  if (IsBasicType(var_type)) {
+  if (IsStructType(var_type)) {
     auto struct_def = pu.FindStruct(var_type->GetTypeInfo());
     if (struct_def == nullptr) {
       throw WamonException("construct check error, invalid struct name {}", var_type->GetTypeInfo());
@@ -174,8 +174,8 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
     }
     return;
   }
-  throw WamonException("construct check error,type {} can not be constructed by {} ", var_type->GetTypeInfo(),
-                       fmt::join(type_infos, ", "));
+  throw WamonException("CheckCanConstructBy check error, type {} can not be constructed by {} ",
+                       var_type->GetTypeInfo(), fmt::join(type_infos, ", "));
 }
 
 }  // namespace detail

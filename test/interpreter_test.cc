@@ -809,6 +809,21 @@ TEST(interpreter, lambda) {
 
       return call lmd:();
     }
+
+    let v2 : int = 15;
+    let v3 : f(() -> void) = lambda [ref v2] () -> void {
+      ++v2;
+      return;
+    };
+
+    func test4() -> void {
+      let v4 : f(() -> void) = v3;
+      call v4:();
+      let v5 : f(() -> void) = move v3;
+      call v5:();
+      call v4:();
+      return;
+    }
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -841,6 +856,12 @@ TEST(interpreter, lambda) {
 
   ret = interpreter.FindVariableById("main$v1");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 0);
+
+  ret = interpreter.FindVariableById("main$v2");
+  EXPECT_EQ(wamon::VarAs<int>(ret), 15);
+  interpreter.CallFunctionByName("main$test4", {});
+  ret = interpreter.FindVariableById("main$v2");
+  EXPECT_EQ(wamon::VarAs<int>(ret), 18);
 }
 
 TEST(interpreter, new_expr) {

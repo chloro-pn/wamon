@@ -71,8 +71,7 @@ int main() {
   std::cout << "call function teest1 get result : " << wamon::AsIntVariable(ret)->GetValue() << std::endl;
 
   // 利用TypeFactory API构造结构体对应的类型并指定其所属的Package
-  auto struct_type = wamon::TypeFactory<WAMON_STRUCT_TYPE("test2")>::Get();
-  wamon::SetScopeForStructType(struct_type, "main");
+  auto struct_type = wamon::TypeFactory<WAMON_STRUCT_TYPE("main$test2")>::Get();
   // 构造该类型的变量
   v = wamon::VariableFactory(struct_type, wamon::Variable::ValueCategory::RValue, "", pu);
   auto v2 = std::shared_ptr<wamon::Variable>(std::move(v));

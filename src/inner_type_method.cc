@@ -211,6 +211,7 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
 
 InnerTypeMethod::InnerTypeMethod() {
   register_builtin_type_method_check(checks_);
+  // todo : 在handle函数中处理值型别
   register_builtin_type_method_handle(handles_);
 }
 

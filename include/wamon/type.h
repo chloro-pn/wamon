@@ -42,18 +42,12 @@ class Type {
 
 inline bool operator==(const Type& t1, const Type& t2) { return t1.GetTypeInfo() == t2.GetTypeInfo(); }
 
+// type_name应该包含package_name
 class BasicType : public Type {
  public:
   explicit BasicType(const std::string& type_name) : type_name_(type_name) {}
 
-  void SetScope(const std::string& package_name) { package_name_ = package_name; }
-
-  std::string GetTypeInfo() const override {
-    if (package_name_.empty()) {
-      return type_name_;
-    }
-    return package_name_ + "$" + type_name_;
-  }
+  std::string GetTypeInfo() const override { return type_name_; }
 
   bool IsBasicType() const override { return true; }
 
@@ -61,7 +55,6 @@ class BasicType : public Type {
 
  private:
   std::string type_name_;
-  std::string package_name_;
 };
 
 inline BasicType* AsBasicType(const std::unique_ptr<Type>& type) { return static_cast<BasicType*>(type.get()); }
@@ -187,11 +180,6 @@ inline bool IsBuiltInType(const std::unique_ptr<Type>& type) {
 }
 
 inline bool IsStructType(const std::unique_ptr<Type>& type) { return type->IsBasicType() && !IsBuiltInType(type); }
-
-inline void SetScopeForStructType(std::unique_ptr<Type>& type, const std::string& package_name) {
-  assert(IsStructType(type));
-  AsBasicType(type)->SetScope(package_name);
-}
 
 namespace detail {
 

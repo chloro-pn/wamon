@@ -32,6 +32,7 @@ class Variable {
 
   virtual void DefaultConstruct() = 0;
 
+  // Clone函数返回值的 ValueCategory == RValue，name == ""
   virtual std::shared_ptr<Variable> Clone() = 0;
 
   virtual bool Compare(const std::shared_ptr<Variable>& other) = 0;
@@ -71,6 +72,10 @@ class Variable {
  protected:
   ValueCategory vc_;
 };
+
+std::shared_ptr<Variable> VariableMove(const std::shared_ptr<Variable>& v);
+
+std::shared_ptr<Variable> VariableMoveOrCopy(const std::shared_ptr<Variable>& v);
 
 class PackageUnit;
 std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
@@ -204,8 +209,7 @@ class BoolVariable : public Variable {
   void DefaultConstruct() override { value_ = true; }
 
   std::shared_ptr<Variable> Clone() override {
-    auto ret = std::make_shared<BoolVariable>(GetValue(), ValueCategory::RValue, "");
-    return ret;
+    return std::make_shared<BoolVariable>(GetValue(), ValueCategory::RValue, "");
   }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
@@ -251,8 +255,7 @@ class IntVariable : public Variable {
   void DefaultConstruct() override { value_ = 0; }
 
   std::shared_ptr<Variable> Clone() override {
-    auto ret = std::make_shared<IntVariable>(GetValue(), ValueCategory::RValue, "");
-    return ret;
+    return std::make_shared<IntVariable>(GetValue(), ValueCategory::RValue, "");
   }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
@@ -272,8 +275,6 @@ class IntVariable : public Variable {
 };
 
 inline IntVariable* AsIntVariable(const std::shared_ptr<Variable>& v) { return static_cast<IntVariable*>(v.get()); }
-
-inline IntVariable* AsIntVariable(Variable* v) { return static_cast<IntVariable*>(v); }
 
 class DoubleVariable : public Variable {
  public:
@@ -299,8 +300,7 @@ class DoubleVariable : public Variable {
   void DefaultConstruct() override { value_ = 0.0; }
 
   std::shared_ptr<Variable> Clone() override {
-    auto ret = std::make_shared<DoubleVariable>(GetValue(), ValueCategory::RValue, "");
-    return ret;
+    return std::make_shared<DoubleVariable>(GetValue(), ValueCategory::RValue, "");
   }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
@@ -364,8 +364,7 @@ class ByteVariable : public Variable {
   void DefaultConstruct() override { value_ = 0; }
 
   std::shared_ptr<Variable> Clone() override {
-    auto ret = std::make_shared<ByteVariable>(GetValue(), ValueCategory::RValue, "");
-    return ret;
+    return std::make_shared<ByteVariable>(GetValue(), ValueCategory::RValue, "");
   }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
@@ -455,7 +454,7 @@ class PointerVariable : public CompoundVariable {
 
   std::shared_ptr<Variable> GetHoldVariable() { return obj_.lock(); }
 
-  std::unique_ptr<Type> GetHoldType() { return obj_.lock()->GetType(); }
+  std::unique_ptr<Type> GetHoldType() const { return ::wamon::GetHoldType(GetType()); }
 
   void SetHoldVariable(std::shared_ptr<Variable> v) { obj_ = v; }
 
@@ -534,9 +533,17 @@ class ListVariable : public CompoundVariable {
     if (index > Size()) {
       throw WamonException("List.Insert error, index = {}, size = {}", index, Size());
     }
+
+    std::shared_ptr<Variable> tmp;
+    if (v->IsRValue()) {
+      tmp = v;
+    } else {
+      tmp = v->Clone();
+    }
+    tmp->ChangeTo(vc_);
     auto it = elements_.begin();
     std::advance(it, index);
-    elements_.insert(it, std::move(v));
+    elements_.insert(it, std::move(tmp));
   }
 
   std::shared_ptr<Variable> at(size_t i) {
@@ -582,7 +589,8 @@ class ListVariable : public CompoundVariable {
     ListVariable* list_v = static_cast<ListVariable*>(other.get());
     elements_.clear();
     for (size_t i = 0; i < list_v->elements_.size(); ++i) {
-      PushBack(list_v->elements_[i]->Clone());
+      // PushBack函数会处理值型别
+      PushBack(list_v->elements_[i]);
     }
   }
 
@@ -610,6 +618,11 @@ inline ListVariable* AsListVariable(const std::shared_ptr<Variable>& v) { return
 
 class FunctionVariable : public CompoundVariable {
  public:
+  struct capture_item {
+    bool is_ref;
+    std::shared_ptr<Variable> v;
+  };
+
   FunctionVariable(std::vector<std::unique_ptr<Type>>&& param, std::unique_ptr<Type>&& ret, ValueCategory vc,
                    const std::string& name)
       : CompoundVariable(std::make_unique<FuncType>(std::move(param), std::move(ret)), vc, name) {}
@@ -618,15 +631,13 @@ class FunctionVariable : public CompoundVariable {
 
   void SetObj(std::shared_ptr<Variable> obj) { obj_ = obj; }
 
-  void SetCaptureVariables(std::vector<std::shared_ptr<Variable>>&& variables) {
-    capture_variables_ = std::move(variables);
-  }
+  void SetCaptureVariables(std::vector<capture_item>&& variables) { capture_variables_ = std::move(variables); }
 
   const std::string& GetFuncName() const { return func_name_; }
 
   std::shared_ptr<Variable> GetObj() const { return obj_; }
 
-  std::vector<std::shared_ptr<Variable>>& GetCaptureVariables() { return capture_variables_; }
+  std::vector<capture_item>& GetCaptureVariables() { return capture_variables_; }
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
 
@@ -654,18 +665,29 @@ class FunctionVariable : public CompoundVariable {
     } else {
       capture_variables_.clear();
       for (auto& each : real_other->capture_variables_) {
-        capture_variables_.push_back(each->Clone());
+        if (each.is_ref == true) {
+          assert(!each.v->IsRValue());
+          capture_variables_.push_back(each);
+        } else {
+          auto tmp = each.v->Clone();
+          tmp->SetName(each.v->GetName());
+          tmp->ChangeTo(vc_);
+          capture_variables_.push_back({each.is_ref, tmp});
+        }
       }
     }
   }
 
+  // ref捕获的变量和copy、move捕获的变量最大的区别在于，ref捕获的变量总是LValue的，而copy、move捕获的变量跟随FunctionVariable变动
   void ChangeTo(ValueCategory vc) {
     vc_ = vc;
     if (obj_ != nullptr) {
       obj_->ChangeTo(vc);
     }
     for (auto& each : capture_variables_) {
-      each->ChangeTo(vc);
+      if (each.is_ref == false) {
+        each.v->ChangeTo(vc_);
+      }
     }
   }
 
@@ -678,7 +700,7 @@ class FunctionVariable : public CompoundVariable {
       j["function"] = func_name_;
     }
     for (auto& each : capture_variables_) {
-      j["capture_variables"].push_back(each->Print());
+      j["capture_variables"].push_back(each.v->Print());
     }
     return j;
   }
@@ -686,14 +708,12 @@ class FunctionVariable : public CompoundVariable {
  private:
   std::string func_name_;
   std::shared_ptr<Variable> obj_;
-  std::vector<std::shared_ptr<Variable>> capture_variables_;
+  std::vector<capture_item> capture_variables_;
 };
 
 inline FunctionVariable* AsFunctionVariable(const std::shared_ptr<Variable>& v) {
   return static_cast<FunctionVariable*>(v.get());
 }
-
-inline FunctionVariable* AsFunctionVariable(Variable* v) { return static_cast<FunctionVariable*>(v); }
 
 /* ********************************************************************
  * API : VarAs

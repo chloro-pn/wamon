@@ -21,15 +21,14 @@ TEST(type, factory) {
   tmp = std::make_unique<wamon::FuncType>(std::move(params_type), wamon::TypeFactory<void>::Get());
   EXPECT_EQ(*t3, *tmp);
 
-  t3 = wamon::TypeFactory<WAMON_STRUCT_TYPE("msn")>::Get();
-  wamon::SetScopeForStructType(t3, "main");
+  t3 = wamon::TypeFactory<WAMON_STRUCT_TYPE("main$msn")>::Get();
   EXPECT_EQ(t3->IsBasicType(), true);
   EXPECT_EQ(t3->GetTypeInfo(), "main$msn");
 
-  auto t4 = wamon::TypeFactory<void(int, WAMON_STRUCT_TYPE("msn"))>::Get();
+  auto t4 = wamon::TypeFactory<void(int, WAMON_STRUCT_TYPE("main$msn"))>::Get();
   EXPECT_TRUE(wamon::IsFuncType(t4));
   EXPECT_EQ(*wamon::GetReturnType(t4), *wamon::TypeFactory<void>::Get());
-  EXPECT_NE(*wamon::GetParamType(t4)[1], *t3);
+  EXPECT_EQ(*wamon::GetParamType(t4)[1], *t3);
 }
 
 TEST(type, get_struct_name) {

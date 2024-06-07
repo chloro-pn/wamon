@@ -107,7 +107,7 @@ void StructVariable::ConstructByFields(const std::vector<std::shared_ptr<Variabl
     throw WamonException("StructVariable's ConstructByFields method error : fields.size() == {}", fields.size());
   }
   for (size_t i = 0; i < members.size(); ++i) {
-    if (fields[i]->GetTypeInfo() != members[i].second->GetTypeInfo()) {
+    if (!IsSameType(fields[i]->GetType(), members[i].second)) {
       throw WamonException("StructVariable's ConstructByFields method error : {}th type dismatch : {} != {}", i,
                            fields[i]->GetTypeInfo(), members[i].second->GetTypeInfo());
     }
@@ -130,7 +130,6 @@ void StructVariable::DefaultConstruct() {
   for (auto& each : members) {
     auto member = VariableFactory(each.second, vc_, each.first, pu_);
     member->DefaultConstruct();
-    member->ChangeTo(vc_);
     data_members_.push_back({each.first, std::move(member)});
   }
 }
@@ -145,7 +144,7 @@ std::shared_ptr<Variable> StructVariable::Clone() {
     } else {
       proxy = trait_proxy_->Clone();
     }
-    auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, pu_, GetName());
+    auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, pu_, "");
     ret->ConstructByFields({proxy});
     return ret;
   }
@@ -155,11 +154,10 @@ std::shared_ptr<Variable> StructVariable::Clone() {
       variables.push_back(std::move(each.data));
     } else {
       variables.push_back(each.data->Clone());
-      variables.back()->ChangeTo(ValueCategory::RValue);
     }
   }
   // all variable in variables is rvalue now
-  auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, pu_, GetName());
+  auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, pu_, "");
   ret->ConstructByFields(variables);
   return ret;
 }
@@ -194,15 +192,20 @@ void StructVariable::trait_assign(StructVariable* lv, StructVariable* rv) {
     return;
   }
   if (lv->trait_proxy_ == nullptr) {
-    lv->trait_proxy_ = rv->trait_proxy_->Clone();
+    lv->trait_proxy_ = rv->IsRValue() ? rv->trait_proxy_ : rv->trait_proxy_->Clone();
     lv->trait_proxy_->ChangeTo(lv->vc_);
   }
   for (auto& each : lv->def_->GetDataMembers()) {
     auto tmp = rv->GetDataMemberByName(each.first);
     if (rv->IsRValue()) {
+      assert(tmp->IsRValue());
+      tmp->ChangeTo(lv->vc_);
       lv->UpdateDataMemberByName(each.first, tmp);
     } else {
-      lv->UpdateDataMemberByName(each.first, tmp->Clone());
+      assert(!tmp->IsRValue());
+      auto ttmp = tmp->Clone();
+      ttmp->ChangeTo(lv->vc_);
+      lv->UpdateDataMemberByName(each.first, ttmp);
     }
   }
 }
@@ -277,14 +280,14 @@ void PointerVariable::ConstructByFields(const std::vector<std::shared_ptr<Variab
     throw WamonException("PointerVariable's ConstructByFields method error, type dismatch : {} != {}",
                          fields[0]->GetTypeInfo(), GetTypeInfo());
   }
-  obj_ = AsPointerVariable(fields[0])->GetHoldVariable();
+  obj_ = AsPointerVariable(fields[0])->obj_;
 }
 
 void PointerVariable::DefaultConstruct() { obj_.reset(); }
 
 std::shared_ptr<Variable> PointerVariable::Clone() {
-  auto ret = std::make_shared<PointerVariable>(obj_.lock()->GetType(), ValueCategory::RValue, "");
-  ret->SetHoldVariable(obj_.lock());
+  auto ret = std::make_shared<PointerVariable>(GetHoldType(), ValueCategory::RValue, "");
+  ret->obj_ = obj_;
   return ret;
 }
 
@@ -328,7 +331,6 @@ std::shared_ptr<Variable> ListVariable::Clone() {
       elements.push_back(std::move(each));
     } else {
       elements.push_back(each->Clone());
-      elements.back()->ChangeTo(ValueCategory::RValue);
     }
   }
   auto ret = std::make_shared<ListVariable>(element_type_->Clone(), ValueCategory::RValue, "");
@@ -340,7 +342,7 @@ void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Varia
   if (fields.size() != 1) {
     throw WamonException("FunctionVariable's ConstructByFields method error : fields.size() == {}", fields.size());
   }
-  if (IsBasicType(fields[0]->GetType()) && !IsBuiltInType(fields[0]->GetType())) {
+  if (IsStructType(fields[0]->GetType())) {
     // structtype
     if (fields[0]->IsRValue()) {
       obj_ = std::move(fields[0]);
@@ -364,15 +366,25 @@ void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Varia
     } else {
       obj_ = other->obj_->Clone();
     }
+    obj_->ChangeTo(vc_);
   }
-  if (fields[0]->IsRValue()) {
+  if (other->IsRValue()) {
     capture_variables_ = std::move(other->capture_variables_);
   } else {
+    capture_variables_.clear();
     for (auto& each : other->capture_variables_) {
-      capture_variables_.push_back(each->Clone());
+      if (each.is_ref == true) {
+        assert(!each.v->IsRValue());
+        capture_variables_.push_back(each);
+      } else {
+        auto tmp = each.v->Clone();
+        tmp->SetName(each.v->GetName());
+        tmp->ChangeTo(vc_);
+        capture_variables_.push_back({each.is_ref, tmp});
+      }
     }
   }
-  func_name_ = AsStringVariable(fields[0])->GetValue();
+  func_name_ = other->GetFuncName();
 }
 
 void FunctionVariable::DefaultConstruct() {
@@ -397,19 +409,44 @@ std::shared_ptr<Variable> FunctionVariable::Clone() {
     } else {
       obj->SetObj(obj_->Clone());
     }
-    obj->ChangeTo(ValueCategory::RValue);
   }
   if (IsRValue()) {
     obj->capture_variables_ = std::move(capture_variables_);
   } else {
     for (auto& each : capture_variables_) {
-      obj->capture_variables_.push_back(each->Clone());
+      if (each.is_ref == true) {
+        obj->capture_variables_.push_back(each);
+      } else {
+        auto tmp = each.v->Clone();
+        tmp->SetName(each.v->GetName());
+        obj->capture_variables_.push_back({each.is_ref, tmp});
+      }
     }
   }
-  for (auto& each : obj->capture_variables_) {
-    each->ChangeTo(ValueCategory::RValue);
-  }
   return obj;
+}
+
+std::shared_ptr<Variable> VariableMove(const std::shared_ptr<Variable>& v) {
+  if (v->IsRValue()) {
+    return v;
+  }
+  v->ChangeTo(Variable::ValueCategory::RValue);
+  auto tmp = v->Clone();
+  tmp->SetName(v->GetName());
+  v->DefaultConstruct();
+  v->ChangeTo(Variable::ValueCategory::LValue);
+  return tmp;
+}
+
+std::shared_ptr<Variable> VariableMoveOrCopy(const std::shared_ptr<Variable>& v) {
+  if (v->IsRValue()) {
+    v->ChangeTo(Variable::ValueCategory::LValue);
+    return v;
+  }
+  auto tmp = v->Clone();
+  tmp->SetName(v->GetName());
+  tmp->ChangeTo(Variable::ValueCategory::LValue);
+  return tmp;
 }
 
 }  // namespace wamon

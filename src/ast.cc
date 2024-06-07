@@ -126,33 +126,27 @@ std::shared_ptr<Variable> SelfExpr::Calculate(Interpreter& interpreter) { return
 
 std::shared_ptr<Variable> LambdaExpr::Calculate(Interpreter& interpreter) {
   auto func_def = interpreter.GetPackageUnit().FindFunction(lambda_func_name_);
-  std::vector<std::shared_ptr<Variable>> capture_variables;
+  std::vector<FunctionVariable::capture_item> capture_variables;
   auto& ids = func_def->GetCaptureIds();
   for (auto& each : ids) {
     auto v = interpreter.FindVariableById(each.id);
     // 左右值和move/ref id统一在CallFunction中处理 <-- error, 应该在当前上下文立即处理
     if (each.type == CaptureIdItem::Type::MOVE) {
-      if (!v->IsRValue()) {
-        v->ChangeTo(Variable::ValueCategory::RValue);
-        auto tmp = v->Clone();
-        v->DefaultConstruct();
-        v->ChangeTo(Variable::ValueCategory::LValue);
-        v = tmp;
-      }
-      capture_variables.push_back(v);
+      v = VariableMove(v);
+      capture_variables.push_back({false, v});
     } else if (each.type == CaptureIdItem::Type::REF) {
       if (v->IsRValue()) {
         throw WamonException("LambdaExpr::Calculate error, ref id can not be rvalue");
       }
-      capture_variables.push_back(v);
+      capture_variables.push_back({true, v});
     } else {
-      capture_variables.push_back(v->IsRValue() ? v : v->Clone());
+      capture_variables.push_back({false, VariableMoveOrCopy(v)});
     }
   }
   auto call_obj =
       VariableFactory(func_def->GetType(), Variable::ValueCategory::RValue, "", interpreter.GetPackageUnit());
-  AsFunctionVariable(call_obj.get())->SetFuncName(lambda_func_name_);
-  AsFunctionVariable(call_obj.get())->SetCaptureVariables(std::move(capture_variables));
+  AsFunctionVariable(call_obj)->SetFuncName(lambda_func_name_);
+  AsFunctionVariable(call_obj)->SetCaptureVariables(std::move(capture_variables));
   return call_obj;
 }
 
@@ -302,6 +296,7 @@ ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   auto context = interpreter.GetCurrentContext();
   auto v = VariableFactory(type_, Variable::ValueCategory::LValue, var_name_, interpreter.GetPackageUnit());
   std::vector<std::shared_ptr<Variable>> fields;
+  bool change_name = true;
   for (auto& each : constructors_) {
     fields.push_back(each->Calculate(interpreter));
   }
@@ -315,17 +310,19 @@ ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
         throw WamonException("VariableDefineStmt::Execute failed, let ref can not be constructed by rvalue");
       } else {
         v = fields[0];
+        // let ref构造不改变原变量的名字
+        change_name = false;
       }
     } else {
-      v = fields[0]->IsRValue() ? fields[0] : fields[0]->Clone();
+      v = VariableMoveOrCopy(fields[0]);
     }
-    v->SetName(var_name_);
-    v->ChangeTo(Variable::ValueCategory::LValue);
+    if (change_name) v->SetName(var_name_);
+    assert(!v->IsRValue());
   } else {
     assert(IsRef() == false);
     v->ConstructByFields(fields);
   }
-  context->RegisterVariable(std::move(v));
+  context->RegisterVariable(v, var_name_);
   return ExecuteResult::Next();
 }
 

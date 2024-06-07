@@ -163,6 +163,7 @@ void TypeChecker::CheckMethods() {
       if (method->IsDeclaration()) {
         continue;
       }
+      // TypeCheck在Merge之后进行，因此struct的名字已经被添加了包前缀
       std::unique_ptr<Context> ctx = std::make_unique<Context>(each.first, method->GetMethodName());
       static_analyzer_.RegisterFuncParamsToContext(method->GetParamList(), ctx.get());
       static_analyzer_.Enter(std::move(ctx));

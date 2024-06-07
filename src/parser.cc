@@ -125,8 +125,10 @@ std::unique_ptr<Type> ParseType(PackageUnit &pu, const std::vector<WamonToken> &
   // parse basic type
   std::unique_ptr<Type> ret;
   auto [package_name, type_name] = ParseBasicType(pu, tokens, begin);
+  if (!package_name.empty()) {
+    type_name = package_name + "$" + type_name;
+  }
   ret = std::make_unique<BasicType>(type_name);
-  static_cast<BasicType *>(ret.get())->SetScope(package_name);
   return ret;
 }
 

@@ -25,7 +25,11 @@ Interpreter::Interpreter(PackageUnit& pu) : pu_(pu) {
 std::shared_ptr<Variable> Interpreter::Alloc(const std::unique_ptr<Type>& type,
                                              std::vector<std::shared_ptr<Variable>>&& params) {
   auto v = VariableFactory(type, wamon::Variable::ValueCategory::LValue, "", pu_);
-  v->ConstructByFields(params);
+  if (params.empty()) {
+    v->DefaultConstruct();
+  } else {
+    v->ConstructByFields(params);
+  }
   assert(heap_.find(v) == heap_.end());
   heap_.insert(v);
   std::unique_ptr<Type> ptr_type = std::unique_ptr<PointerType>(new PointerType(type->Clone()));
@@ -60,11 +64,12 @@ std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_
         }
         GetCurrentContext()->RegisterVariable(param, param_name->name);
       } else {
-        GetCurrentContext()->RegisterVariable(param->IsRValue() ? param : param->Clone(), param_name->name);
+        GetCurrentContext()->RegisterVariable(VariableMoveOrCopy(param), param_name->name);
       }
       ++param_name;
     } else {
       // 函数调用传入的参数总是在前面，捕获的变量跟在后面，因此当注册捕获变量时，参数应该已经注册完毕
+      // 捕获变量的值型别已经在lambda表达式中被处理
       assert(param_name == function_def->GetParamList().end());
       GetCurrentContext()->RegisterVariable(param, capture_name->id);
       ++capture_name;
@@ -88,7 +93,7 @@ std::shared_ptr<Variable> Interpreter::CallCallable(std::shared_ptr<Variable> ca
     throw WamonException("Interpreter.CallCallable error, the callable is null state, cant not be called");
   }
   for (auto& each : capture_variable) {
-    params.push_back(each);
+    params.push_back(each.v);
   }
   if (obj != nullptr) {
     auto method_name = OperatorDef::CreateName(Token::LEFT_PARENTHESIS, params);
@@ -116,7 +121,7 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
       }
       GetCurrentContext()->RegisterVariable(param, param_name->name);
     } else {
-      GetCurrentContext()->RegisterVariable(param->IsRValue() ? param : param->Clone(), param_name->name);
+      GetCurrentContext()->RegisterVariable(VariableMoveOrCopy(param), param_name->name);
     }
     ++param_name;
   }
