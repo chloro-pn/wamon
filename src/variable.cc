@@ -5,7 +5,7 @@
 
 namespace wamon {
 
-std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
+std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
                                           const std::string& name, const PackageUnit* pu) {
   if (IsBuiltInType(type)) {
     std::string typeinfo = type->GetTypeInfo();
@@ -50,22 +50,12 @@ std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
   throw WamonException("VariableFactory error, not implement now.");
 }
 
-std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
+std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
                                           const std::string& name, const PackageUnit& pu) {
   return VariableFactory(type, vc, name, &pu);
 }
 
-std::shared_ptr<Variable> VariableFactoryShared(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                                const std::string& name, const PackageUnit& pu) {
-  return std::shared_ptr<Variable>(VariableFactory(type, vc, name, &pu));
-}
-
-std::shared_ptr<Variable> VariableFactoryShared(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                                const std::string& name, const PackageUnit* pu) {
-  return std::shared_ptr<Variable>(VariableFactory(type, vc, name, pu));
-}
-
-std::unique_ptr<Variable> GetVoidVariable() { return std::make_unique<VoidVariable>(); }
+std::shared_ptr<Variable> GetVoidVariable() { return std::make_shared<VoidVariable>(); }
 
 StructVariable::StructVariable(const StructDef* sd, ValueCategory vc, const PackageUnit& pu, const std::string& name)
     : Variable(std::make_unique<BasicType>(sd->GetStructName()), vc, name), def_(sd), pu_(pu) {}
@@ -145,7 +135,7 @@ void StructVariable::DefaultConstruct() {
   }
 }
 
-std::unique_ptr<Variable> StructVariable::Clone() {
+std::shared_ptr<Variable> StructVariable::Clone() {
   if (def_->IsTrait()) {
     std::shared_ptr<Variable> proxy{nullptr};
     if (trait_proxy_ == nullptr) {
@@ -155,7 +145,7 @@ std::unique_ptr<Variable> StructVariable::Clone() {
     } else {
       proxy = trait_proxy_->Clone();
     }
-    auto ret = std::make_unique<StructVariable>(def_, ValueCategory::RValue, pu_, GetName());
+    auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, pu_, GetName());
     ret->ConstructByFields({proxy});
     return ret;
   }
@@ -169,7 +159,7 @@ std::unique_ptr<Variable> StructVariable::Clone() {
     }
   }
   // all variable in variables is rvalue now
-  auto ret = std::make_unique<StructVariable>(def_, ValueCategory::RValue, pu_, GetName());
+  auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, pu_, GetName());
   ret->ConstructByFields(variables);
   return ret;
 }
@@ -292,8 +282,8 @@ void PointerVariable::ConstructByFields(const std::vector<std::shared_ptr<Variab
 
 void PointerVariable::DefaultConstruct() { obj_.reset(); }
 
-std::unique_ptr<Variable> PointerVariable::Clone() {
-  auto ret = std::make_unique<PointerVariable>(obj_.lock()->GetType(), ValueCategory::RValue, "");
+std::shared_ptr<Variable> PointerVariable::Clone() {
+  auto ret = std::make_shared<PointerVariable>(obj_.lock()->GetType(), ValueCategory::RValue, "");
   ret->SetHoldVariable(obj_.lock());
   return ret;
 }
@@ -331,7 +321,7 @@ void ListVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>
 
 void ListVariable::DefaultConstruct() { elements_.clear(); }
 
-std::unique_ptr<Variable> ListVariable::Clone() {
+std::shared_ptr<Variable> ListVariable::Clone() {
   std::vector<std::shared_ptr<Variable>> elements;
   for (auto& each : elements_) {
     if (each->IsRValue()) {
@@ -341,7 +331,7 @@ std::unique_ptr<Variable> ListVariable::Clone() {
       elements.back()->ChangeTo(ValueCategory::RValue);
     }
   }
-  auto ret = std::make_unique<ListVariable>(element_type_->Clone(), ValueCategory::RValue, "");
+  auto ret = std::make_shared<ListVariable>(element_type_->Clone(), ValueCategory::RValue, "");
   ret->elements_ = std::move(elements);
   return ret;
 }
@@ -391,14 +381,14 @@ void FunctionVariable::DefaultConstruct() {
   capture_variables_.clear();
 }
 
-std::unique_ptr<Variable> FunctionVariable::Clone() {
+std::shared_ptr<Variable> FunctionVariable::Clone() {
   std::vector<std::unique_ptr<Type>> param_type;
   auto type = GetType();
   auto fun_type = dynamic_cast<FuncType*>(type.get());
   for (auto&& each : fun_type->GetParamType()) {
     param_type.push_back(each->Clone());
   }
-  auto obj = std::make_unique<FunctionVariable>(std::move(param_type), fun_type->GetReturnType()->Clone(),
+  auto obj = std::make_shared<FunctionVariable>(std::move(param_type), fun_type->GetReturnType()->Clone(),
                                                 ValueCategory::RValue, "");
   obj->SetFuncName(func_name_);
   if (obj_) {

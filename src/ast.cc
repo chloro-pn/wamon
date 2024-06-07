@@ -108,7 +108,7 @@ std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
   } else if (type_ == Type::BuiltinFunc) {
     auto type = interpreter.GetPackageUnit().GetBuiltinFunctions().GetType(GetId());
     assert(type != nullptr);
-    auto ret = std::make_unique<FunctionVariable>(GetParamType(type), GetReturnType(type),
+    auto ret = std::make_shared<FunctionVariable>(GetParamType(type), GetReturnType(type),
                                                   Variable::ValueCategory::RValue, "");
     ret->SetFuncName(GetId());
     return ret;
@@ -137,7 +137,7 @@ std::shared_ptr<Variable> LambdaExpr::Calculate(Interpreter& interpreter) {
         auto tmp = v->Clone();
         v->DefaultConstruct();
         v->ChangeTo(Variable::ValueCategory::LValue);
-        v = ptr_cast(std::move(tmp));
+        v = tmp;
       }
       capture_variables.push_back(v);
     } else if (each.type == CaptureIdItem::Type::REF) {
@@ -300,7 +300,7 @@ ExecuteResult ExpressionStmt::Execute(Interpreter& interpreter) {
 
 ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   auto context = interpreter.GetCurrentContext();
-  auto v = VariableFactoryShared(type_, Variable::ValueCategory::LValue, var_name_, interpreter.GetPackageUnit());
+  auto v = VariableFactory(type_, Variable::ValueCategory::LValue, var_name_, interpreter.GetPackageUnit());
   std::vector<std::shared_ptr<Variable>> fields;
   for (auto& each : constructors_) {
     fields.push_back(each->Calculate(interpreter));

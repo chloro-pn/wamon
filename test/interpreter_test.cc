@@ -610,8 +610,7 @@ TEST(interpreter, operator) {
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
-  auto int_v =
-      wamon::VariableFactoryShared(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu);
+  auto int_v = wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu);
   wamon::AsIntVariable(int_v)->SetValue(2);
   ret = interpreter.CallFunctionByName("main$as_test", {int_v});
   EXPECT_EQ(ret->GetTypeInfo(), "double");

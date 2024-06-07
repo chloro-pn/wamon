@@ -40,28 +40,15 @@ struct RuntimeContext {
     }
   }
 
-  void RegisterVariable(std::shared_ptr<Variable> variable) {
-    const auto& name = variable->GetName();
-    check_not_exist(name);
-    symbol_table_.insert({name, variable});
-  }
-
   // 方法调用里，调用者在方法栈中注册为__self__
   void RegisterVariable(const std::shared_ptr<Variable>& variable, const std::string& tmp_name) {
     check_not_exist(tmp_name);
     symbol_table_.insert({tmp_name, variable});
   }
 
-  void RegisterVariable(std::unique_ptr<Variable>&& variable) {
+  void RegisterVariable(const std::shared_ptr<Variable>& variable) {
     std::string name = variable->GetName();
-    check_not_exist(name);
-    symbol_table_.insert({name, std::shared_ptr<Variable>(std::move(variable))});
-  }
-
-  void UpdateVariable(std::shared_ptr<Variable> variable) {
-    const std::string& name = variable->GetName();
-    check_exist(name);
-    symbol_table_[name] = variable;
+    RegisterVariable(variable, name);
   }
 
   std::shared_ptr<Variable> FindVariable(const std::string& id_name) {

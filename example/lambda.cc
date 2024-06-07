@@ -35,8 +35,8 @@ int main() {
   }
   Interpreter ip(pu);
   std::vector<std::shared_ptr<Variable>> params;
-  params.push_back(VariableFactoryShared(TypeFactory<int>::Get(), Variable::ValueCategory::RValue, "", pu));
-  params.push_back(VariableFactoryShared(TypeFactory<int>::Get(), Variable::ValueCategory::RValue, "", pu));
+  params.push_back(VariableFactory(TypeFactory<int>::Get(), Variable::ValueCategory::RValue, "", pu));
+  params.push_back(VariableFactory(TypeFactory<int>::Get(), Variable::ValueCategory::RValue, "", pu));
   AsIntVariable(params[0])->SetValue(2);
   AsIntVariable(params[1])->SetValue(3);
   auto ret = ip.CallCallable(ip.FindVariableById("main$v"), std::move(params));

@@ -32,7 +32,7 @@ class Variable {
 
   virtual void DefaultConstruct() = 0;
 
-  virtual std::unique_ptr<Variable> Clone() = 0;
+  virtual std::shared_ptr<Variable> Clone() = 0;
 
   virtual bool Compare(const std::shared_ptr<Variable>& other) = 0;
 
@@ -73,19 +73,13 @@ class Variable {
 };
 
 class PackageUnit;
-std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
+std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
                                           const std::string& name, const PackageUnit* pu = nullptr);
 
-std::unique_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
+std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
                                           const std::string& name, const PackageUnit& pu);
 
-std::shared_ptr<Variable> VariableFactoryShared(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                                const std::string& name, const PackageUnit& pu);
-
-std::shared_ptr<Variable> VariableFactoryShared(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                                const std::string& name, const PackageUnit* pu = nullptr);
-
-std::unique_ptr<Variable> GetVoidVariable();
+std::shared_ptr<Variable> GetVoidVariable();
 
 class VoidVariable : public Variable {
  public:
@@ -109,7 +103,7 @@ class VoidVariable : public Variable {
 
   nlohmann::json Print() override { throw WamonException("VoidVariable.Print should not be called"); }
 
-  std::unique_ptr<Variable> Clone() override { return std::make_unique<VoidVariable>(); }
+  std::shared_ptr<Variable> Clone() override { return std::make_shared<VoidVariable>(); }
 };
 
 class TypeVariable : public VoidVariable {
@@ -118,7 +112,7 @@ class TypeVariable : public VoidVariable {
 
   bool Compare(const std::shared_ptr<Variable>& other) override { return GetTypeInfo() == other->GetTypeInfo(); }
 
-  std::unique_ptr<Variable> Clone() override { return std::make_unique<TypeVariable>(GetType()->Clone()); }
+  std::shared_ptr<Variable> Clone() override { return std::make_shared<TypeVariable>(GetType()->Clone()); }
 };
 
 inline TypeVariable* AsTypeVariable(const std::shared_ptr<Variable>& v) { return static_cast<TypeVariable*>(v.get()); }
@@ -152,12 +146,12 @@ class StringVariable : public Variable {
 
   void DefaultConstruct() override { value_.clear(); }
 
-  std::unique_ptr<Variable> Clone() override {
-    std::unique_ptr<StringVariable> ret;
+  std::shared_ptr<Variable> Clone() override {
+    std::shared_ptr<StringVariable> ret;
     if (IsRValue()) {
-      ret = std::make_unique<StringVariable>(std::move(value_), ValueCategory::RValue, "");
+      ret = std::make_shared<StringVariable>(std::move(value_), ValueCategory::RValue, "");
     } else {
-      ret = std::make_unique<StringVariable>(GetValue(), ValueCategory::RValue, "");
+      ret = std::make_shared<StringVariable>(GetValue(), ValueCategory::RValue, "");
     }
     return ret;
   }
@@ -186,10 +180,6 @@ inline StringVariable* AsStringVariable(const std::shared_ptr<Variable>& v) {
   return static_cast<StringVariable*>(v.get());
 }
 
-inline StringVariable* AsStringVariable(const std::unique_ptr<Variable>& v) {
-  return static_cast<StringVariable*>(v.get());
-}
-
 class BoolVariable : public Variable {
  public:
   BoolVariable(bool v, ValueCategory vc, const std::string& name)
@@ -213,8 +203,8 @@ class BoolVariable : public Variable {
 
   void DefaultConstruct() override { value_ = true; }
 
-  std::unique_ptr<Variable> Clone() override {
-    auto ret = std::make_unique<BoolVariable>(GetValue(), ValueCategory::RValue, "");
+  std::shared_ptr<Variable> Clone() override {
+    auto ret = std::make_shared<BoolVariable>(GetValue(), ValueCategory::RValue, "");
     return ret;
   }
 
@@ -260,8 +250,8 @@ class IntVariable : public Variable {
 
   void DefaultConstruct() override { value_ = 0; }
 
-  std::unique_ptr<Variable> Clone() override {
-    auto ret = std::make_unique<IntVariable>(GetValue(), ValueCategory::RValue, "");
+  std::shared_ptr<Variable> Clone() override {
+    auto ret = std::make_shared<IntVariable>(GetValue(), ValueCategory::RValue, "");
     return ret;
   }
 
@@ -282,8 +272,6 @@ class IntVariable : public Variable {
 };
 
 inline IntVariable* AsIntVariable(const std::shared_ptr<Variable>& v) { return static_cast<IntVariable*>(v.get()); }
-
-inline IntVariable* AsIntVariable(const std::unique_ptr<Variable>& v) { return static_cast<IntVariable*>(v.get()); }
 
 inline IntVariable* AsIntVariable(Variable* v) { return static_cast<IntVariable*>(v); }
 
@@ -310,8 +298,8 @@ class DoubleVariable : public Variable {
 
   void DefaultConstruct() override { value_ = 0.0; }
 
-  std::unique_ptr<Variable> Clone() override {
-    auto ret = std::make_unique<DoubleVariable>(GetValue(), ValueCategory::RValue, "");
+  std::shared_ptr<Variable> Clone() override {
+    auto ret = std::make_shared<DoubleVariable>(GetValue(), ValueCategory::RValue, "");
     return ret;
   }
 
@@ -332,10 +320,6 @@ class DoubleVariable : public Variable {
 };
 
 inline DoubleVariable* AsDoubleVariable(const std::shared_ptr<Variable>& v) {
-  return static_cast<DoubleVariable*>(v.get());
-}
-
-inline DoubleVariable* AsDoubleVariable(const std::unique_ptr<Variable>& v) {
   return static_cast<DoubleVariable*>(v.get());
 }
 
@@ -379,8 +363,8 @@ class ByteVariable : public Variable {
 
   void DefaultConstruct() override { value_ = 0; }
 
-  std::unique_ptr<Variable> Clone() override {
-    auto ret = std::make_unique<ByteVariable>(GetValue(), ValueCategory::RValue, "");
+  std::shared_ptr<Variable> Clone() override {
+    auto ret = std::make_shared<ByteVariable>(GetValue(), ValueCategory::RValue, "");
     return ret;
   }
 
@@ -420,7 +404,7 @@ class StructVariable : public Variable {
 
   void DefaultConstruct() override;
 
-  std::unique_ptr<Variable> Clone() override;
+  std::shared_ptr<Variable> Clone() override;
 
  private:
   static bool trait_compare(StructVariable* lv, StructVariable* rv);
@@ -479,7 +463,7 @@ class PointerVariable : public CompoundVariable {
 
   void DefaultConstruct() override;
 
-  std::unique_ptr<Variable> Clone() override;
+  std::shared_ptr<Variable> Clone() override;
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -577,7 +561,7 @@ class ListVariable : public CompoundVariable {
 
   void DefaultConstruct() override;
 
-  std::unique_ptr<Variable> Clone() override;
+  std::shared_ptr<Variable> Clone() override;
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -648,7 +632,7 @@ class FunctionVariable : public CompoundVariable {
 
   void DefaultConstruct() override;
 
-  std::unique_ptr<Variable> Clone() override;
+  std::shared_ptr<Variable> Clone() override;
 
   bool Compare(const std::shared_ptr<Variable>& other) override {
     check_compare_type_match(other);
@@ -746,15 +730,15 @@ T VarAs(const std::shared_ptr<Variable>& v) {
  * API : ToVar
  *
  * ********************************************************************/
-#define WAMON_TO_VAR(basic_type, transform_type)                                                           \
-  if constexpr (std::is_same_v<type, basic_type>) {                                                        \
-    auto ret = VariableFactoryShared(TypeFactory<basic_type>::Get(), Variable::ValueCategory::LValue, ""); \
-    As##transform_type##Variable(ret)->SetValue(std::forward<T>(v));                                       \
-    return ret;                                                                                            \
+#define WAMON_TO_VAR(basic_type, transform_type)                                                     \
+  if constexpr (std::is_same_v<type, basic_type>) {                                                  \
+    auto ret = VariableFactory(TypeFactory<basic_type>::Get(), Variable::ValueCategory::LValue, ""); \
+    As##transform_type##Variable(ret)->SetValue(std::forward<T>(v));                                 \
+    return ret;                                                                                      \
   }
 
 inline std::shared_ptr<Variable> ToVar(std::string_view strv) {
-  auto ret = VariableFactoryShared(TypeFactory<std::string>::Get(), Variable::ValueCategory::LValue, "");
+  auto ret = VariableFactory(TypeFactory<std::string>::Get(), Variable::ValueCategory::LValue, "");
   AsStringVariable(ret)->SetValue(strv);
   return ret;
 }
@@ -786,7 +770,7 @@ inline std::shared_ptr<Variable> ToVar(std::shared_ptr<Variable> v) { return v; 
 // todo : 万能引用 + type trait
 template <typename EleType>
 std::shared_ptr<Variable> ToVar(std::vector<EleType>&& v) {
-  auto ret = VariableFactoryShared(TypeFactory<std::vector<EleType>>::Get(), Variable::ValueCategory::LValue, "");
+  auto ret = VariableFactory(TypeFactory<std::vector<EleType>>::Get(), Variable::ValueCategory::LValue, "");
   for (size_t i = 0; i < v.size(); ++i) {
     // sad for vector<bool>
     if constexpr (std::same_as<bool, std::remove_cvref_t<EleType>>) {

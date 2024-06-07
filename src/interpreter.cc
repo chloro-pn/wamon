@@ -24,12 +24,12 @@ Interpreter::Interpreter(PackageUnit& pu) : pu_(pu) {
 
 std::shared_ptr<Variable> Interpreter::Alloc(const std::unique_ptr<Type>& type,
                                              std::vector<std::shared_ptr<Variable>>&& params) {
-  auto v = VariableFactoryShared(type, wamon::Variable::ValueCategory::LValue, "", pu_);
+  auto v = VariableFactory(type, wamon::Variable::ValueCategory::LValue, "", pu_);
   v->ConstructByFields(params);
   assert(heap_.find(v) == heap_.end());
   heap_.insert(v);
   std::unique_ptr<Type> ptr_type = std::unique_ptr<PointerType>(new PointerType(type->Clone()));
-  auto ptr = VariableFactoryShared(ptr_type, wamon::Variable::ValueCategory::RValue, "", pu_);
+  auto ptr = VariableFactory(ptr_type, wamon::Variable::ValueCategory::RValue, "", pu_);
   AsPointerVariable(ptr)->SetHoldVariable(v);
   return ptr;
 }
