@@ -29,7 +29,13 @@ static auto _context_stack(Interpreter& ip, std::vector<std::shared_ptr<Variable
   assert(descs.size() >= 2);
   auto it = descs.begin();
   descs.erase(it);
-  return ToVar(std::move(descs));
+  auto ret = VariableFactory(TypeFactory<std::vector<std::string>>::Get(), Variable::ValueCategory::RValue, "", ip);
+  for (auto& each : descs) {
+    auto desc_v = VariableFactory(TypeFactory<std::string>::Get(), Variable::ValueCategory::RValue, "", ip);
+    AsStringVariable(desc_v)->SetValue(each);
+    AsListVariable(ret)->PushBack(std::move(desc_v));
+  }
+  return ret;
 }
 
 static auto _to_string(Interpreter& ip, std::vector<std::shared_ptr<Variable>>&& params) -> std::shared_ptr<Variable> {

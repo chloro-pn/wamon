@@ -610,7 +610,8 @@ TEST(interpreter, operator) {
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 5);
 
-  auto int_v = wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu);
+  auto int_v =
+      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", interpreter);
   wamon::AsIntVariable(int_v)->SetValue(2);
   ret = interpreter.CallFunctionByName("main$as_test", {int_v});
   EXPECT_EQ(ret->GetTypeInfo(), "double");
@@ -987,9 +988,9 @@ TEST(interpreter, ref) {
   wamon::Interpreter interpreter(pu);
   std::vector<std::shared_ptr<wamon::Variable>> params;
   params.push_back(
-      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::LValue, "", pu));
+      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::LValue, "", interpreter));
   params.push_back(
-      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::LValue, "", pu));
+      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::LValue, "", interpreter));
   wamon::AsIntVariable(params[0])->SetValue(1);
   wamon::AsIntVariable(params[1])->SetValue(1);
   auto hold_0 = params[0];
@@ -1002,9 +1003,9 @@ TEST(interpreter, ref) {
 
   params.clear();
   params.push_back(
-      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu));
+      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", interpreter));
   params.push_back(
-      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu));
+      wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", interpreter));
   EXPECT_THROW(interpreter.CallFunctionByName("main$test", std::move(params)), wamon::WamonException);
 
   interpreter.CallFunctionByName("main$test3", {});

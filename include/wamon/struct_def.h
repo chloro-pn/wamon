@@ -52,6 +52,8 @@ class StructDef {
     return nullptr;
   }
 
+  const MethodDef* GetDestructor() const { return GetMethod("__destructor"); }
+
   const methods_def& GetMethods() const { return methods_; }
 
   template <bool throw_if_not_found = true>

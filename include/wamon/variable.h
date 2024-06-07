@@ -78,11 +78,12 @@ std::shared_ptr<Variable> VariableMove(const std::shared_ptr<Variable>& v);
 std::shared_ptr<Variable> VariableMoveOrCopy(const std::shared_ptr<Variable>& v);
 
 class PackageUnit;
+class Interpreter;
 std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                          const std::string& name, const PackageUnit* pu = nullptr);
+                                          const std::string& name, Interpreter* ip = nullptr);
 
 std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                          const std::string& name, const PackageUnit& pu);
+                                          const std::string& name, Interpreter& ip);
 
 std::shared_ptr<Variable> GetVoidVariable();
 
@@ -389,9 +390,11 @@ class ByteVariable : public Variable {
 
 inline ByteVariable* AsByteVariable(const std::shared_ptr<Variable>& v) { return static_cast<ByteVariable*>(v.get()); }
 
+class Interpreter;
+
 class StructVariable : public Variable {
  public:
-  StructVariable(const StructDef* sd, ValueCategory vc, const PackageUnit& i, const std::string& name);
+  StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& i, const std::string& name);
 
   std::shared_ptr<Variable> GetDataMemberByName(const std::string& name);
 
@@ -427,7 +430,7 @@ class StructVariable : public Variable {
 
  private:
   const StructDef* def_;
-  const PackageUnit& pu_;
+  Interpreter& ip_;
   struct member {
     std::string name;
     std::shared_ptr<Variable> data;
@@ -495,9 +498,10 @@ inline PointerVariable* AsPointerVariable(const std::shared_ptr<Variable>& v) {
 
 class ListVariable : public CompoundVariable {
  public:
-  ListVariable(std::unique_ptr<Type>&& element_type, ValueCategory vc, const std::string& name)
+  ListVariable(std::unique_ptr<Type>&& element_type, ValueCategory vc, Interpreter& ip, const std::string& name)
       : CompoundVariable(std::make_unique<ListType>(element_type->Clone()), vc, name),
-        element_type_(std::move(element_type)) {}
+        element_type_(std::move(element_type)),
+        ip_(ip) {}
 
   void PushBack(std::shared_ptr<Variable> element);
 
@@ -505,7 +509,7 @@ class ListVariable : public CompoundVariable {
 
   size_t Size() const { return elements_.size(); }
 
-  void Resize(size_t new_size, const PackageUnit& pu) {
+  void Resize(size_t new_size) {
     size_t old_size = Size();
     if (new_size == old_size) {
       return;
@@ -513,7 +517,7 @@ class ListVariable : public CompoundVariable {
       elements_.resize(new_size);
     } else {
       for (size_t i = 0; i < (new_size - old_size); ++i) {
-        auto v = VariableFactory(element_type_, vc_, "", pu);
+        auto v = VariableFactory(element_type_, vc_, "", ip_);
         v->DefaultConstruct();
         elements_.push_back(std::move(v));
       }
@@ -612,6 +616,7 @@ class ListVariable : public CompoundVariable {
  private:
   std::unique_ptr<Type> element_type_;
   std::vector<std::shared_ptr<Variable>> elements_;
+  Interpreter& ip_;
 };
 
 inline ListVariable* AsListVariable(const std::shared_ptr<Variable>& v) { return static_cast<ListVariable*>(v.get()); }
@@ -786,22 +791,5 @@ requires WAMON_SUPPORT_TOVAR<std::remove_cvref_t<T>> std::shared_ptr<Variable> T
 }
 
 inline std::shared_ptr<Variable> ToVar(std::shared_ptr<Variable> v) { return v; }
-
-// todo : 万能引用 + type trait
-template <typename EleType>
-std::shared_ptr<Variable> ToVar(std::vector<EleType>&& v) {
-  auto ret = VariableFactory(TypeFactory<std::vector<EleType>>::Get(), Variable::ValueCategory::LValue, "");
-  for (size_t i = 0; i < v.size(); ++i) {
-    // sad for vector<bool>
-    if constexpr (std::same_as<bool, std::remove_cvref_t<EleType>>) {
-      auto e = ToVar(bool(v[i]));
-      AsListVariable(ret)->PushBack(e);
-    } else {
-      auto e = ToVar(std::forward<std::vector<EleType>>(v)[i]);
-      AsListVariable(ret)->PushBack(e);
-    }
-  }
-  return ret;
-}
 
 }  // namespace wamon

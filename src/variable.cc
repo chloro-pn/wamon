@@ -6,7 +6,7 @@
 namespace wamon {
 
 std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                          const std::string& name, const PackageUnit* pu) {
+                                          const std::string& name, Interpreter* ip) {
   if (IsBuiltInType(type)) {
     std::string typeinfo = type->GetTypeInfo();
     if (typeinfo == "string") {
@@ -29,20 +29,20 @@ std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
     }
   }
   if (type->IsBasicType() == true) {
-    if (pu == nullptr) {
-      throw WamonException("VariableFactory error, pu == nullptr");
+    if (ip == nullptr) {
+      throw WamonException("VariableFactory error, ip == nullptr");
     }
-    auto struct_def = pu->FindStruct(type->GetTypeInfo());
+    auto struct_def = ip->GetPackageUnit().FindStruct(type->GetTypeInfo());
     if (struct_def == nullptr) {
       throw WamonException("pu.FindStruct error, type {} invalid", type->GetTypeInfo());
     }
-    return std::make_unique<StructVariable>(struct_def, vc, *pu, name);
+    return std::make_unique<StructVariable>(struct_def, vc, *ip, name);
   }
   if (IsPtrType(type)) {
     return std::make_unique<PointerVariable>(GetHoldType(type), vc, name);
   }
   if (IsListType(type)) {
-    return std::make_unique<ListVariable>(GetElementType(type), vc, name);
+    return std::make_unique<ListVariable>(GetElementType(type), vc, *ip, name);
   }
   if (IsFuncType(type)) {
     return std::make_unique<FunctionVariable>(GetParamType(type), GetReturnType(type), vc, name);
@@ -51,14 +51,14 @@ std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
 }
 
 std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                          const std::string& name, const PackageUnit& pu) {
-  return VariableFactory(type, vc, name, &pu);
+                                          const std::string& name, Interpreter& ip) {
+  return VariableFactory(type, vc, name, &ip);
 }
 
 std::shared_ptr<Variable> GetVoidVariable() { return std::make_shared<VoidVariable>(); }
 
-StructVariable::StructVariable(const StructDef* sd, ValueCategory vc, const PackageUnit& pu, const std::string& name)
-    : Variable(std::make_unique<BasicType>(sd->GetStructName()), vc, name), def_(sd), pu_(pu) {}
+StructVariable::StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& ip, const std::string& name)
+    : Variable(std::make_unique<BasicType>(sd->GetStructName()), vc, name), def_(sd), ip_(ip) {}
 
 std::shared_ptr<Variable> StructVariable::GetDataMemberByName(const std::string& name) {
   if (def_->IsTrait()) {
@@ -128,7 +128,7 @@ void StructVariable::DefaultConstruct() {
   data_members_.clear();
   auto& members = def_->GetDataMembers();
   for (auto& each : members) {
-    auto member = VariableFactory(each.second, vc_, each.first, pu_);
+    auto member = VariableFactory(each.second, vc_, each.first, ip_);
     member->DefaultConstruct();
     data_members_.push_back({each.first, std::move(member)});
   }
@@ -144,7 +144,7 @@ std::shared_ptr<Variable> StructVariable::Clone() {
     } else {
       proxy = trait_proxy_->Clone();
     }
-    auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, pu_, "");
+    auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, ip_, "");
     ret->ConstructByFields({proxy});
     return ret;
   }
@@ -157,7 +157,7 @@ std::shared_ptr<Variable> StructVariable::Clone() {
     }
   }
   // all variable in variables is rvalue now
-  auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, pu_, "");
+  auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, ip_, "");
   ret->ConstructByFields(variables);
   return ret;
 }
@@ -333,7 +333,7 @@ std::shared_ptr<Variable> ListVariable::Clone() {
       elements.push_back(each->Clone());
     }
   }
-  auto ret = std::make_shared<ListVariable>(element_type_->Clone(), ValueCategory::RValue, "");
+  auto ret = std::make_shared<ListVariable>(element_type_->Clone(), ValueCategory::RValue, ip_, "");
   ret->elements_ = std::move(elements);
   return ret;
 }

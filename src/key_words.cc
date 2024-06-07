@@ -23,6 +23,7 @@ static void register_buildin_keywords(std::unordered_map<std::string, Token> &kw
   kws["func"] = Token::FUNC;
   kws["operator"] = Token::OPERATOR;
   kws["struct"] = Token::STRUCT;
+  kws["destructor"] = Token::DESTRUCTOR;
   kws["trait"] = Token::TRAIT;
   kws["let"] = Token::LET;
   kws["ref"] = Token::REF;

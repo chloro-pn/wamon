@@ -56,8 +56,8 @@ int main() {
   }
 
   wamon::Interpreter ip(package_unit);
-  auto string_v = wamon::VariableFactory(wamon::TypeFactory<std::string>::Get(), wamon::Variable::ValueCategory::RValue,
-                                         "", ip.GetPackageUnit());
+  auto string_v =
+      wamon::VariableFactory(wamon::TypeFactory<std::string>::Get(), wamon::Variable::ValueCategory::RValue, "", ip);
   wamon::AsStringVariable(string_v)->SetValue("hello");
 
   auto ret = ip.CallFunctionByName("main$call_cpp_function", {std::move(string_v)});

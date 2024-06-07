@@ -68,12 +68,6 @@ TEST(variable, vo_var) {
   v = ToVar(std::string("hello"));
   EXPECT_EQ(v->GetTypeInfo(), "string");
   EXPECT_EQ(AsStringVariable(v)->GetValue(), "hello");
-  v = ToVar(std::vector<int>{2, 3, 4});
-  EXPECT_EQ(v->GetTypeInfo(), "list(int)");
-  EXPECT_EQ(AsListVariable(v)->Size(), 3);
-  v = ToVar(std::vector<bool>{true, true, false});
-  EXPECT_EQ(v->GetTypeInfo(), "list(bool)");
-  EXPECT_EQ(AsBoolVariable(AsListVariable(v)->at(0))->GetValue(), true);
 }
 
 wamon::PackageUnit GetPackageUnitFromScript(const std::string& script) {
@@ -103,8 +97,6 @@ TEST(variable, print) {
   EXPECT_EQ(v->Print().dump(), "\"hello world\"");
   v = ToVar(2.14);
   EXPECT_EQ(v->Print().dump(), "2.14");
-  v = ToVar(std::vector<int>{1, 2, 1, 3, 8});
-  EXPECT_EQ(v->Print().dump(), "[1,2,1,3,8]");
 
   std::string script = R"(
     package main;

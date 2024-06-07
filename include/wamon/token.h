@@ -86,6 +86,7 @@ enum class Token {
   // 结构体定义
   STRUCT,
   TRAIT,
+  DESTRUCTOR,
   // 变量定义
   LET,
   // 变量引用
@@ -239,6 +240,8 @@ inline const char *GetTokenStr(Token token) {
       return "struct";
     case Token::TRAIT:
       return "trait";
+    case Token::DESTRUCTOR:
+      return "destructor";
     case Token::LET:
       return "let";
     case Token::REF:

@@ -831,6 +831,29 @@ std::unique_ptr<OperatorDef> TryToParseOperatorOverride(PackageUnit &pu, const s
   return ret;
 }
 
+// destructor() {
+//  ...
+// }
+// no param_list, no return_type, no function_name
+std::unique_ptr<FunctionDef> TryToParseDestructor(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                  size_t &begin) {
+  if (!AssertToken(tokens, begin, Token::DESTRUCTOR)) {
+    return nullptr;
+  }
+  size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
+  auto param_list = ParseParameterList(pu, tokens, begin, end);
+  begin = end + 1;
+  end = FindMatchedToken<Token::LEFT_BRACE, Token::RIGHT_BRACE>(tokens, begin);
+  auto stmt_block = ParseStmtBlock(pu, tokens, begin, end);
+  begin = end + 1;
+  if (!param_list.empty()) {
+    throw WamonException("TryToParseDestructor error, params.size() == {}", param_list.size());
+  }
+  std::unique_ptr<FunctionDef> ret(new FunctionDef("__destructor"));
+  ret->SetBlockStmt(std::move(stmt_block));
+  ret->SetReturnType(GetVoidType());
+  return ret;
+}
 // method type_name {
 //   func method_name(param_list) -> return_type {
 //     ...
@@ -878,6 +901,12 @@ std::unique_ptr<methods_def> TryToParseMethodDeclaration(PackageUnit &pu, const 
       md.reset(new MethodDef(type_name, std::move(method)));
       ret->emplace_back(std::move(md));
     } else {
+      auto destructor = TryToParseDestructor(pu, tokens, begin);
+      if (destructor != nullptr) {
+        std::unique_ptr<MethodDef> md(new MethodDef(type_name, std::move(destructor)));
+        ret->emplace_back(std::move(md));
+        continue;
+      }
       // 如果解析方法失败尝试解析运算符重载
       Token op_token;
       auto call_op = TryToParseOperatorOverride(pu, tokens, begin, op_token);

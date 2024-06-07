@@ -231,7 +231,7 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
       return tmp;
     }
     // struct to struct trait
-    auto v = VariableFactory(to_type, Variable::ValueCategory::RValue, "", interpreter.GetPackageUnit());
+    auto v = VariableFactory(to_type, Variable::ValueCategory::RValue, "", interpreter);
     v->ConstructByFields({v1});
     return v;
   };

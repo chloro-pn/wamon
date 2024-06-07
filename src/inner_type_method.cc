@@ -197,7 +197,7 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
                                          std::vector<std::shared_ptr<Variable>>&& params,
                                          const PackageUnit& pu) -> std::shared_ptr<Variable> {
     assert(params.size() == 1);
-    AsListVariable(obj)->Resize(AsIntVariable(params[0])->GetValue(), pu);
+    AsListVariable(obj)->Resize(AsIntVariable(params[0])->GetValue());
     return GetVoidVariable();
   };
 

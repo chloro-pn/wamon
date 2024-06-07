@@ -59,7 +59,7 @@ int main() {
   wamon::Interpreter ip(pu);
   // 利用VariableFactory
   // API构造变量对象，需要指定类型、值型别、名字[为空则代表匿名]和packageunit，packageunit是当指定类型中包含结构体类型时从该包中查找对应的类型定义。
-  auto v = wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu);
+  auto v = wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", ip);
   // 利用AsXXXVariable系列API将变量转化为对应类型并进行赋值。
   wamon::AsIntVariable(v)->SetValue(10);
   // 填充函数参数，这里的设计还不优雅，需要进行类型转换std::unique_ptr -> std::shared_ptr
@@ -73,11 +73,11 @@ int main() {
   // 利用TypeFactory API构造结构体对应的类型并指定其所属的Package
   auto struct_type = wamon::TypeFactory<WAMON_STRUCT_TYPE("main$test2")>::Get();
   // 构造该类型的变量
-  v = wamon::VariableFactory(struct_type, wamon::Variable::ValueCategory::RValue, "", pu);
+  v = wamon::VariableFactory(struct_type, wamon::Variable::ValueCategory::RValue, "", ip);
   auto v2 = std::shared_ptr<wamon::Variable>(std::move(v));
   wamon::AsStructVariable(v2)->DefaultConstruct();
   auto string_v =
-      wamon::VariableFactory(wamon::TypeFactory<std::string>::Get(), wamon::Variable::ValueCategory::RValue, "", pu);
+      wamon::VariableFactory(wamon::TypeFactory<std::string>::Get(), wamon::Variable::ValueCategory::RValue, "", ip);
   wamon::AsStringVariable(string_v)->SetValue("world");
   // 结构体成员变量赋值
   wamon::AsStructVariable(v2)->UpdateDataMemberByName("b", std::move(string_v));
@@ -87,7 +87,7 @@ int main() {
   // 利用FindVariableById API获取全局变量，注意，不要忘记包前缀修饰
   v2 = ip.FindVariableById("main$v2");
 
-  v = wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", pu);
+  v = wamon::VariableFactory(wamon::TypeFactory<int>::Get(), wamon::Variable::ValueCategory::RValue, "", ip);
   wamon::AsIntVariable(v)->SetValue(10);
   // 利用CallCallable API调用Callable对象
   v2 = ip.CallCallable(v2, {std::move(v)});
