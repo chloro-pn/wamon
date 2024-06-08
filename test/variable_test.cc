@@ -124,3 +124,53 @@ TEST(variable, print) {
   print_result = R"({"members":{"a":2,"b":2.3,"c":true},"struct":"main$ms"})";
   EXPECT_EQ(v->Print().dump(), print_result);
 }
+
+TEST(variable, destructor) {
+  std::string script = R"(
+    package main;
+
+    let count : int = 0;
+
+    struct person {
+      int age;
+      string name;
+    }
+
+    method person {
+      func getAge() -> int {
+        return self.age;
+      }
+
+      destructor() {
+        ++count;
+        return;
+      }
+    }
+
+    func test2() -> void {
+      let v : list(person) = ();
+      call v:resize(4);
+      return;
+    }
+
+    func test3() -> int {
+      let v : person = (2, "chloro");
+      // 因为move v是右值，因此调用其方法会将成员变量move走，第二次调用的时候只能获得对应类型的默认值(int : 0)
+      call move v:getAge();
+      return call v:getAge();
+    }
+  )";
+
+  auto pu = GetPackageUnitFromScript(script);
+  wamon::TypeChecker tc(pu);
+  wamon::Interpreter ip(pu);
+  auto v = ip.ExecExpression(tc, "main", R"(new person(2, "chloro"))");
+  v.reset();
+  v = ip.FindVariableById("main$count");
+  EXPECT_EQ(wamon::VarAs<int>(v), 1);
+  ip.CallFunctionByName("main$test2", {});
+  v = ip.FindVariableById("main$count");
+  EXPECT_EQ(wamon::VarAs<int>(v), 5);
+  v = ip.CallFunctionByName("main$test3", {});
+  EXPECT_EQ(wamon::VarAs<int>(v), 0);
+}

@@ -34,3 +34,6 @@
 * for语句支持变量定义
 * [done] 重构ValueCategory处理系统(bug: lambda捕获的ref变量不应该和callable保持一致的ValueCategory，它应该总是LValue) 
 * 对于变量的运行时检测设置为可控制的
+* 返回类型为void时的return语句优化
+* [done] 支持析构函数
+* 支持内置函数assert

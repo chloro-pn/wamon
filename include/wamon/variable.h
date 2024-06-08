@@ -408,6 +408,8 @@ class StructVariable : public Variable {
 
   std::shared_ptr<Variable> Clone() override;
 
+  ~StructVariable();
+
  private:
   static bool trait_compare(StructVariable* lv, StructVariable* rv);
 

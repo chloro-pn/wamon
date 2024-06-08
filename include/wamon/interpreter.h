@@ -47,15 +47,19 @@ struct RuntimeContext {
   }
 
   // 方法调用里，调用者在方法栈中注册为__self__
+  template <bool check_value_category = true>
   void RegisterVariable(const std::shared_ptr<Variable>& variable, const std::string& tmp_name) {
     check_not_exist(tmp_name);
-    value_category_check(variable, tmp_name);
+    if constexpr (check_value_category) {
+      value_category_check(variable, tmp_name);
+    }
     symbol_table_.insert({tmp_name, variable});
   }
 
+  template <bool check_value_category = true>
   void RegisterVariable(const std::shared_ptr<Variable>& variable) {
     std::string name = variable->GetName();
-    RegisterVariable(variable, name);
+    RegisterVariable<check_value_category>(variable, name);
   }
 
   std::shared_ptr<Variable> FindVariable(const std::string& id_name) {

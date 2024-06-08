@@ -125,7 +125,9 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
     }
     ++param_name;
   }
-  GetCurrentContext()->RegisterVariable(obj, "__self__");
+  // self比较特殊，和函数参数不同的点在于，它可以作为RValue注册到上下文中，比如：
+  // call move v:getAge();
+  GetCurrentContext()->RegisterVariable<false>(obj, "__self__");
   auto result = method_def->GetBlockStmt()->Execute(*this);
   if (result.state_ != ExecuteState::Return) {
     throw WamonException("interpreter call method {}.{} error, diden't end by return stmt", obj->GetName(),

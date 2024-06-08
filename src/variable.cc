@@ -1,6 +1,7 @@
 #include "wamon/variable.h"
 
 #include "wamon/interpreter.h"
+#include "wamon/method_def.h"
 #include "wamon/struct_def.h"
 
 namespace wamon {
@@ -36,7 +37,7 @@ std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
     if (struct_def == nullptr) {
       throw WamonException("pu.FindStruct error, type {} invalid", type->GetTypeInfo());
     }
-    return std::make_unique<StructVariable>(struct_def, vc, *ip, name);
+    return std::make_shared<StructVariable>(struct_def, vc, *ip, name);
   }
   if (IsPtrType(type)) {
     return std::make_unique<PointerVariable>(GetHoldType(type), vc, name);
@@ -160,6 +161,16 @@ std::shared_ptr<Variable> StructVariable::Clone() {
   auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, ip_, "");
   ret->ConstructByFields(variables);
   return ret;
+}
+
+// fix ：析构函数中无法shared_from_this()，需要直接获取其指针
+StructVariable::~StructVariable() {
+  auto md = def_->GetDestructor();
+  if (md != nullptr) {
+    // 使用do nothing deleter确保不会delete this指针
+    std::shared_ptr<StructVariable> myself(this, [](void*) {});
+    ip_.CallMethod(myself, md, {});
+  }
 }
 
 bool StructVariable::trait_compare(StructVariable* lv, StructVariable* rv) {
