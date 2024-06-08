@@ -143,14 +143,12 @@ TEST(variable, destructor) {
 
       destructor() {
         ++count;
-        return;
       }
     }
 
     func test2() -> void {
       let v : list(person) = ();
       call v:resize(4);
-      return;
     }
 
     func test3() -> int {

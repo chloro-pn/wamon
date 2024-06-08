@@ -76,12 +76,15 @@ std::shared_ptr<Variable> Interpreter::CallFunction(const FunctionDef* function_
     }
   }
   auto result = function_def->block_stmt_->Execute(*this);
-  if (result.state_ != ExecuteState::Return) {
+  if (!IsVoidType(function_def->GetReturnType()) && result.state_ != ExecuteState::Return) {
     throw WamonException("interpreter call function {} error, diden't end by return stmt",
                          function_def->GetFunctionName());
   }
+  if (IsVoidType(function_def->GetReturnType()) && result.result_ == nullptr) {
+    result.result_ = GetVoidVariable();
+  }
   LeaveContext();
-  return result.result_;
+  return result.result_->IsRValue() ? result.result_ : result.result_->Clone();
 }
 
 std::shared_ptr<Variable> Interpreter::CallCallable(std::shared_ptr<Variable> callable,
@@ -129,9 +132,12 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
   // call move v:getAge();
   GetCurrentContext()->RegisterVariable<false>(obj, "__self__");
   auto result = method_def->GetBlockStmt()->Execute(*this);
-  if (result.state_ != ExecuteState::Return) {
+  if (!IsVoidType(method_def->GetReturnType()) && result.state_ != ExecuteState::Return) {
     throw WamonException("interpreter call method {}.{} error, diden't end by return stmt", obj->GetName(),
                          method_def->GetMethodName());
+  }
+  if (IsVoidType(method_def->GetReturnType()) && result.result_ == nullptr) {
+    result.result_ = GetVoidVariable();
   }
   LeaveContext();
   return result.result_->IsRValue() ? result.result_ : result.result_->Clone();
