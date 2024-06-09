@@ -172,3 +172,43 @@ TEST(variable, destructor) {
   v = ip.CallFunctionByName("main$test3", {});
   EXPECT_EQ(wamon::VarAs<int>(v), 0);
 }
+
+TEST(variable, let_ref_extend_lifecycle) {
+  std::string script = R"(
+    package main;
+
+    let count : int = 0;
+
+    struct person {
+      int a;
+      string name;
+    }
+
+    method person {
+      destructor() {
+        ++count;
+      }
+    }
+
+    func test() -> void {
+      let v : ptr(person) = alloc person(2, "chloro");
+      let ref v2 : person = *v;
+      dealloc v;
+    }
+
+  )";
+
+  using namespace wamon;
+  Scanner scan;
+  auto tokens = scan.Scan(script);
+  auto pu = Parse(tokens);
+  pu = MergePackageUnits(std::move(pu));
+  TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true) << reason;
+  Interpreter ip(pu);
+  ip.CallFunctionByName("main$test", {});
+  auto v = ip.FindVariableById("main$count");
+  EXPECT_EQ(VarAs<int>(v), 1);
+}

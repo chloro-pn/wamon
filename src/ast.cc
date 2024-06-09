@@ -293,7 +293,7 @@ ExecuteResult ExpressionStmt::Execute(Interpreter& interpreter) {
 
 ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   auto context = interpreter.GetCurrentContext();
-  auto v = VariableFactory(type_, Variable::ValueCategory::LValue, var_name_, interpreter);
+  std::shared_ptr<Variable> v;
   std::vector<std::shared_ptr<Variable>> fields;
   bool change_name = true;
   for (auto& each : constructors_) {
@@ -301,8 +301,9 @@ ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   }
   if (fields.empty() == true) {
     assert(IsRef() == false);
+    v = VariableFactory(type_, Variable::ValueCategory::LValue, var_name_, interpreter);
     v->DefaultConstruct();
-  } else if (fields.size() == 1 && fields[0]->GetTypeInfo() == v->GetTypeInfo()) {
+  } else if (fields.size() == 1 && fields[0]->GetTypeInfo() == GetType()->GetTypeInfo()) {
     if (IsRef()) {
       // if rvalue
       if (fields[0]->IsRValue()) {
@@ -319,8 +320,10 @@ ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
     assert(!v->IsRValue());
   } else {
     assert(IsRef() == false);
+    v = VariableFactory(type_, Variable::ValueCategory::LValue, var_name_, interpreter);
     v->ConstructByFields(fields);
   }
+  assert(v != nullptr);
   context->RegisterVariable(v, var_name_);
   return ExecuteResult::Next();
 }
