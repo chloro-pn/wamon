@@ -18,12 +18,11 @@ jobs:
             chmod +x llvm.sh
             sudo ./llvm.sh 18
             clang++-18 --version
-    - name: Build
-      # Build your program with gcc
-      working-directory: ${{github.workspace}}
-      run: bazel build --action_env=CXX=clang++-18 --action_env=CC=clang-18 ...
-
     - name: Test
       # Build and Execute tests
       working-directory: ${{github.workspace}}
-      run: bazel test --action_env=CXX=clang++-18 --action_env=CC=clang-18 --test_output=errors ...
+      run: bazel test --action_env=CXX=clang++-18 --action_env=CC=clang-18 --test_output=errors --cxxopt=-std=c++20 ...
+
+    - name: TestCatch2
+      working-directory: ${{github.workspace}}
+      run: bazel run //:catch2_test --action_env=CXX=clang++-18 --action_env=CC=clang-18 --test_output=errors --cxxopt=-std=c++20
