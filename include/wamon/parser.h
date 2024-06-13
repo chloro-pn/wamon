@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "wamon/ast.h"
+#include "wamon/enum_def.h"
 #include "wamon/exception.h"
 #include "wamon/function_def.h"
 #include "wamon/parameter_list_item.h"
@@ -115,6 +116,9 @@ std::unique_ptr<OperatorDef> TryToParseOperatorOverride(PackageUnit &pu, const s
 
 std::unique_ptr<StructDef> TryToParseStructDeclaration(PackageUnit &pu, const std::vector<WamonToken> &tokens,
                                                        size_t &begin);
+
+std::unique_ptr<EnumDef> TryToParseEnumDeclaration(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                   size_t &begin);
 
 std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(PackageUnit &pu,
                                                                   const std::vector<WamonToken> &tokens, size_t &begin);

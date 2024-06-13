@@ -9,6 +9,7 @@
 
 #include "wamon/ast.h"
 #include "wamon/builtin_functions.h"
+#include "wamon/enum_def.h"
 #include "wamon/exception.h"
 #include "wamon/function_def.h"
 #include "wamon/method_def.h"
@@ -56,7 +57,7 @@ class PackageUnit {
   void AddFuncDef(std::unique_ptr<FunctionDef>&& func_def) {
     auto name = func_def->GetFunctionName();
     if (funcs_.find(name) != funcs_.end()) {
-      throw WamonException("duplicate func {}", func_def->GetFunctionName());
+      throw WamonException("duplicate func {}", name);
     }
     funcs_[name] = std::move(func_def);
   }
@@ -64,9 +65,17 @@ class PackageUnit {
   void AddStructDef(std::unique_ptr<StructDef>&& struct_def) {
     auto name = struct_def->GetStructName();
     if (structs_.find(name) != structs_.end()) {
-      throw WamonException("duplicate struct {}", struct_def->GetStructName());
+      throw WamonException("duplicate struct {}", name);
     }
     structs_[name] = std::move(struct_def);
+  }
+
+  void AddEnumDef(std::unique_ptr<EnumDef>&& enum_def) {
+    auto name = enum_def->GetEnumName();
+    if (enums_.find(name) != enums_.end()) {
+      throw WamonException("duplicate enum {}", name);
+    }
+    enums_[name] = std::move(enum_def);
   }
 
   void AddMethod(const std::string& type_name, std::unique_ptr<methods_def>&& methods) {
@@ -171,6 +180,7 @@ class PackageUnit {
   std::vector<std::unique_ptr<VariableDefineStmt>> var_define_;
   std::unordered_map<std::string, std::unique_ptr<FunctionDef>> funcs_;
   std::unordered_map<std::string, std::unique_ptr<StructDef>> structs_;
+  std::unordered_map<std::string, std::unique_ptr<EnumDef>> enums_;
   BuiltinFunctions builtin_functions_;
   size_t lambda_count_{0};
   // 只有通过Merge生成的PackageUnit才使用这项

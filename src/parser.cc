@@ -38,6 +38,7 @@ void AssertTokenOrThrow(const std::vector<WamonToken> &tokens, size_t &begin, To
 }
 
 // package_name, var_name
+template <bool without_packagename = false>
 std::pair<std::string, std::string> ParseIdentifier(PackageUnit &pu, const std::vector<WamonToken> &tokens,
                                                     size_t &begin) {
   if (tokens.size() <= begin || tokens[begin].token != Token::ID || tokens[begin].type != WamonToken::ValueType::STR) {
@@ -47,6 +48,9 @@ std::pair<std::string, std::string> ParseIdentifier(PackageUnit &pu, const std::
   begin += 1;
   if (tokens.size() <= begin || tokens[begin].token != Token::SCOPE) {
     return {pu.GetCurrentParsingPackage(), v1};
+  }
+  if constexpr (without_packagename) {
+    throw WamonException("ParseIdentifier error, without_packagename == true but still parse package_name {}", v1);
   }
   begin += 1;
   if (tokens[begin].token != Token::ID || tokens[begin].type != WamonToken::ValueType::STR) {
@@ -938,14 +942,32 @@ std::unique_ptr<StructDef> TryToParseStructDeclaration(PackageUnit &pu, const st
   if (AssertToken(tokens, begin, Token::TRAIT)) {
     is_trait = true;
   }
-  auto [package_name, struct_name] = ParseIdentifier(pu, tokens, begin);
+  auto [package_name, struct_name] = ParseIdentifier<true>(pu, tokens, begin);
   ret.reset(new StructDef(struct_name, is_trait));
   AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACE, __FILE__, __LINE__);
   while (AssertToken(tokens, begin, Token::RIGHT_BRACE) == false) {
     auto type = ParseType(pu, tokens, begin);
-    auto [pack_name, field_name] = ParseIdentifier(pu, tokens, begin);
+    auto [pack_name, field_name] = ParseIdentifier<true>(pu, tokens, begin);
     AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
     ret->AddDataMember(field_name, std::move(type));
+  }
+  return ret;
+}
+
+std::unique_ptr<EnumDef> TryToParseEnumDeclaration(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                   size_t &begin) {
+  std::unique_ptr<EnumDef> ret(nullptr);
+  bool succ = AssertToken(tokens, begin, Token::ENUM);
+  if (succ == false) {
+    return ret;
+  }
+  auto [package_name, enum_name] = ParseIdentifier<true>(pu, tokens, begin);
+  ret.reset(new EnumDef(enum_name));
+  AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACE, __FILE__, __LINE__);
+  while (AssertToken(tokens, begin, Token::RIGHT_BRACE) == false) {
+    auto [pn, fn] = ParseIdentifier<true>(pu, tokens, begin);
+    AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
+    ret->AddEnumItem(fn);
   }
   return ret;
 }
@@ -1045,6 +1067,11 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
     auto struct_def = TryToParseStructDeclaration(package_unit, tokens, current_index);
     if (struct_def != nullptr) {
       package_unit.AddStructDef(std::move(struct_def));
+      continue;
+    }
+    auto enum_def = TryToParseEnumDeclaration(package_unit, tokens, current_index);
+    if (enum_def != nullptr) {
+      package_unit.AddEnumDef(std::move(enum_def));
       continue;
     }
     auto var_declaration = TryToParseVariableDeclaration(package_unit, tokens, current_index);

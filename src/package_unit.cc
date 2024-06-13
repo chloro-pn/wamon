@@ -26,6 +26,12 @@ PackageUnit PackageUnit::_MergePackageUnits(std::vector<PackageUnit>&& packages)
       result.AddFuncDef(std::move(func_define->second));
     }
 
+    for (auto enum_define = it->enums_.begin(); enum_define != it->enums_.end(); ++enum_define) {
+      auto enum_name = enum_define->first;
+      enum_define->second->SetEnumName(it->GetName() + "$" + enum_name);
+      result.AddEnumDef(std::move(enum_define->second));
+    }
+
     for (auto struct_define = it->structs_.begin(); struct_define != it->structs_.end(); ++struct_define) {
       auto struct_name = struct_define->first;
       struct_define->second->SetStructName(it->GetName() + "$" + struct_name);

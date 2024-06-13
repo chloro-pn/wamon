@@ -1,6 +1,7 @@
 #include "wamon/parser.h"
 
 #include "gtest/gtest.h"
+#include "wamon/enum_def.h"
 #include "wamon/exception.h"
 #include "wamon/package_unit.h"
 #include "wamon/scanner.h"
@@ -367,4 +368,24 @@ TEST(parse, parse_type) {
   EXPECT_EQ(type->GetTypeInfo(), "f((int, mystruct, ptr(int), list(ptr(double))) -> void)");
   EXPECT_EQ(begin, tokens.size() - 1);
   EXPECT_EQ(type->IsBasicType(), false);
+}
+
+TEST(parse, parse_enum) {
+  wamon::Scanner scan;
+  std::string str = R"(
+    enum Animal {
+      cat;
+      dog;
+      bird;
+    }
+  )";
+  auto tokens = scan.Scan(str);
+  size_t begin = 0;
+  wamon::PackageUnit pu;
+  auto enum_def = wamon::TryToParseEnumDeclaration(pu, tokens, begin);
+  EXPECT_NE(enum_def, nullptr);
+  EXPECT_EQ(enum_def->GetEnumName(), "Animal");
+  EXPECT_EQ(enum_def->GetEnumItems().size(), 3);
+  EXPECT_EQ(enum_def->GetEnumItems()[0], "cat");
+  EXPECT_EQ(begin, tokens.size() - 1);
 }
