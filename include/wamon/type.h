@@ -22,6 +22,7 @@
  *     - bool
  *     - void
  *   - 结构体类型
+ *   - 枚举类型
  * - 复合类型(类型加工器):
  *   - 指针类型 *       int*
  *   - 列表类型 [num]   int[2]
@@ -180,7 +181,9 @@ inline bool IsBuiltInType(const std::unique_ptr<Type>& type) {
          type->GetTypeInfo() == "byte" || type->GetTypeInfo() == "bool" || type->GetTypeInfo() == "void";
 }
 
-inline bool IsStructType(const std::unique_ptr<Type>& type) { return type->IsBasicType() && !IsBuiltInType(type); }
+inline bool IsStructOrEnumType(const std::unique_ptr<Type>& type) {
+  return type->IsBasicType() && !IsBuiltInType(type);
+}
 
 namespace detail {
 

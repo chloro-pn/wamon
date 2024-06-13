@@ -26,6 +26,11 @@ class EnumDef {
 
   const std::vector<std::string>& GetEnumItems() const { return enum_items_; }
 
+  bool ItemExist(const std::string& item) const {
+    auto it = std::find(enum_items_.begin(), enum_items_.end(), item);
+    return it != enum_items_.end();
+  }
+
  private:
   std::string enum_name_;
   std::vector<std::string> enum_items_;

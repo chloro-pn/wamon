@@ -96,7 +96,7 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
     if (param_types.size() == 1 && IsSameType(var_type, param_types[0])) {
       return;
     }
-    if (param_types.size() == 1 && IsStructType(param_types[0])) {
+    if (param_types.size() == 1 && IsStructOrEnumType(param_types[0])) {
       // 重载了()运算符的结构体类型的对象
       auto method_name = OperatorDef::CreateName(Token::LEFT_PARENTHESIS, GetParamType(var_type));
       auto struct_def = pu.FindStruct(param_types[0]->GetTypeInfo());
@@ -123,6 +123,7 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
     return;
   }
   // 所有相同类型的单个对象均可以执行构造（复制操作）
+  // also handle enum here
   if (param_types.size() == 1 && IsSameType(var_type, param_types[0])) {
     return;
   }
@@ -143,36 +144,39 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
     return;
   }
   // struct 类型
-  if (IsStructType(var_type)) {
+  if (IsStructOrEnumType(var_type)) {
+    // 这里不需要考虑Enum的情况，因为Enum的合理构造在 相同类型的单个对象构造中完成。
     auto struct_def = pu.FindStruct(var_type->GetTypeInfo());
     if (struct_def == nullptr) {
       throw WamonException("construct check error, invalid struct name {}", var_type->GetTypeInfo());
     }
-    // struct trait
-    if (struct_def->IsTrait()) {
-      if (param_types.size() != 1) {
-        throw WamonException("struct trait {} construct check error, params should be only 1 but {}",
-                             var_type->GetTypeInfo(), param_types.size());
+    if (struct_def != nullptr) {
+      // struct trait
+      if (struct_def->IsTrait()) {
+        if (param_types.size() != 1) {
+          throw WamonException("struct trait {} construct check error, params should be only 1 but {}",
+                               var_type->GetTypeInfo(), param_types.size());
+        }
+        std::string reason;
+        if (CheckTraitConstraint(pu, var_type, param_types[0], reason) == false) {
+          throw WamonException("struct trait {} construct check error, trait constraint check failed, reason : {}",
+                               var_type->GetTypeInfo(), reason);
+        }
+        return;
       }
-      std::string reason;
-      if (CheckTraitConstraint(pu, var_type, param_types[0], reason) == false) {
-        throw WamonException("struct trait {} construct check error, trait constraint check failed, reason : {}",
-                             var_type->GetTypeInfo(), reason);
+      const auto& dms = struct_def->GetDataMembers();
+      if (dms.size() != param_types.size()) {
+        throw WamonException("struct construct check error, {} != {}", dms.size(), param_types.size());
+      }
+      for (size_t i = 0; i < dms.size(); ++i) {
+        if (!IsSameType(dms[i].second, param_types[i])) {
+          throw WamonException(
+              "struct construct check error, {}th data member is constructd by the dismatch type, {} != {}", i,
+              dms[i].second->GetTypeInfo(), param_types[i]->GetTypeInfo());
+        }
       }
       return;
     }
-    const auto& dms = struct_def->GetDataMembers();
-    if (dms.size() != param_types.size()) {
-      throw WamonException("struct construct check error, {} != {}", dms.size(), param_types.size());
-    }
-    for (size_t i = 0; i < dms.size(); ++i) {
-      if (!IsSameType(dms[i].second, param_types[i])) {
-        throw WamonException(
-            "struct construct check error, {}th data member is constructd by the dismatch type, {} != {}", i,
-            dms[i].second->GetTypeInfo(), param_types[i]->GetTypeInfo());
-      }
-    }
-    return;
   }
   throw WamonException("CheckCanConstructBy check error, type {} can not be constructed by {} ",
                        var_type->GetTypeInfo(), fmt::join(type_infos, ", "));

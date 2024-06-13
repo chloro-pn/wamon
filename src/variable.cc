@@ -1,5 +1,6 @@
 #include "wamon/variable.h"
 
+#include "wamon/enum_def.h"
 #include "wamon/interpreter.h"
 #include "wamon/method_def.h"
 #include "wamon/struct_def.h"
@@ -34,10 +35,15 @@ std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
       throw WamonException("VariableFactory error, ip == nullptr");
     }
     auto struct_def = ip->GetPackageUnit().FindStruct(type->GetTypeInfo());
-    if (struct_def == nullptr) {
-      throw WamonException("pu.FindStruct error, type {} invalid", type->GetTypeInfo());
+    if (struct_def != nullptr) {
+      return std::make_shared<StructVariable>(struct_def, vc, *ip, name);
     }
-    return std::make_shared<StructVariable>(struct_def, vc, *ip, name);
+    // enum
+    auto enum_def = ip->GetPackageUnit().FindEnum(type->GetTypeInfo());
+    if (enum_def == nullptr) {
+      throw WamonException("VariableFactory error, invalid struct and enum type {}", type->GetTypeInfo());
+    }
+    return std::make_shared<EnumVariable>(enum_def, vc, name);
   }
   if (IsPtrType(type)) {
     return std::make_unique<PointerVariable>(GetHoldType(type), vc, name);
@@ -48,7 +54,7 @@ std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
   if (IsFuncType(type)) {
     return std::make_unique<FunctionVariable>(GetParamType(type), GetReturnType(type), vc, name);
   }
-  throw WamonException("VariableFactory error, not implement now.");
+  throw WamonException("VariableFactory error, invalid type {}", type->GetTypeInfo());
 }
 
 std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
@@ -283,6 +289,46 @@ nlohmann::json StructVariable::Print() {
   return obj;
 }
 
+EnumVariable::EnumVariable(const EnumDef* def, ValueCategory vc, const std::string& name)
+    : Variable(std::make_unique<BasicType>(def->GetEnumName()), vc, name), def_(def) {}
+
+void EnumVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
+  if (fields.size() != 1) {
+    throw WamonException("EnumVariable ConstructByFields error, param.size() == {}", fields.size());
+  }
+  if (GetTypeInfo() != fields[0]->GetTypeInfo()) {
+    throw WamonException("EnumVariable ConstructByFields error, type mismatch : {} != {}", GetTypeInfo(),
+                         fields[0]->GetTypeInfo());
+  }
+  enum_item_ = static_cast<EnumVariable*>(fields[0].get())->enum_item_;
+}
+
+void EnumVariable::DefaultConstruct() {
+  assert(def_->GetEnumItems().empty() == false);
+  enum_item_ = def_->GetEnumItems()[0];
+}
+
+std::shared_ptr<Variable> EnumVariable::Clone() {
+  auto tmp = std::make_shared<EnumVariable>(def_, Variable::ValueCategory::RValue, "");
+  tmp->enum_item_ = enum_item_;
+  return tmp;
+}
+
+bool EnumVariable::Compare(const std::shared_ptr<Variable>& other) {
+  return enum_item_ == static_cast<EnumVariable*>(other.get())->enum_item_;
+}
+
+void EnumVariable::Assign(const std::shared_ptr<Variable>& other) {
+  enum_item_ = static_cast<EnumVariable*>(other.get())->enum_item_;
+}
+
+nlohmann::json EnumVariable::Print() {
+  nlohmann::json j;
+  j["enum"] = def_->GetEnumName();
+  j["enum_item"] = enum_item_;
+  return j;
+}
+
 void PointerVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
   if (fields.size() != 1) {
     throw WamonException("PointerVariable's ConstructByFields method error : fields.size() == {}", fields.size());
@@ -353,7 +399,7 @@ void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Varia
   if (fields.size() != 1) {
     throw WamonException("FunctionVariable's ConstructByFields method error : fields.size() == {}", fields.size());
   }
-  if (IsStructType(fields[0]->GetType())) {
+  if (IsStructOrEnumType(fields[0]->GetType())) {
     // structtype
     if (fields[0]->IsRValue()) {
       obj_ = std::move(fields[0]);

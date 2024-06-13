@@ -72,6 +72,9 @@ class PackageUnit {
 
   void AddEnumDef(std::unique_ptr<EnumDef>&& enum_def) {
     auto name = enum_def->GetEnumName();
+    if (enum_def->GetEnumItems().empty()) {
+      throw WamonException("AddEnumDef error, empty enum {}", name);
+    }
     if (enums_.find(name) != enums_.end()) {
       throw WamonException("duplicate enum {}", name);
     }
@@ -97,6 +100,14 @@ class PackageUnit {
   const StructDef* FindStruct(const std::string& struct_name) const {
     auto it = structs_.find(struct_name);
     if (it == structs_.end()) {
+      return nullptr;
+    }
+    return it->second.get();
+  }
+
+  const EnumDef* FindEnum(const std::string& enum_name) const {
+    auto it = enums_.find(enum_name);
+    if (it == enums_.end()) {
       return nullptr;
     }
     return it->second.get();

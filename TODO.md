@@ -20,7 +20,9 @@
 * [done] 将interpreter的进入退出运行时栈接口改为私有的，不对用户暴露
 * [done] lambda捕获列表支持move
 * [done] 内置/注册函数支持赋值给callable【目前不支持内置函数返回类型，因为有些内置函数是模板化的，其类型根据输入参数确定】
-* 支持enum
+* [done] 支持enum
+  - enum的字面量格式应该是什么样的？
+    - [done] enum type:enum_item
 * [done] 优化内置方法的错误提示
 * [done] 支持变量引用（不涉及类型系统）
 * [done] 支持自增运算符
@@ -37,3 +39,4 @@
 * 返回类型为void时的return语句优化
 * [done] 支持析构函数
 * 支持内置函数assert
+* 支持 enum to string

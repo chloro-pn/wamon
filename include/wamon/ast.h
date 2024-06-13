@@ -255,6 +255,23 @@ class VoidIteralExpr : public Expression {
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override { return std::make_shared<VoidVariable>(); }
 };
 
+class EnumIteralExpr : public Expression {
+ public:
+  std::shared_ptr<Variable> Calculate(Interpreter& Interpreter) override;
+
+  void SetEnumType(std::unique_ptr<Type>&& type) { type_ = std::move(type); }
+
+  void SetEnumItem(const std::string& item) { enum_item_ = item; }
+
+  const std::unique_ptr<Type>& GetEnumType() const { return type_; }
+
+  const std::string& GetEnumItem() const { return enum_item_; }
+
+ private:
+  std::unique_ptr<Type> type_;
+  std::string enum_item_;
+};
+
 class SelfExpr : public Expression {
  public:
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override;

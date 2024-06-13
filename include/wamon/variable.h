@@ -12,6 +12,7 @@
 namespace wamon {
 
 class StructDef;
+class EnumDef;
 
 /*
  * Variable为运行时变量类型的基类，每个Variable一定包含一个type成员标识其类型
@@ -445,6 +446,34 @@ class StructVariable : public Variable {
 inline StructVariable* AsStructVariable(const std::shared_ptr<Variable>& v) {
   return static_cast<StructVariable*>(v.get());
 }
+
+class EnumVariable : public Variable {
+ public:
+  EnumVariable(const EnumDef* def, ValueCategory vc, const std::string& name);
+
+  void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
+
+  void DefaultConstruct() override;
+
+  // Clone函数返回值的 ValueCategory == RValue，name == ""
+  std::shared_ptr<Variable> Clone() override;
+
+  bool Compare(const std::shared_ptr<Variable>& other) override;
+
+  void Assign(const std::shared_ptr<Variable>& other) override;
+
+  nlohmann::json Print() override;
+
+  void SetEnumItem(const std::string& enum_item) { enum_item_ = enum_item; }
+
+  const std::string& GetEnumItem() const { return enum_item_; }
+
+ private:
+  const EnumDef* def_;
+  std::string enum_item_;
+};
+
+inline EnumVariable* AsEnumVariable(const std::shared_ptr<Variable>& v) { return static_cast<EnumVariable*>(v.get()); }
 
 class CompoundVariable : public Variable {
  public:

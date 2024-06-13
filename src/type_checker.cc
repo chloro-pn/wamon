@@ -93,8 +93,9 @@ void TypeChecker::CheckType(const std::unique_ptr<Type>& type, const std::string
   if (!IsBuiltInType(type)) {
     const PackageUnit& pu = static_analyzer_.GetPackageUnit();
     const auto& struct_def = pu.FindStruct(type->GetTypeInfo());
-    if (struct_def == nullptr) {
-      throw WamonTypeCheck(context_info, type->GetTypeInfo(), "invalid struct type");
+    const auto& enum_def = pu.FindEnum(type->GetTypeInfo());
+    if (struct_def == nullptr && enum_def == nullptr) {
+      throw WamonTypeCheck(context_info, type->GetTypeInfo(), "invalid struct type or enum type");
     }
   } else {
     if (can_be_void == false && IsVoidType(type)) {
@@ -266,6 +267,19 @@ std::unique_ptr<Type> CheckAndGetSSResultType(const TypeChecker& tc, BinaryExpr*
     throw WamonException("the object call operator[] should have list type, but {}", left_type->GetTypeInfo());
   }
   return list_type->GetHoldType();
+}
+
+std::unique_ptr<Type> CheckAndGetEnumIteralResultType(const TypeChecker& tc, EnumIteralExpr* enum_expr) {
+  const auto& pu = tc.GetStaticAnalyzer().GetPackageUnit();
+  auto enum_def = pu.FindEnum(enum_expr->GetEnumType()->GetTypeInfo());
+  if (enum_def == nullptr) {
+    throw WamonException("invalid enum type : {}", enum_expr->GetEnumType()->GetTypeInfo());
+  }
+  if (enum_def->ItemExist(enum_expr->GetEnumItem()) == false) {
+    throw WamonException("invalid enum item {} for enum type {}", enum_expr->GetEnumItem(),
+                         enum_expr->GetEnumType()->GetTypeInfo());
+  }
+  return enum_expr->GetEnumType()->Clone();
 }
 
 std::unique_ptr<Type> CheckAndGetMemberAccessResultType(const TypeChecker& tc, BinaryExpr* binary_expr) {
@@ -498,7 +512,7 @@ std::unique_ptr<Type> CheckAndGetOperatorOverrideReturnType(const TypeChecker& t
 
 std::unique_ptr<Type> CheckAndGetInnerMethodReturnType(const TypeChecker& tc, const std::unique_ptr<Type>& ctype,
                                                        const MethodCallExpr* call_expr) {
-  assert(!IsStructType(ctype));
+  assert(!IsStructOrEnumType(ctype));
   std::vector<std::unique_ptr<Type>> params_type;
   for (auto& each : call_expr->parameters_) {
     params_type.push_back(tc.GetExpressionType(each.get()));
@@ -582,7 +596,7 @@ std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecke
 
 std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForMethod(const TypeChecker& tc, MethodCallExpr* method_call_expr) {
   std::unique_ptr<Type> find_type = tc.GetExpressionType(method_call_expr->caller_.get());
-  if (!IsStructType(find_type)) {
+  if (!IsStructOrEnumType(find_type)) {
     return CheckAndGetInnerMethodReturnType(tc, find_type, method_call_expr);
   }
   // if not find, throw exception
@@ -656,6 +670,9 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
   }
   if (dynamic_cast<VoidIteralExpr*>(expr)) {
     return std::make_unique<BasicType>(GetTokenStr(Token::VOID));
+  }
+  if (auto tmp = dynamic_cast<EnumIteralExpr*>(expr)) {
+    return CheckAndGetEnumIteralResultType(*this, tmp);
   }
   if (auto tmp = dynamic_cast<BinaryExpr*>(expr)) {
     // 特殊的二元运算符，第二个操作数的类型由查询第一个运算符类型的定义得到

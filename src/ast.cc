@@ -54,7 +54,7 @@ std::shared_ptr<Variable> MethodCallExpr::Calculate(Interpreter& interpreter) {
     params.push_back(std::move(v));
   }
   auto v = caller_->Calculate(interpreter);
-  if (!IsStructType(v->GetType())) {
+  if (!IsStructOrEnumType(v->GetType())) {
     auto result = interpreter.CallMethod(v, method_name_, std::move(params));
     return result;
   }
@@ -120,6 +120,12 @@ std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
     ret->SetFuncName(GenerateIdent());
     return ret;
   }
+}
+
+std::shared_ptr<Variable> EnumIteralExpr::Calculate(Interpreter& Interpreter) {
+  auto v = VariableFactory(type_, Variable::ValueCategory::RValue, "", Interpreter);
+  AsEnumVariable(v)->SetEnumItem(enum_item_);
+  return v;
 }
 
 std::shared_ptr<Variable> SelfExpr::Calculate(Interpreter& interpreter) { return interpreter.GetSelfObject(); }

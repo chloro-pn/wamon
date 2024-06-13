@@ -416,6 +416,20 @@ std::unique_ptr<Expression> ParseExpression(PackageUnit &pu, const std::vector<W
         operands.push(AttachUnaryOperators(std::move(bool_iter_expr), u_operators));
         continue;
       }
+      // enum 字面量表达式
+      // enum enum_type : enum_item
+      if (current_token == Token::ENUM) {
+        i += 1;
+        std::unique_ptr<EnumIteralExpr> enum_expr(new EnumIteralExpr());
+        auto type = ParseType(pu, tokens, i);
+        AssertTokenOrThrow(tokens, i, Token::COLON, __FILE__, __LINE__);
+        auto enum_item = ParseIdentifier<true>(pu, tokens, i);
+        enum_expr->SetEnumType(std::move(type));
+        enum_expr->SetEnumItem(enum_item.second);
+        i -= 1;
+        operands.push(AttachUnaryOperators(std::move(enum_expr), u_operators));
+        continue;
+      }
       if (current_token == Token::SELF) {
         std::unique_ptr<SelfExpr> self_expr(new SelfExpr());
         operands.push(AttachUnaryOperators(std::move(self_expr), u_operators));

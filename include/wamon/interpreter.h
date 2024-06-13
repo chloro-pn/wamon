@@ -231,7 +231,7 @@ class Interpreter {
   // 注意：CallMethodByName会尝试进行struct trait -> struct的转换，而CallMethod不会，因此用户不要直接使用CallMethod接口
   std::shared_ptr<Variable> CallMethodByName(std::shared_ptr<Variable> obj, const std::string& method_name,
                                              std::vector<std::shared_ptr<Variable>>&& params) {
-    if (!IsStructType(obj->GetType())) {
+    if (!IsStructOrEnumType(obj->GetType())) {
       return CallMethod(obj, method_name, std::move(params));
     }
     auto type = obj->GetTypeInfo();

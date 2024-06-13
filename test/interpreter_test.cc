@@ -1042,3 +1042,41 @@ TEST(interpreter, exec_expression) {
   ret = interpreter.ExecExpression(tc, "main", "v3 as int + v");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 15);
 }
+
+TEST(interpreter, enum) {
+  wamon::Scanner scan;
+  std::string script = R"(
+    package main;
+
+    enum Color {
+      Red;
+      Yellow;
+      Blue;
+    }
+
+    let v : Color = enum Color:Red;
+
+    enum Color2 {
+      Red;
+      White;
+      Black;
+    }
+  )";
+  wamon::PackageUnit pu;
+  auto tokens = scan.Scan(script);
+  pu = wamon::Parse(tokens);
+  pu = wamon::MergePackageUnits(std::move(pu));
+
+  wamon::TypeChecker tc(pu);
+  std::string reason;
+  bool succ = tc.CheckAll(reason);
+  EXPECT_EQ(succ, true) << reason;
+
+  wamon::Interpreter interpreter(pu);
+  auto v = interpreter.FindVariableById("main$v");
+  EXPECT_EQ(v->GetTypeInfo(), "main$Color");
+  EXPECT_EQ(wamon::AsEnumVariable(v)->GetEnumItem(), "Red");
+
+  EXPECT_THROW(interpreter.ExecExpression(tc, "main", "v = enum Color2:Black"), wamon::WamonException);
+  EXPECT_THROW(interpreter.ExecExpression(tc, "main", "v = enum Color:Black"), wamon::WamonException);
+}
