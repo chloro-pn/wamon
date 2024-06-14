@@ -25,6 +25,8 @@ class BuiltinFunctions {
 
   BuiltinFunctions();
 
+  static void RegisterWamonBuiltinFunction(BuiltinFunctions&);
+
   BuiltinFunctions(BuiltinFunctions&&) = default;
 
   BuiltinFunctions& operator=(BuiltinFunctions&&) = default;
@@ -65,6 +67,27 @@ class BuiltinFunctions {
       throw WamonException("BuiltinFunctions::SetTypeForFunction failed, type {} not func type", type->GetTypeInfo());
     }
     builtin_types_[name] = std::move(type);
+  }
+
+  void Merge(BuiltinFunctions&& other) {
+    for (auto& each : other.builtin_handles_) {
+      if (builtin_handles_.count(each.first) > 0) {
+        throw WamonException("BuiltinFunctions.Merge error, duplicate handle {}", each.first);
+      }
+      builtin_handles_[each.first] = std::move(each.second);
+    }
+    for (auto& each : other.builtin_checks_) {
+      if (builtin_checks_.count(each.first) > 0) {
+        throw WamonException("BuiltinFunctions.Merge error, duplicate check {}", each.first);
+      }
+      builtin_checks_[each.first] = std::move(each.second);
+    }
+    for (auto& each : other.builtin_types_) {
+      if (builtin_types_.count(each.first) > 0) {
+        throw WamonException("BuiltinFunctions.Merge error, duplicate typed name {}", each.first);
+      }
+      builtin_types_[each.first] = std::move(each.second);
+    }
   }
 
  private:

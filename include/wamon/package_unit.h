@@ -14,6 +14,7 @@
 #include "wamon/function_def.h"
 #include "wamon/method_def.h"
 #include "wamon/operator_def.h"
+#include "wamon/prepared_package_name.h"
 #include "wamon/struct_def.h"
 #include "wamon/type.h"
 
@@ -24,6 +25,7 @@ class PackageUnit {
   static PackageUnit _MergePackageUnits(std::vector<PackageUnit>&& packages);
 
   std::string CreateUniqueLambdaName() {
+    MergedFlagCheck("CreateUniqueLambdaName");
     auto ret = "__lambda_" + std::to_string(lambda_count_) + GetName();
     lambda_count_ += 1;
     return ret;
@@ -34,9 +36,16 @@ class PackageUnit {
   PackageUnit(PackageUnit&&) = default;
   PackageUnit& operator=(PackageUnit&&) = default;
 
-  void SetName(const std::string& name) { package_name_ = name; }
+  void SetName(const std::string& name) {
+    MergedFlagCheck("SetName");
+    if (IsPreparedPakageName(name)) {
+      throw WamonException("PackageUnit.SetName invalid , {}", name);
+    }
+    package_name_ = name;
+  }
 
   void SetImportPackage(const std::vector<std::string>& import_packages) {
+    MergedFlagCheck("SetImportPackage");
     import_packages_ = import_packages;
     package_imports_[package_name_] = import_packages;
   }
@@ -46,6 +55,7 @@ class PackageUnit {
   const std::vector<std::string>& GetImportPackage() const { return import_packages_; }
 
   void AddVarDef(std::unique_ptr<VariableDefineStmt>&& vd) {
+    MergedFlagCheck("AddVarDef");
     if (std::find_if(var_define_.begin(), var_define_.end(), [&vd](const auto& v) -> bool {
           return vd->GetVarName() == v->GetVarName();
         }) != var_define_.end()) {
@@ -55,6 +65,7 @@ class PackageUnit {
   }
 
   void AddFuncDef(std::unique_ptr<FunctionDef>&& func_def) {
+    MergedFlagCheck("AddFuncDef");
     auto name = func_def->GetFunctionName();
     if (funcs_.find(name) != funcs_.end()) {
       throw WamonException("duplicate func {}", name);
@@ -63,6 +74,7 @@ class PackageUnit {
   }
 
   void AddStructDef(std::unique_ptr<StructDef>&& struct_def) {
+    MergedFlagCheck("AddStructDef");
     auto name = struct_def->GetStructName();
     if (structs_.find(name) != structs_.end()) {
       throw WamonException("duplicate struct {}", name);
@@ -71,6 +83,7 @@ class PackageUnit {
   }
 
   void AddEnumDef(std::unique_ptr<EnumDef>&& enum_def) {
+    MergedFlagCheck("AddEnumDef");
     auto name = enum_def->GetEnumName();
     if (enum_def->GetEnumItems().empty()) {
       throw WamonException("AddEnumDef error, empty enum {}", name);
@@ -82,6 +95,7 @@ class PackageUnit {
   }
 
   void AddMethod(const std::string& type_name, std::unique_ptr<methods_def>&& methods) {
+    MergedFlagCheck("AddMethod");
     assert(type_name.empty() == false);
     if (structs_.find(type_name) == structs_.end()) {
       throw WamonException("add method error, invalid type : {}", type_name);
@@ -90,6 +104,7 @@ class PackageUnit {
   }
 
   void AddLambdaFunction(const std::string& lambda_name, std::unique_ptr<FunctionDef>&& lambda) {
+    MergedFlagCheck("AddLambdaFunction");
     assert(LambdaExpr::IsLambdaName(lambda_name));
     if (funcs_.find(lambda_name) != funcs_.end()) {
       throw WamonException("PackageUnit.AddLambdaFunction error, duplicate function name {}", lambda_name);
@@ -152,6 +167,7 @@ class PackageUnit {
   BuiltinFunctions& GetBuiltinFunctions() { return builtin_functions_; }
 
   void AddPackageImports(const std::string& package, const std::vector<std::string>& imports) {
+    MergedFlagCheck("AddPackageImports");
     if (package_imports_.count(package) > 0) {
       auto& tmp = package_imports_[package];
       for (auto& each : imports) {
@@ -171,7 +187,8 @@ class PackageUnit {
   }
 
   void RegisterCppFunctions(const std::string& name, BuiltinFunctions::CheckType ct, BuiltinFunctions::HandleType ht) {
-    GetBuiltinFunctions().Register(name, std::move(ct), std::move(ht));
+    MergedFlagCheck("RegisterCppFunctions");
+    GetBuiltinFunctions().Register(GetName() + "$" + name, std::move(ct), std::move(ht));
   }
 
   void RegisterCppFunctions(const std::string& name, std::unique_ptr<Type> func_type, BuiltinFunctions::HandleType ht);
@@ -185,6 +202,15 @@ class PackageUnit {
   void SetCurrentParsingPackage(const std::string& cpp) { current_parsing_package_ = cpp; }
 
  private:
+  // PackageUnit有两种类型，只有Merge得到的PackageUnit才能够进行类型分析以及交付给解释器执行。
+  bool merged = false;
+
+  void MergedFlagCheck(const std::string& info) {
+    if (merged == true) {
+      throw WamonException("MergedFlagCheck error, from {}", info);
+    }
+  }
+
   std::string package_name_;
   std::vector<std::string> import_packages_;
   // 包作用域的变量定义语句

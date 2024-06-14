@@ -3,7 +3,6 @@
 #include "wamon/exception.h"
 #include "wamon/inner_type_method.h"
 #include "wamon/interpreter.h"
-#include "wamon/ptr_cast.h"
 
 namespace wamon {
 
@@ -22,7 +21,7 @@ std::shared_ptr<Variable> FuncCallExpr::Calculate(Interpreter& interpreter) {
   if (type == FuncCallType::FUNC) {
     func_name = dynamic_cast<IdExpr*>(caller_.get())->GenerateIdent();
   } else if (type == FuncCallType::BUILT_IN_FUNC) {
-    func_name = dynamic_cast<IdExpr*>(caller_.get())->GetId();
+    func_name = dynamic_cast<IdExpr*>(caller_.get())->GenerateIdent();
   }
   if (type == FuncCallType::FUNC) {
     auto funcdef = interpreter.GetPackageUnit().FindFunction(func_name);
@@ -106,11 +105,11 @@ std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
   if (type_ == Type::Variable || type_ == Type::Callable) {
     return interpreter.FindVariableById(GenerateIdent());
   } else if (type_ == Type::BuiltinFunc) {
-    auto type = interpreter.GetPackageUnit().GetBuiltinFunctions().GetType(GetId());
+    auto type = interpreter.GetPackageUnit().GetBuiltinFunctions().GetType(GenerateIdent());
     assert(type != nullptr);
     auto ret = std::make_shared<FunctionVariable>(GetParamType(type), GetReturnType(type),
                                                   Variable::ValueCategory::RValue, "");
-    ret->SetFuncName(GetId());
+    ret->SetFuncName(GenerateIdent());
     return ret;
   } else {
     auto func_def = interpreter.GetPackageUnit().FindFunction(GenerateIdent());

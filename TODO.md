@@ -40,3 +40,4 @@
 * [done] 支持析构函数
 * 支持内置函数assert
 * 支持 enum to string
+* 内置函数放置在wamon包名称中

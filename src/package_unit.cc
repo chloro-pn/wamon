@@ -37,13 +37,18 @@ PackageUnit PackageUnit::_MergePackageUnits(std::vector<PackageUnit>&& packages)
       struct_define->second->SetStructName(it->GetName() + "$" + struct_name);
       result.AddStructDef(std::move(struct_define->second));
     }
+
+    result.builtin_functions_.Merge(std::move(it->builtin_functions_));
   }
+  BuiltinFunctions::RegisterWamonBuiltinFunction(result.builtin_functions_);
   // 不需要更新 lambda_count_，因为merge之后的PackageUnit不会再进行解析了。
+  result.merged = true;
   return result;
 }
 
 void PackageUnit::RegisterCppFunctions(const std::string& name, std::unique_ptr<Type> func_type,
                                        BuiltinFunctions::HandleType ht) {
+  MergedFlagCheck("RegisterCppFunctions");
   if (IsFuncType(func_type) == false) {
     throw WamonException("RegisterCppFunctions error, {} have non-function type : {}", name, func_type->GetTypeInfo());
   }
@@ -67,7 +72,7 @@ void PackageUnit::RegisterCppFunctions(const std::string& name, std::unique_ptr<
     return GetReturnType(func_type);
   };
   RegisterCppFunctions(name, std::move(check_f), std::move(ht));
-  GetBuiltinFunctions().SetTypeForFunction(name, std::move(func_type));
+  GetBuiltinFunctions().SetTypeForFunction(GetName() + "$" + name, std::move(func_type));
 }
 
 }  // namespace wamon

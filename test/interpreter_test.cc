@@ -311,10 +311,10 @@ TEST(interpreter, builtin_function) {
   wamon::Scanner scan;
   std::string str = R"(
     package main;
-    let v : string = call to_string:(20);
-    let v2 : string = call to_string:(true);
-    let v3 : string = call to_string:(3.35);
-    let v4 : string = call to_string:(0X41);
+    let v : string = call wamon::to_string:(20);
+    let v2 : string = call wamon::to_string:(true);
+    let v3 : string = call wamon::to_string:(3.35);
+    let v4 : string = call wamon::to_string:(0X41);
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -707,7 +707,6 @@ TEST(interpreter, register_cpp_function) {
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
   pu = wamon::Parse(tokens);
-  pu = wamon::MergePackageUnits(std::move(pu));
 
   pu.RegisterCppFunctions(
       "func111",
@@ -726,6 +725,7 @@ TEST(interpreter, register_cpp_function) {
         return std::make_shared<wamon::IntVariable>(static_cast<int>(len), wamon::Variable::ValueCategory::RValue, "");
       });
 
+  pu = wamon::MergePackageUnits(std::move(pu));
   wamon::TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);

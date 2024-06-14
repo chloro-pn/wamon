@@ -54,10 +54,11 @@ static auto _to_string(Interpreter& ip, std::vector<std::shared_ptr<Variable>>&&
   return std::make_shared<StringVariable>(result, wamon::Variable::ValueCategory::RValue, "");
 }
 
-static void register_builtin_handles(std::unordered_map<std::string, BuiltinFunctions::HandleType>& handles) {
-  handles["print"] = _print;
-  handles["to_string"] = _to_string;
-  handles["context_stack"] = _context_stack;
+static void register_builtin_handles(const std::string& prefix,
+                                     std::unordered_map<std::string, BuiltinFunctions::HandleType>& handles) {
+  handles[prefix + "print"] = _print;
+  handles[prefix + "to_string"] = _to_string;
+  handles[prefix + "context_stack"] = _context_stack;
 }
 
 static auto _print_check(const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
@@ -82,15 +83,18 @@ static auto _to_string_check(const std::vector<std::unique_ptr<Type>>& params_ty
   throw WamonException("to_string type_check error, type {} cant not be to_string", type->GetTypeInfo());
 }
 
-static void register_builtin_checks(std::unordered_map<std::string, BuiltinFunctions::CheckType>& checks) {
-  checks["print"] = _print_check;
-  checks["to_string"] = _to_string_check;
-  checks["context_stack"] = _context_stack_check;
+static void register_builtin_checks(const std::string& prefix,
+                                    std::unordered_map<std::string, BuiltinFunctions::CheckType>& checks) {
+  checks[prefix + "print"] = _print_check;
+  checks[prefix + "to_string"] = _to_string_check;
+  checks[prefix + "context_stack"] = _context_stack_check;
 }
 
-BuiltinFunctions::BuiltinFunctions() {
-  register_builtin_checks(builtin_checks_);
-  register_builtin_handles(builtin_handles_);
+BuiltinFunctions::BuiltinFunctions() {}
+
+void BuiltinFunctions::RegisterWamonBuiltinFunction(BuiltinFunctions& obj) {
+  register_builtin_checks("wamon$", obj.builtin_checks_);
+  register_builtin_handles("wamon$", obj.builtin_handles_);
 }
 
 std::unique_ptr<Type> BuiltinFunctions::TypeCheck(const std::string& name,

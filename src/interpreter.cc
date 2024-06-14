@@ -5,7 +5,6 @@
 #include "wamon/operator.h"
 #include "wamon/parser.h"
 #include "wamon/parsing_package.h"
-#include "wamon/ptr_cast.h"
 #include "wamon/scanner.h"
 #include "wamon/type.h"
 #include "wamon/type_checker.h"

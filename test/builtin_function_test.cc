@@ -38,7 +38,7 @@ TEST(builtin_function, context_stack) {
 
     func func3() -> void {
       {
-        let lmd: f(()->void) = lambda [] () -> void { cs = call context_stack:(); return; };
+        let lmd: f(()->void) = lambda [] () -> void { cs = call wamon::context_stack:(); return; };
         call lmd:();
       }
       return;
@@ -48,6 +48,8 @@ TEST(builtin_function, context_stack) {
   auto tokens = scan.Scan(script);
   auto pu = Parse(tokens);
   pu = MergePackageUnits(std::move(pu));
+  EXPECT_THROW(pu.RegisterCppFunctions("mytest", BuiltinFunctions::CheckType(), BuiltinFunctions::HandleType()),
+               WamonException);
 
   TypeChecker tc(pu);
   std::string reason;

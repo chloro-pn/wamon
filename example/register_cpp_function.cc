@@ -33,7 +33,7 @@ int main() {
     package main;
 
     func call_cpp_function(string s) -> int {
-      return call my_cpp_func:(s);
+      return call main::my_cpp_func:(s);
     }
 
     let test : f(() -> int) = my_type_cpp_func;
@@ -42,10 +42,10 @@ int main() {
   wamon::Scanner scanner;
   auto tokens = scanner.Scan(script);
   wamon::PackageUnit package_unit = wamon::Parse(tokens);
-  package_unit = wamon::MergePackageUnits(std::move(package_unit));
   package_unit.RegisterCppFunctions("my_cpp_func", my_cpp_func_check, my_cpp_func);
   package_unit.RegisterCppFunctions("my_type_cpp_func", wamon::TypeFactory<int()>::Get(), my_type_cpp_func);
 
+  package_unit = wamon::MergePackageUnits(std::move(package_unit));
   wamon::TypeChecker type_checker(package_unit);
 
   std::string reason;
