@@ -118,6 +118,24 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
     }
     return GetVoidType();
   };
+
+  handles[concat("list", "clear")] =
+      [](const std::unique_ptr<Type>& builtin_type,
+         const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
+    if (params_type.size() != 0) {
+      throw WamonException("list.clear error, params.size() == {}", params_type.size());
+    }
+    return GetVoidType();
+  };
+
+  handles[concat("list", "empty")] =
+      [](const std::unique_ptr<Type>& builtin_type,
+         const std::vector<std::unique_ptr<Type>>& params_type) -> std::unique_ptr<Type> {
+    if (params_type.size() != 0) {
+      throw WamonException("list.empty error, params.size() == {}", params_type.size());
+    }
+    return TypeFactory<bool>::Get();
+  };
 }
 
 static void register_builtin_type_method_handle(std::unordered_map<std::string, InnerTypeMethod::HandleType>& handles) {
@@ -206,6 +224,20 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
     assert(params.size() == 1);
     AsListVariable(obj)->Erase(AsIntVariable(params[0])->GetValue());
     return GetVoidVariable();
+  };
+
+  handles[concat("list", "clear")] = [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params,
+                                        const PackageUnit& pu) -> std::shared_ptr<Variable> {
+    assert(params.size() == 0);
+    AsListVariable(obj)->Clear();
+    return GetVoidVariable();
+  };
+
+  handles[concat("list", "empty")] = [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params,
+                                        const PackageUnit& pu) -> std::shared_ptr<Variable> {
+    assert(params.size() == 0);
+    bool empty = AsListVariable(obj)->Size() == 0;
+    return std::make_shared<BoolVariable>(empty, Variable::ValueCategory::RValue, "");
   };
 }
 

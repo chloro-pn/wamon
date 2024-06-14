@@ -67,6 +67,8 @@ wamon为这些类型提供了以下内置方法（目前这里还没做多少，
 * list(T):pop_back() -> void
 * list(T):resize(int) -> void
 * list(T):erase(int) -> void
+* list(T):clear() -> void
+* list(T):empty() -> bool
 
 ##### 类型转换
 wamon是强类型的，通过双元运算符as进行类型转换工作，目前支持：

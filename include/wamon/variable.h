@@ -555,6 +555,8 @@ class ListVariable : public CompoundVariable {
     }
   }
 
+  void Clear() { elements_.clear(); }
+
   void Erase(size_t index) {
     if (index >= elements_.size()) {
       throw WamonException("List.Erase error, index out of range : {} >= {}", index, elements_.size());
