@@ -710,7 +710,8 @@ TEST(interpreter, register_cpp_function) {
 
   pu.RegisterCppFunctions(
       "func111",
-      [](const std::vector<std::unique_ptr<wamon::Type>>& params_type) -> std::unique_ptr<wamon::Type> {
+      [](const wamon::PackageUnit&,
+         const std::vector<std::unique_ptr<wamon::Type>>& params_type) -> std::unique_ptr<wamon::Type> {
         if (params_type.size() != 1) {
           throw wamon::WamonException("invalid params count {}", params_type.size());
         }

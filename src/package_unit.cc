@@ -54,8 +54,9 @@ void PackageUnit::RegisterCppFunctions(const std::string& name, std::unique_ptr<
   }
   auto ftype = func_type->Clone();
   MoveWrapper<decltype(ftype)> mw(std::move(ftype));
-  auto check_f = [name = name,
-                  mw = mw](const std::vector<std::unique_ptr<Type>>& params_type) mutable -> std::unique_ptr<Type> {
+  auto check_f = [name = name, mw = mw](
+                     const PackageUnit&,
+                     const std::vector<std::unique_ptr<Type>>& params_type) mutable -> std::unique_ptr<Type> {
     auto func_type = std::move(mw).Get();
     auto par_type = GetParamType(func_type);
     size_t param_size = par_type.size();

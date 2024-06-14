@@ -35,6 +35,8 @@ class TypeChecker {
   friend std::unique_ptr<Type> CheckAndGetTypeForNewExpr(TypeChecker& tc, NewExpr* new_expr);
   friend std::unique_ptr<Type> CheckAndGetTypeForAllocExpr(TypeChecker& tc, AllocExpr* alloc_expr);
   friend std::unique_ptr<Type> CheckAndGetTypeForDeallocExpr(TypeChecker& tc, DeallocExpr* dealloc_expr);
+  friend std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecker& tc,
+                                                                         FuncCallExpr* call_expr);
 
   friend class BuiltinFunctions;
 

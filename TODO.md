@@ -39,5 +39,5 @@
 * 返回类型为void时的return语句优化
 * [done] 支持析构函数
 * 支持内置函数assert
-* 支持 enum to string
-* 内置函数放置在wamon包名称中
+* [done] 支持 enum to string
+* [done] 内置函数放置在wamon包名称中

@@ -17,6 +17,7 @@ class Type;
 class FuncCallExpr;
 class TypeChecker;
 class Interpreter;
+class PackageUnit;
 
 namespace detail {
 
@@ -35,7 +36,8 @@ void MergeMap(std::unordered_map<KeyType, ValueType>& map, std::unordered_map<Ke
 class BuiltinFunctions {
  public:
   using HandleType = std::function<std::shared_ptr<Variable>(Interpreter&, std::vector<std::shared_ptr<Variable>>&&)>;
-  using CheckType = std::function<std::unique_ptr<Type>(const std::vector<std::unique_ptr<Type>>& params_type)>;
+  using CheckType =
+      std::function<std::unique_ptr<Type>(const PackageUnit&, const std::vector<std::unique_ptr<Type>>& params_type)>;
 
   BuiltinFunctions();
 
@@ -45,7 +47,8 @@ class BuiltinFunctions {
 
   BuiltinFunctions& operator=(BuiltinFunctions&&) = default;
 
-  std::unique_ptr<Type> TypeCheck(const std::string& name, const std::vector<std::unique_ptr<Type>>& params_type) const;
+  std::unique_ptr<Type> TypeCheck(const std::string& name, const PackageUnit& pu,
+                                  const std::vector<std::unique_ptr<Type>>& params_type) const;
 
   bool Find(const std::string& name) const { return builtin_handles_.find(name) != builtin_handles_.end(); }
 

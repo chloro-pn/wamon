@@ -7,7 +7,8 @@
 #include "wamon/type_checker.h"
 #include "wamon/variable.h"
 
-auto my_cpp_func_check(const std::vector<std::unique_ptr<wamon::Type>>& params_type) -> std::unique_ptr<wamon::Type> {
+auto my_cpp_func_check(const wamon::PackageUnit&, const std::vector<std::unique_ptr<wamon::Type>>& params_type)
+    -> std::unique_ptr<wamon::Type> {
   if (params_type.size() != 1) {
     throw wamon::WamonException("invalid params count {}", params_type.size());
   }

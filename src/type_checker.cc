@@ -569,8 +569,8 @@ std::unique_ptr<Type> CheckParamTypeAndGetResultTypeForFunction(const TypeChecke
     for (auto& each : call_expr->parameters_) {
       param_types.push_back(tc.GetExpressionType(each.get()));
     }
-    return tc.GetStaticAnalyzer().GetPackageUnit().GetBuiltinFunctions().TypeCheck(id_expr->GenerateIdent(),
-                                                                                   param_types);
+    return tc.GetStaticAnalyzer().GetPackageUnit().GetBuiltinFunctions().TypeCheck(
+        id_expr->GenerateIdent(), tc.GetStaticAnalyzer().GetPackageUnit(), param_types);
   }
   // would calcualte id_expr.type_
   std::unique_ptr<Type> find_type = tc.GetExpressionType(call_expr->caller_.get());

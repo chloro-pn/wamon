@@ -62,3 +62,28 @@ TEST(builtin_function, context_stack) {
       R"_(["__lambda_0main","main$func3","main$func2","main$ms::func_method","main$func1","global"])_";
   EXPECT_EQ(v->Print().dump(), dump_info);
 }
+
+TEST(builtin_function, to_string) {
+  using namespace wamon;
+  std::string script = R"(
+    package main;
+
+    enum Color {
+      Red;
+      Blue;
+    }
+  )";
+  Scanner scan;
+  auto tokens = scan.Scan(script);
+  auto pu = Parse(tokens);
+  pu = MergePackageUnits(std::move(pu));
+
+  TypeChecker tc(pu);
+  std::string reason;
+  EXPECT_EQ(tc.CheckAll(reason), true) << reason;
+
+  Interpreter ip(pu);
+  auto v = ip.ExecExpression(tc, "main", "call wamon::to_string:(enum Color:Red)");
+  EXPECT_EQ(v->GetTypeInfo(), "string");
+  EXPECT_EQ(AsStringVariable(v)->GetValue(), "main$Color:Red");
+}
