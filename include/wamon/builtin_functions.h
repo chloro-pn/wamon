@@ -18,6 +18,20 @@ class FuncCallExpr;
 class TypeChecker;
 class Interpreter;
 
+namespace detail {
+
+template <typename KeyType, typename ValueType>
+void MergeMap(std::unordered_map<KeyType, ValueType>& map, std::unordered_map<KeyType, ValueType>&& other) {
+  for (auto& each : other) {
+    if (map.count(each.first) > 0) {
+      throw WamonException("BuiltinFunctions.Merge error, duplicate key {}", each.first);
+    }
+    map.insert({each.first, std::move(each.second)});
+  }
+}
+
+}  // namespace detail
+
 class BuiltinFunctions {
  public:
   using HandleType = std::function<std::shared_ptr<Variable>(Interpreter&, std::vector<std::shared_ptr<Variable>>&&)>;
@@ -70,24 +84,9 @@ class BuiltinFunctions {
   }
 
   void Merge(BuiltinFunctions&& other) {
-    for (auto& each : other.builtin_handles_) {
-      if (builtin_handles_.count(each.first) > 0) {
-        throw WamonException("BuiltinFunctions.Merge error, duplicate handle {}", each.first);
-      }
-      builtin_handles_[each.first] = std::move(each.second);
-    }
-    for (auto& each : other.builtin_checks_) {
-      if (builtin_checks_.count(each.first) > 0) {
-        throw WamonException("BuiltinFunctions.Merge error, duplicate check {}", each.first);
-      }
-      builtin_checks_[each.first] = std::move(each.second);
-    }
-    for (auto& each : other.builtin_types_) {
-      if (builtin_types_.count(each.first) > 0) {
-        throw WamonException("BuiltinFunctions.Merge error, duplicate typed name {}", each.first);
-      }
-      builtin_types_[each.first] = std::move(each.second);
-    }
+    detail::MergeMap(builtin_handles_, std::move(other.builtin_handles_));
+    detail::MergeMap(builtin_checks_, std::move(other.builtin_checks_));
+    detail::MergeMap(builtin_types_, std::move(other.builtin_types_));
   }
 
  private:
