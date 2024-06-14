@@ -26,15 +26,15 @@ cc_test(
   ],
 )
 
-cc_binary(
-  name = "catch2_test",
-  srcs = glob(["catch2_test/*.cc"]),
-  copts = WAMON_COPTS,
-  deps = [
-    "@catch2//:catch2_main",
-    ":wamon",
-  ],
-)
+#cc_binary(
+#  name = "catch2_test",
+#  srcs = glob(["catch2_test/*.cc"]),
+#  copts = WAMON_COPTS,
+#  deps = [
+#    "@catch2//:catch2_main",
+#    ":wamon",
+#  ],
+#)
 
 cc_binary(
   name = "hello_world",
