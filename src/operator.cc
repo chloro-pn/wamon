@@ -230,6 +230,14 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
       tmp->SetValue(AsListVariable(v1)->get_string_only_for_byte_list());
       return tmp;
     }
+    // enum item to string
+    if (IsEnumType(from_type, interpreter.GetPackageUnit()) && IsStringType(to_type)) {
+      auto enum_def = interpreter.GetPackageUnit().FindEnum(from_type->GetTypeInfo());
+      assert(enum_def != nullptr);
+      const auto& enum_item = AsEnumVariable(v1)->GetEnumItem();
+      std::string enum_str = enum_def->GetEnumName() + ":" + enum_item;
+      return std::make_shared<StringVariable>(enum_str, Variable::ValueCategory::RValue, "");
+    }
     // struct to struct trait
     auto v = VariableFactory(to_type, Variable::ValueCategory::RValue, "", interpreter);
     v->ConstructByFields({v1});

@@ -564,6 +564,16 @@ TEST(interpreter, operator) {
       let v : double = 3.9;
       return v as int;
     }
+
+    enum Color {
+      Red;
+      Blue;
+    }
+
+    func as_test_5() -> string {
+      let v : Color = enum Color:Blue;
+      return v as string;
+    }
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -628,6 +638,10 @@ TEST(interpreter, operator) {
   ret = interpreter.CallFunctionByName("main$as_test_4", {});
   EXPECT_EQ(ret->GetTypeInfo(), "int");
   EXPECT_EQ(wamon::AsIntVariable(ret)->GetValue(), 3);
+
+  ret = interpreter.CallFunctionByName("main$as_test_5", {});
+  EXPECT_EQ(ret->GetTypeInfo(), "string");
+  EXPECT_EQ(wamon::AsStringVariable(ret)->GetValue(), "main$Color:Blue");
 
   ret = interpreter.ExecExpression(tc, "main", "0X30 as int");
   EXPECT_EQ(ret->GetTypeInfo(), "int");

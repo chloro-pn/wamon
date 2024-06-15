@@ -184,4 +184,11 @@ void CheckCanConstructBy(const PackageUnit& pu, const std::unique_ptr<Type>& var
 
 }  // namespace detail
 
+bool IsEnumType(const std::unique_ptr<Type>& type, const PackageUnit& pu) {
+  if (IsStructOrEnumType(type) == false) {
+    return false;
+  }
+  return pu.FindEnum(type->GetTypeInfo()) != nullptr;
+}
+
 }  // namespace wamon

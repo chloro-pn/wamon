@@ -21,7 +21,7 @@
 * [done] lambda捕获列表支持move
 * [done] 内置/注册函数支持赋值给callable【目前不支持内置函数返回类型，因为有些内置函数是模板化的，其类型根据输入参数确定】
 * [done] 支持enum
-  - enum的字面量格式应该是什么样的？
+  - enum的字面量格式如下:
     - [done] enum type:enum_item
 * [done] 优化内置方法的错误提示
 * [done] 支持变量引用（不涉及类型系统）
@@ -31,7 +31,7 @@
 * [done] 支持比较运算符 < , <=, >, >=
 * 支持新的数据类型 Map
 * 支持函数重载
-* 支持注册函数的包管理
+* [done] 支持注册函数的包管理
 * [done] Output to json format
 * for语句支持变量定义
 * [done] 重构ValueCategory处理系统(bug: lambda捕获的ref变量不应该和callable保持一致的ValueCategory，它应该总是LValue) 

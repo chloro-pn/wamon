@@ -185,6 +185,9 @@ inline bool IsStructOrEnumType(const std::unique_ptr<Type>& type) {
   return type->IsBasicType() && !IsBuiltInType(type);
 }
 
+class PackageUnit;
+bool IsEnumType(const std::unique_ptr<Type>& type, const PackageUnit&);
+
 namespace detail {
 
 inline std::vector<std::string> GetBuiltInTypesWithoutVoid() {

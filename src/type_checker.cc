@@ -337,6 +337,9 @@ std::unique_ptr<Type> CheckAndGetAsResultType(std::unique_ptr<Type> lt, std::uni
   if (TypeFactory<std::vector<unsigned char>>::Get()->GetTypeInfo() == lt->GetTypeInfo() && IsStringType(rt)) {
     return rt;
   }
+  if (IsEnumType(lt, pu) && IsStringType(rt)) {
+    return rt;
+  }
   std::string reason;
   if (CheckTraitConstraint(pu, rt, lt, reason)) {
     return rt;
