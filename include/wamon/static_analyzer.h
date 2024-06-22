@@ -166,11 +166,11 @@ class StaticAnalyzer {
     throw WamonException("check func or method error");
   }
 
-  const std::vector<std::unique_ptr<VariableDefineStmt>>& GetGlobalVarDefStmt() const {
+  const std::vector<std::shared_ptr<VariableDefineStmt>>& GetGlobalVarDefStmt() const {
     return pu_.GetGlobalVariDefStmt();
   }
 
-  const std::unordered_map<std::string, std::unique_ptr<FunctionDef>>& GetFunctions() const {
+  const std::unordered_map<std::string, std::shared_ptr<FunctionDef>>& GetFunctions() const {
     return pu_.GetFunctions();
   }
 

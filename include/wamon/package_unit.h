@@ -57,35 +57,35 @@ class PackageUnit {
 
   const std::vector<std::string>& GetImportPackage() const { return import_packages_; }
 
-  void AddVarDef(std::unique_ptr<VariableDefineStmt>&& vd) {
+  void AddVarDef(const std::shared_ptr<VariableDefineStmt>& vd) {
     MergedFlagCheck("AddVarDef");
     if (std::find_if(var_define_.begin(), var_define_.end(), [&vd](const auto& v) -> bool {
           return vd->GetVarName() == v->GetVarName();
         }) != var_define_.end()) {
       throw WamonException("duplicate global value {}", vd->GetVarName());
     }
-    var_define_.push_back(std::move(vd));
+    var_define_.push_back(vd);
   }
 
-  void AddFuncDef(std::unique_ptr<FunctionDef>&& func_def) {
+  void AddFuncDef(const std::shared_ptr<FunctionDef>& func_def) {
     MergedFlagCheck("AddFuncDef");
     auto name = func_def->GetFunctionName();
     if (funcs_.find(name) != funcs_.end()) {
       throw WamonException("duplicate func {}", name);
     }
-    funcs_[name] = std::move(func_def);
+    funcs_[name] = func_def;
   }
 
-  void AddStructDef(std::unique_ptr<StructDef>&& struct_def) {
+  void AddStructDef(const std::shared_ptr<StructDef>& struct_def) {
     MergedFlagCheck("AddStructDef");
     auto name = struct_def->GetStructName();
     if (structs_.find(name) != structs_.end()) {
       throw WamonException("duplicate struct {}", name);
     }
-    structs_[name] = std::move(struct_def);
+    structs_[name] = struct_def;
   }
 
-  void AddEnumDef(std::unique_ptr<EnumDef>&& enum_def) {
+  void AddEnumDef(const std::shared_ptr<EnumDef>& enum_def) {
     MergedFlagCheck("AddEnumDef");
     auto name = enum_def->GetEnumName();
     if (enum_def->GetEnumItems().empty()) {
@@ -94,7 +94,7 @@ class PackageUnit {
     if (enums_.find(name) != enums_.end()) {
       throw WamonException("duplicate enum {}", name);
     }
-    enums_[name] = std::move(enum_def);
+    enums_[name] = enum_def;
   }
 
   void AddMethod(const std::string& type_name, std::unique_ptr<methods_def>&& methods) {
@@ -159,11 +159,11 @@ class PackageUnit {
     return it->second->GetDataMemberType(field_name);
   }
 
-  const std::vector<std::unique_ptr<VariableDefineStmt>>& GetGlobalVariDefStmt() const { return var_define_; }
+  const std::vector<std::shared_ptr<VariableDefineStmt>>& GetGlobalVariDefStmt() const { return var_define_; }
 
-  const std::unordered_map<std::string, std::unique_ptr<FunctionDef>>& GetFunctions() const { return funcs_; }
+  const std::unordered_map<std::string, std::shared_ptr<FunctionDef>>& GetFunctions() const { return funcs_; }
 
-  const std::unordered_map<std::string, std::unique_ptr<StructDef>>& GetStructs() const { return structs_; }
+  const std::unordered_map<std::string, std::shared_ptr<StructDef>>& GetStructs() const { return structs_; }
 
   const BuiltinFunctions& GetBuiltinFunctions() const { return builtin_functions_; }
 
@@ -220,10 +220,10 @@ class PackageUnit {
   std::string package_name_;
   std::vector<std::string> import_packages_;
   // 包作用域的变量定义语句
-  std::vector<std::unique_ptr<VariableDefineStmt>> var_define_;
-  std::unordered_map<std::string, std::unique_ptr<FunctionDef>> funcs_;
-  std::unordered_map<std::string, std::unique_ptr<StructDef>> structs_;
-  std::unordered_map<std::string, std::unique_ptr<EnumDef>> enums_;
+  std::vector<std::shared_ptr<VariableDefineStmt>> var_define_;
+  std::unordered_map<std::string, std::shared_ptr<FunctionDef>> funcs_;
+  std::unordered_map<std::string, std::shared_ptr<StructDef>> structs_;
+  std::unordered_map<std::string, std::shared_ptr<EnumDef>> enums_;
   BuiltinFunctions builtin_functions_;
   size_t lambda_count_{0};
   // 只有通过Merge生成的PackageUnit才使用这项
