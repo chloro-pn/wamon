@@ -41,6 +41,6 @@
 * 支持内置函数assert
 * [done] 支持 enum to string
 * [done] 内置函数放置在wamon包名称中
-* 支持using语句以省略外部包的命名空间前缀
+* 支持using语句以省略外部包的命名空间前缀 - 重构ParseIdentifier，默认情况下不填充本包名称， 然后在语义分析阶段利用using信息依次在本包和using包中查找，找到则重写id。
 * [done] 标准库以包的形式提供
 * 支持简化的函数调用形式@

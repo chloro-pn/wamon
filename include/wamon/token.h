@@ -115,6 +115,7 @@ enum class Token {
   // 包管理
   PACKAGE,
   IMPORT,
+  USING,
   SCOPE,
 
   // 标志文件结尾，由词法分析器添加
@@ -274,6 +275,8 @@ inline const char *GetTokenStr(Token token) {
       return "package";
     case Token::IMPORT:
       return "import";
+    case Token::USING:
+      return "using";
     case Token::SCOPE:
       return "::";
     case Token::TEOF:

@@ -39,6 +39,7 @@ static void register_buildin_keywords(std::unordered_map<std::string, Token> &kw
   kws["move"] = Token::MOVE;
   kws["package"] = Token::PACKAGE;
   kws["import"] = Token::IMPORT;
+  kws["using"] = Token::USING;
   kws["as"] = Token::AS;
   kws["lambda"] = Token::LAMBDA;
 }

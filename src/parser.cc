@@ -1042,17 +1042,61 @@ std::vector<std::string> ParseImportPackages(PackageUnit &pu, const std::vector<
     if (succ == false) {
       break;
     }
-    auto [pack_name, package_name] = ParseIdentifier(pu, tokens, begin);
+    auto [_, package_name] = ParseIdentifier<true>(pu, tokens, begin);
     AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
+    if (package_name == pu.GetCurrentParsingPackage()) {
+      throw WamonException("ParseImportPackages error, can not import {} self", package_name);
+    }
     packages.push_back(package_name);
   }
   return packages;
+}
+
+// 两种using模式：
+// using pacakge_name
+// using package_name::item
+// 第一种导入包里所有的符号，第二种只导入指示出的符号
+// 因为对同一个包的两种using可以同时存在，因此需要求交。
+std::unordered_map<std::string, UsingItem> ParseUsingPackages(PackageUnit &pu, const std::vector<WamonToken> &tokens,
+                                                              size_t &begin) {
+  std::unordered_map<std::string, UsingItem> using_item;
+  while (true) {
+    bool succ = AssertToken(tokens, begin, Token::USING);
+    if (succ == false) {
+      break;
+    }
+    auto [v1, v2] = ParseIdentifier<true>(pu, tokens, begin);
+    AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
+    std::string using_packge;
+    UsingItem::using_type type;
+    std::string using_v;
+    // 第一种using模式，v1是被填充为本包名称的，而using语句和import语句中不可以使用本包名称
+    if (v1 == pu.GetCurrentParsingPackage()) {
+      using_packge = v2;
+      type = UsingItem::using_type::TOTAL;
+    } else {
+      // 第二种using模式
+      using_packge = v1;
+      type = UsingItem::using_type::ITEM;
+      using_v = v2;
+    }
+    if (!pu.InImportPackage(using_packge) && !IsPreparedPakageName(using_packge)) {
+      throw WamonException("ParseUsingPackages error, invalid package name {}", using_packge);
+    }
+    if (type == UsingItem::using_type::TOTAL) {
+      using_item[using_packge].type = type;
+    } else {
+      using_item[using_packge].using_set.insert(using_v);
+    }
+  }
+  return using_item;
 }
 
 // 解析一个package
 // package的构成：
 // package声明语句（必须且唯一，位于package首部）
 // import语句（0或多个，位于package声明语句之后，其他之前）
+// using语句（0或多个，位于import语句之后，其他之前）
 // 函数声明、结构体声明、变量定义声明（均位于package作用域，顺序无关）
 PackageUnit Parse(const std::vector<WamonToken> &tokens) {
   if (tokens.empty() == true || tokens.back().token != Token::TEOF) {
@@ -1066,6 +1110,9 @@ PackageUnit Parse(const std::vector<WamonToken> &tokens) {
 
   std::vector<std::string> import_packages = ParseImportPackages(package_unit, tokens, current_index);
   package_unit.SetImportPackage(import_packages);
+
+  auto using_packages = ParseUsingPackages(package_unit, tokens, current_index);
+  package_unit.SetUsingPackage(using_packages);
 
   while (current_index < tokens.size()) {
     WamonToken token = tokens[current_index];

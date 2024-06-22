@@ -20,6 +20,13 @@
 
 namespace wamon {
 
+struct UsingItem {
+  std::string package_name;
+  enum class using_type { TOTAL, ITEM };
+  using_type type;
+  std::set<std::string> using_set;
+};
+
 class PackageUnit {
  private:
   static PackageUnit _MergePackageUnits(std::vector<PackageUnit>&& packages);
@@ -53,9 +60,21 @@ class PackageUnit {
     package_imports_[package_name_] = import_packages;
   }
 
+  void SetUsingPackage(const std::unordered_map<std::string, UsingItem>& using_packages) {
+    MergedFlagCheck("SetUsingPackage");
+    using_packages_ = using_packages;
+  }
+
   const std::string& GetName() const { return package_name_; }
 
   const std::vector<std::string>& GetImportPackage() const { return import_packages_; }
+
+  bool InImportPackage(const std::string& package_name) const {
+    auto it = std::find(import_packages_.begin(), import_packages_.end(), package_name);
+    return it != import_packages_.end();
+  }
+
+  const std::unordered_map<std::string, UsingItem>& GetUsingPackage() const { return using_packages_; }
 
   void AddVarDef(const std::shared_ptr<VariableDefineStmt>& vd) {
     MergedFlagCheck("AddVarDef");
@@ -219,6 +238,7 @@ class PackageUnit {
 
   std::string package_name_;
   std::vector<std::string> import_packages_;
+  std::unordered_map<std::string, UsingItem> using_packages_;
   // 包作用域的变量定义语句
   std::vector<std::shared_ptr<VariableDefineStmt>> var_define_;
   std::unordered_map<std::string, std::shared_ptr<FunctionDef>> funcs_;
