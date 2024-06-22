@@ -6,6 +6,7 @@
 namespace wamon {
 
 PackageUnit PackageUnit::_MergePackageUnits(std::vector<PackageUnit>&& packages) {
+  packages.push_back(GetWamonPackage());
   PackageUnit result;  // name == ""; import_package == empty; lambda_count == 0;
   for (auto it = packages.begin(); it != packages.end(); ++it) {
     result.AddPackageImports(it->GetName(), it->GetImportPackage());
@@ -40,10 +41,17 @@ PackageUnit PackageUnit::_MergePackageUnits(std::vector<PackageUnit>&& packages)
 
     result.builtin_functions_.Merge(std::move(it->builtin_functions_));
   }
-  BuiltinFunctions::RegisterWamonBuiltinFunction(result.builtin_functions_);
   // 不需要更新 lambda_count_，因为merge之后的PackageUnit不会再进行解析了。
   result.merged = true;
   return result;
+}
+
+PackageUnit PackageUnit::GetWamonPackage() {
+  PackageUnit wamon_package;
+  // wamon_package.SetName("wamon"); error, check failed
+  wamon_package.package_name_ = "wamon";
+  BuiltinFunctions::RegisterWamonBuiltinFunction(wamon_package.GetName(), wamon_package.builtin_functions_);
+  return wamon_package;
 }
 
 void PackageUnit::RegisterCppFunctions(const std::string& name, std::unique_ptr<Type> func_type,

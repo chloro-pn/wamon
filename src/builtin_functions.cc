@@ -106,9 +106,9 @@ static void register_builtin_checks(const std::string& prefix,
 
 BuiltinFunctions::BuiltinFunctions() {}
 
-void BuiltinFunctions::RegisterWamonBuiltinFunction(BuiltinFunctions& obj) {
-  register_builtin_checks("wamon$", obj.builtin_checks_);
-  register_builtin_handles("wamon$", obj.builtin_handles_);
+void BuiltinFunctions::RegisterWamonBuiltinFunction(const std::string& package_name, BuiltinFunctions& obj) {
+  register_builtin_checks(package_name + "$", obj.builtin_checks_);
+  register_builtin_handles(package_name + "$", obj.builtin_handles_);
 }
 
 std::unique_ptr<Type> BuiltinFunctions::TypeCheck(const std::string& name, const PackageUnit& pu,

@@ -41,7 +41,7 @@ class BuiltinFunctions {
 
   BuiltinFunctions();
 
-  static void RegisterWamonBuiltinFunction(BuiltinFunctions&);
+  static void RegisterWamonBuiltinFunction(const std::string&, BuiltinFunctions&);
 
   BuiltinFunctions(BuiltinFunctions&&) = default;
 

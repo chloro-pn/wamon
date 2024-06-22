@@ -21,9 +21,12 @@
 namespace wamon {
 
 class PackageUnit {
- public:
+ private:
   static PackageUnit _MergePackageUnits(std::vector<PackageUnit>&& packages);
 
+  static PackageUnit GetWamonPackage();
+
+ public:
   std::string CreateUniqueLambdaName() {
     MergedFlagCheck("CreateUniqueLambdaName");
     auto ret = "__lambda_" + std::to_string(lambda_count_) + GetName();
@@ -210,6 +213,9 @@ class PackageUnit {
       throw WamonException("MergedFlagCheck error, from {}", info);
     }
   }
+
+  template <typename... T>
+  friend PackageUnit MergePackageUnits(T&&... package);
 
   std::string package_name_;
   std::vector<std::string> import_packages_;
