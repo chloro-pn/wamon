@@ -315,6 +315,8 @@ TEST(interpreter, builtin_function) {
     let v2 : string = call wamon::to_string:(true);
     let v3 : string = call wamon::to_string:(3.35);
     let v4 : string = call wamon::to_string:(0X41);
+
+    let v5 : string = @wamon::to_string:(14);
   )";
   wamon::PackageUnit pu;
   auto tokens = scan.Scan(str);
@@ -330,10 +332,12 @@ TEST(interpreter, builtin_function) {
   auto v2 = ip.FindVariableById("main$v2");
   auto v3 = ip.FindVariableById("main$v3");
   auto v4 = ip.FindVariableById("main$v4");
+  auto v5 = ip.FindVariableById("main$v5");
   EXPECT_EQ(wamon::AsStringVariable(v)->GetValue(), "20");
   EXPECT_EQ(wamon::AsStringVariable(v2)->GetValue(), "true");
   EXPECT_EQ(wamon::AsStringVariable(v3)->GetValue(), "3.350000");
   EXPECT_EQ(wamon::AsStringVariable(v4)->GetValue(), "A");
+  EXPECT_EQ(wamon::AsStringVariable(v5)->GetValue(), "14");
 }
 
 TEST(interpreter, callable) {

@@ -369,7 +369,7 @@ std::unique_ptr<Expression> ParseExpression(PackageUnit &pu, const std::vector<W
           operands.push(AttachUnaryOperators(std::move(func_call_expr), u_operators));
           i = tmp3;
         } else {
-          auto [package_name, method_name] = ParseIdentifier(pu, tokens, tmp2);
+          auto [_, method_name] = ParseIdentifier<true>(pu, tokens, tmp2);
           size_t tmp3 = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, tmp2);
           auto param_list = ParseExprList(pu, tokens, tmp2, tmp3);
           std::unique_ptr<MethodCallExpr> method_call_expr(new MethodCallExpr());
@@ -771,7 +771,7 @@ std::unique_ptr<FunctionDef> TryToParseFunctionDeclaration(PackageUnit &pu, cons
   if (succ == false) {
     return ret;
   }
-  auto [package_name, func_name] = ParseIdentifier(pu, tokens, begin);
+  auto [_, func_name] = ParseIdentifier<true>(pu, tokens, begin);
   //
   ret.reset(new FunctionDef(func_name));
   size_t end = FindMatchedToken<Token::LEFT_PARENTHESIS, Token::RIGHT_PARENTHESIS>(tokens, begin);
@@ -956,7 +956,7 @@ std::unique_ptr<StructDef> TryToParseStructDeclaration(PackageUnit &pu, const st
   if (AssertToken(tokens, begin, Token::TRAIT)) {
     is_trait = true;
   }
-  auto [package_name, struct_name] = ParseIdentifier<true>(pu, tokens, begin);
+  auto [_, struct_name] = ParseIdentifier<true>(pu, tokens, begin);
   ret.reset(new StructDef(struct_name, is_trait));
   AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACE, __FILE__, __LINE__);
   while (AssertToken(tokens, begin, Token::RIGHT_BRACE) == false) {
@@ -975,11 +975,11 @@ std::unique_ptr<EnumDef> TryToParseEnumDeclaration(PackageUnit &pu, const std::v
   if (succ == false) {
     return ret;
   }
-  auto [package_name, enum_name] = ParseIdentifier<true>(pu, tokens, begin);
+  auto [_, enum_name] = ParseIdentifier<true>(pu, tokens, begin);
   ret.reset(new EnumDef(enum_name));
   AssertTokenOrThrow(tokens, begin, Token::LEFT_BRACE, __FILE__, __LINE__);
   while (AssertToken(tokens, begin, Token::RIGHT_BRACE) == false) {
-    auto [pn, fn] = ParseIdentifier<true>(pu, tokens, begin);
+    auto [_, fn] = ParseIdentifier<true>(pu, tokens, begin);
     AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
     ret->AddEnumItem(fn);
   }
@@ -1000,7 +1000,7 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(PackageUnit &p
   if (AssertToken(tokens, begin, Token::REF)) {
     is_ref = true;
   }
-  auto [package_name, var_name] = ParseIdentifier(pu, tokens, begin);
+  auto [_, var_name] = ParseIdentifier<true>(pu, tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::COLON, __FILE__, __LINE__);
   auto type = ParseType(pu, tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::ASSIGN, __FILE__, __LINE__);
@@ -1030,7 +1030,7 @@ std::unique_ptr<VariableDefineStmt> TryToParseVariableDeclaration(PackageUnit &p
 
 std::string ParsePackageName(PackageUnit &pu, const std::vector<WamonToken> &tokens, size_t &begin) {
   AssertTokenOrThrow(tokens, begin, Token::PACKAGE, __FILE__, __LINE__);
-  auto [nothing, package_name] = ParseIdentifier(pu, tokens, begin);
+  auto [_, package_name] = ParseIdentifier<true>(pu, tokens, begin);
   AssertTokenOrThrow(tokens, begin, Token::SEMICOLON, __FILE__, __LINE__);
   return package_name;
 }

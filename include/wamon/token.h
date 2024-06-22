@@ -45,6 +45,8 @@ enum class Token {
   COLON,
   COMMA,
   ARROW,
+
+  // 函数调用
   CALL,
 
   // 运算符
