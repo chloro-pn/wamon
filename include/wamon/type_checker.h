@@ -51,7 +51,7 @@ class TypeChecker {
   // 注意：全局变量和局部变量的类型合法性检测不在这个阶段进行，因为在语句合法性检测的时候所有函数结构体方法和全局变量都被解析，因此可以在语句合法性检测中检测
   void CheckTypes();
 
-  void CheckType(const std::unique_ptr<Type>& type, const std::string& context_info, bool can_be_void = false);
+  void CheckType(const std::unique_ptr<Type>& type, const std::string& context_info, bool can_be_void = false) const;
 
   // 检测全局变量的定义语句是否合法，全局变量的定义在包内是顺序相关的。
   // 这应该是类型检测的第二个阶段（因为表达式合法性检测依赖名字查找，需要全局作用域的名字获得类型）

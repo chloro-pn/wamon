@@ -73,7 +73,8 @@ void TypeChecker::CheckTypes() {
   }
 }
 
-void TypeChecker::CheckType(const std::unique_ptr<Type>& type, const std::string& context_info, bool can_be_void) {
+void TypeChecker::CheckType(const std::unique_ptr<Type>& type, const std::string& context_info,
+                            bool can_be_void) const {
   if (IsFuncType(type)) {
     auto func_type = static_cast<FuncType*>(type.get());
     for (auto& param : func_type->param_type_) {
@@ -708,6 +709,7 @@ std::unique_ptr<Type> TypeChecker::GetExpressionType(Expression* expr) const {
     return CheckParamTypeAndGetResultTypeForMethod(*this, tmp);
   }
   if (auto tmp = dynamic_cast<TypeExpr*>(expr)) {
+    CheckType(tmp->GetType(), "check TypeExpr");
     return tmp->GetType()->Clone();
   }
   if (auto tmp = dynamic_cast<LambdaExpr*>(expr)) {
