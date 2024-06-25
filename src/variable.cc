@@ -1,5 +1,7 @@
 #include "wamon/variable.h"
 
+#include <cassert>
+
 #include "wamon/enum_def.h"
 #include "wamon/interpreter.h"
 #include "wamon/method_def.h"
@@ -65,13 +67,15 @@ std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
 std::shared_ptr<Variable> GetVoidVariable() { return std::make_shared<VoidVariable>(); }
 
 StructVariable::StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& ip, const std::string& name)
-    : Variable(std::make_unique<BasicType>(sd->GetStructName()), vc, name), def_(sd), ip_(ip) {}
+    : Variable(std::make_unique<BasicType>(sd->GetStructName()), vc, name), def_(sd), trait_def_(def_), ip_(ip) {}
+
+std::string StructVariable::GetTypeInfo() const { return trait_def_->GetStructName(); }
+
+std::unique_ptr<Type> StructVariable::GetType() const {
+  return std::make_unique<BasicType>(trait_def_->GetStructName());
+}
 
 std::shared_ptr<Variable> StructVariable::GetDataMemberByName(const std::string& name) {
-  if (def_->IsTrait()) {
-    check_trait_not_null(__FILE__, __LINE__);
-    return AsStructVariable(trait_proxy_)->GetDataMemberByName(name);
-  }
   for (auto& each : data_members_) {
     if (each.name == name) {
       return each.data;
@@ -80,12 +84,11 @@ std::shared_ptr<Variable> StructVariable::GetDataMemberByName(const std::string&
   return nullptr;
 }
 
+void StructVariable::AddDataMemberByName(const std::string& name, std::shared_ptr<Variable> data) {
+  data_members_.push_back({name, data});
+}
+
 void StructVariable::UpdateDataMemberByName(const std::string& name, std::shared_ptr<Variable> data) {
-  if (def_->IsTrait()) {
-    check_trait_not_null(__FILE__, __LINE__);
-    AsStructVariable(trait_proxy_)->UpdateDataMemberByName(name, data);
-    return;
-  }
   data->ChangeTo(vc_);
   auto it =
       std::find_if(data_members_.begin(), data_members_.end(), [&](auto& each) -> bool { return each.name == name; });
@@ -96,22 +99,19 @@ void StructVariable::UpdateDataMemberByName(const std::string& name, std::shared
 }
 
 void StructVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
+  assert(def_ == trait_def_);
   if (def_->IsTrait()) {
-    if (fields[0] == nullptr) {
-      trait_proxy_ = nullptr;
-    } else if (fields[0]->IsRValue()) {
-      trait_proxy_ = fields[0];
-    } else {
-      trait_proxy_ = fields[0]->Clone();
-    }
-    if (trait_proxy_ != nullptr) {
-      trait_proxy_->ChangeTo(vc_);
-    }
+    assert(fields.size() == 1);
+    StructVariable* other_struct = static_cast<StructVariable*>(fields[0].get());
+    trait_construct(this, other_struct);
+    def_ = other_struct->def_;
+    assert(def_->IsTrait() == false);
     return;
   }
   auto& members = def_->GetDataMembers();
   if (fields.size() != members.size()) {
-    throw WamonException("StructVariable's ConstructByFields method error : fields.size() == {}", fields.size());
+    throw WamonException("StructVariable's ConstructByFields method error : fields.size() == {}, type == {}",
+                         fields.size(), def_->GetStructName());
   }
   for (size_t i = 0; i < members.size(); ++i) {
     if (!IsSameType(fields[i]->GetType(), members[i].second)) {
@@ -128,10 +128,7 @@ void StructVariable::ConstructByFields(const std::vector<std::shared_ptr<Variabl
 }
 
 void StructVariable::DefaultConstruct() {
-  if (def_->IsTrait()) {
-    trait_proxy_ = nullptr;
-    return;
-  }
+  trait_def_ = def_;
   data_members_.clear();
   auto& members = def_->GetDataMembers();
   for (auto& each : members) {
@@ -142,30 +139,18 @@ void StructVariable::DefaultConstruct() {
 }
 
 std::shared_ptr<Variable> StructVariable::Clone() {
-  if (def_->IsTrait()) {
-    std::shared_ptr<Variable> proxy{nullptr};
-    if (trait_proxy_ == nullptr) {
-      ;  // do nothing
-    } else if (IsRValue()) {
-      proxy = trait_proxy_;
-    } else {
-      proxy = trait_proxy_->Clone();
-    }
-    auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, ip_, "");
-    ret->ConstructByFields({proxy});
-    return ret;
-  }
-  std::vector<std::shared_ptr<Variable>> variables;
+  std::vector<StructVariable::member> variables;
   for (auto& each : data_members_) {
     if (each.data->IsRValue()) {
-      variables.push_back(std::move(each.data));
+      variables.push_back({each.name, std::move(each.data)});
     } else {
-      variables.push_back(each.data->Clone());
+      variables.push_back({each.name, each.data->Clone()});
     }
   }
   // all variable in variables is rvalue now
   auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, ip_, "");
-  ret->ConstructByFields(variables);
+  ret->data_members_ = std::move(variables);
+  ret->set_trait_def(trait_def_);
   return ret;
 }
 
@@ -179,16 +164,26 @@ StructVariable::~StructVariable() {
   }
 }
 
+void StructVariable::trait_construct(StructVariable* lv, StructVariable* rv) {
+  for (const auto& each : lv->trait_def_->GetDataMembers()) {
+    auto tmp = rv->GetDataMemberByName(each.first);
+    if (rv->IsRValue()) {
+      assert(tmp->IsRValue());
+      tmp->ChangeTo(lv->vc_);
+      lv->AddDataMemberByName(each.first, tmp);
+    } else {
+      assert(tmp->IsRValue() == false);
+      auto ttmp = tmp->Clone();
+      ttmp->ChangeTo(lv->vc_);
+      lv->AddDataMemberByName(each.first, ttmp);
+    }
+  }
+}
+
 bool StructVariable::trait_compare(StructVariable* lv, StructVariable* rv) {
-  if (lv->trait_proxy_ == nullptr && rv->trait_proxy_ == nullptr) {
-    return true;
-  }
-  if (lv->trait_proxy_ == nullptr || rv->trait_proxy_ == nullptr) {
-    return false;
-  }
   // 类型分析阶段保证
-  assert(lv->def_ == rv->def_);
-  for (auto& each : lv->def_->GetDataMembers()) {
+  assert(lv->trait_def_ == rv->trait_def_);
+  for (const auto& each : lv->trait_def_->GetDataMembers()) {
     auto tmp = lv->GetDataMemberByName(each.first);
     auto tmp2 = rv->GetDataMemberByName(each.first);
     if (tmp->Compare(tmp2) == false) {
@@ -200,19 +195,8 @@ bool StructVariable::trait_compare(StructVariable* lv, StructVariable* rv) {
 
 void StructVariable::trait_assign(StructVariable* lv, StructVariable* rv) {
   // 类型分析阶段保证
-  assert(lv->def_ == rv->def_);
-  if (lv->trait_proxy_ == nullptr && rv->trait_proxy_ == nullptr) {
-    return;
-  }
-  if (rv->trait_proxy_ == nullptr) {
-    lv->trait_proxy_ = nullptr;
-    return;
-  }
-  if (lv->trait_proxy_ == nullptr) {
-    lv->trait_proxy_ = rv->IsRValue() ? rv->trait_proxy_ : rv->trait_proxy_->Clone();
-    lv->trait_proxy_->ChangeTo(lv->vc_);
-  }
-  for (auto& each : lv->def_->GetDataMembers()) {
+  assert(lv->trait_def_ == rv->trait_def_);
+  for (auto& each : lv->trait_def_->GetDataMembers()) {
     auto tmp = rv->GetDataMemberByName(each.first);
     if (rv->IsRValue()) {
       assert(tmp->IsRValue());
@@ -229,11 +213,11 @@ void StructVariable::trait_assign(StructVariable* lv, StructVariable* rv) {
 
 // 目前仅支持相同类型的trait间的比较和赋值
 bool StructVariable::Compare(const std::shared_ptr<Variable>& other) {
-  check_compare_type_match(other);
-  if (def_->IsTrait()) {
-    return trait_compare(this, AsStructVariable(other));
-  }
   StructVariable* other_struct = static_cast<StructVariable*>(other.get());
+  assert(trait_def_ == other_struct->trait_def_);
+  if (trait_def_->IsTrait()) {
+    return trait_compare(this, other_struct);
+  }
   for (size_t index = 0; index < data_members_.size(); ++index) {
     if (data_members_[index].data->Compare(other_struct->data_members_[index].data) == false) {
       return false;
@@ -243,11 +227,11 @@ bool StructVariable::Compare(const std::shared_ptr<Variable>& other) {
 }
 
 void StructVariable::Assign(const std::shared_ptr<Variable>& other) {
-  check_compare_type_match(other);
-  if (def_->IsTrait()) {
-    return trait_assign(this, AsStructVariable(other));
-  }
   StructVariable* other_struct = static_cast<StructVariable*>(other.get());
+  assert(trait_def_ == other_struct->trait_def_);
+  if (trait_def_->IsTrait()) {
+    return trait_assign(this, other_struct);
+  }
   if (other_struct->IsRValue()) {
     for (size_t index = 0; index < data_members_.size(); ++index) {
       data_members_[index].data = std::move(other_struct->data_members_[index].data);
@@ -263,12 +247,6 @@ void StructVariable::Assign(const std::shared_ptr<Variable>& other) {
 
 void StructVariable::ChangeTo(ValueCategory vc) {
   vc_ = vc;
-  if (def_->IsTrait()) {
-    if (trait_proxy_ != nullptr) {
-      trait_proxy_->ChangeTo(vc);
-    }
-    return;
-  }
   for (auto& each : data_members_) {
     assert(each.data != nullptr);
     each.data->ChangeTo(vc);

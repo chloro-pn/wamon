@@ -44,9 +44,9 @@ class Variable {
 
   virtual ~Variable() = default;
 
-  std::string GetTypeInfo() const { return type_->GetTypeInfo(); }
+  virtual std::string GetTypeInfo() const { return type_->GetTypeInfo(); }
 
-  std::unique_ptr<Type> GetType() const { return type_->Clone(); }
+  virtual std::unique_ptr<Type> GetType() const { return type_->Clone(); }
 
   void SetName(const std::string& name) { name_ = name; }
 
@@ -397,9 +397,15 @@ class StructVariable : public Variable {
  public:
   StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& i, const std::string& name);
 
+  std::string GetTypeInfo() const override;
+
+  std::unique_ptr<Type> GetType() const override;
+
+  const StructDef* GetStructDef() const { return def_; }
+
   std::shared_ptr<Variable> GetDataMemberByName(const std::string& name);
 
-  std::shared_ptr<Variable> GetTraitObj() const { return trait_proxy_; }
+  void AddDataMemberByName(const std::string& name, std::shared_ptr<Variable> data);
 
   void UpdateDataMemberByName(const std::string& name, std::shared_ptr<Variable> data);
 
@@ -411,16 +417,14 @@ class StructVariable : public Variable {
 
   ~StructVariable();
 
+  void set_trait_def(const StructDef* def) { trait_def_ = def; }
+
  private:
+  static void trait_construct(StructVariable* lv, StructVariable* rv);
+
   static bool trait_compare(StructVariable* lv, StructVariable* rv);
 
   static void trait_assign(StructVariable* lv, StructVariable* rv);
-
-  void check_trait_not_null(const char* file, int line) {
-    if (trait_proxy_ == nullptr) {
-      throw WamonException("check trait not null feiled, {} {}", file, line);
-    }
-  }
 
   // 目前仅支持相同类型的trait间的比较和赋值
   bool Compare(const std::shared_ptr<Variable>& other) override;
@@ -433,14 +437,13 @@ class StructVariable : public Variable {
 
  private:
   const StructDef* def_;
+  const StructDef* trait_def_;
   Interpreter& ip_;
   struct member {
     std::string name;
     std::shared_ptr<Variable> data;
   };
   std::vector<member> data_members_;
-  // only valid when def_ is struct trait.
-  std::shared_ptr<Variable> trait_proxy_;
 };
 
 inline StructVariable* AsStructVariable(const std::shared_ptr<Variable>& v) {

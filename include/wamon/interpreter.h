@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -228,20 +229,13 @@ class Interpreter {
     return ret->IsRValue() ? std::move(ret) : ret->Clone();
   }
 
-  // 注意：CallMethodByName会尝试进行struct trait -> struct的转换，而CallMethod不会，因此用户不要直接使用CallMethod接口
   std::shared_ptr<Variable> CallMethodByName(std::shared_ptr<Variable> obj, const std::string& method_name,
                                              std::vector<std::shared_ptr<Variable>>&& params) {
     if (!IsStructOrEnumType(obj->GetType())) {
       return CallMethod(obj, method_name, std::move(params));
     }
     auto type = obj->GetTypeInfo();
-    auto struct_def = pu_.FindStruct(type);
-    if (struct_def == nullptr) {
-      throw WamonException("CallMethodByName error, struct {} not exist", type);
-    }
-    if (struct_def->IsTrait()) {
-      return CallMethodByName(AsStructVariable(obj)->GetTraitObj(), method_name, std::move(params));
-    }
+    const StructDef* struct_def = AsStructVariable(obj)->GetStructDef();
     auto method_def = struct_def->GetMethod(method_name);
     if (method_def == nullptr) {
       throw WamonException("CallMethodByName error, method {} not exist", method_name);

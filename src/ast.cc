@@ -57,11 +57,7 @@ std::shared_ptr<Variable> MethodCallExpr::Calculate(Interpreter& interpreter) {
     auto result = interpreter.CallMethod(v, method_name_, std::move(params));
     return result;
   }
-  auto structdef = interpreter.GetPackageUnit().FindStruct(v->GetTypeInfo());
-  while (structdef->IsTrait() == true) {
-    v = AsStructVariable(v)->GetTraitObj();
-    structdef = interpreter.GetPackageUnit().FindStruct(v->GetTypeInfo());
-  }
+  auto structdef = AsStructVariable(v)->GetStructDef();
   auto methoddef = structdef->GetMethod(method_name_);
   auto result = interpreter.CallMethod(v, methoddef, std::move(params));
   return result;

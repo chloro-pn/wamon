@@ -455,8 +455,8 @@ TEST(interpreter, trait) {
 
     let v0 : have_age_and_name = move t2;
 
-    let v1 : have_age = (move t1);
-    let v2 : have_age = (move v0);
+    let v1 : have_age = move t1;
+    let v2 : have_age = move v0;
 
     func test() -> bool {
       return v1 == v2;
@@ -479,6 +479,7 @@ TEST(interpreter, trait) {
   wamon::Interpreter interpreter(pu);
   auto v = interpreter.FindVariableById("main$v1");
   EXPECT_EQ(wamon::AsStructVariable(v)->GetDataMemberByName("a")->GetTypeInfo(), "int");
+  EXPECT_EQ(wamon::AsStructVariable(v)->GetStructDef()->GetStructName(), "main$s1");
   auto ret = interpreter.CallFunctionByName("main$test", {});
   EXPECT_EQ(ret->GetTypeInfo(), "bool");
   EXPECT_EQ(wamon::AsBoolVariable(ret)->GetValue(), true);

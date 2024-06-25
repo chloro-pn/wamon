@@ -239,9 +239,10 @@ static void register_buildin_operator_handles(std::unordered_map<std::string, Op
       return std::make_shared<StringVariable>(enum_str, Variable::ValueCategory::RValue, "");
     }
     // struct to struct trait
-    auto v = VariableFactory(to_type, Variable::ValueCategory::RValue, "", interpreter);
-    v->ConstructByFields({v1});
-    return v;
+    const StructDef* trait_def = interpreter.GetPackageUnit().FindStruct(to_type->GetTypeInfo());
+    assert(trait_def->IsTrait() == true);
+    AsStructVariable(v1)->set_trait_def(trait_def);
+    return v1;
   };
 }
 
