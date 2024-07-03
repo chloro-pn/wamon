@@ -3,13 +3,18 @@
 #include <cstring>
 #include <memory>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 #include "wamon/function_def.h"
 #include "wamon/token.h"
 #include "wamon/type.h"
 #include "wamon/variable.h"
+#include "wamon/variable_bool.h"
+#include "wamon/variable_byte.h"
+#include "wamon/variable_double.h"
+#include "wamon/variable_int.h"
+#include "wamon/variable_string.h"
+#include "wamon/variable_void.h"
 
 namespace wamon {
 

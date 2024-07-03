@@ -7,6 +7,7 @@
 #include "wamon/parser.h"
 #include "wamon/scanner.h"
 #include "wamon/type_checker.h"
+#include "wamon/var_as.h"
 
 TEST(builtin_type_method, basic) {
   auto builtintype = wamon::TypeFactory<std::string>::Get();

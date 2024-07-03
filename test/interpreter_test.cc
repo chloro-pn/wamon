@@ -3,8 +3,9 @@
 #include "gtest/gtest.h"
 #include "wamon/parser.h"
 #include "wamon/scanner.h"
-#include "wamon/static_analyzer.h"
+#include "wamon/to_var.h"
 #include "wamon/type_checker.h"
+#include "wamon/var_as.h"
 #include "wamon/variable.h"
 
 TEST(interpreter, callfunction) {

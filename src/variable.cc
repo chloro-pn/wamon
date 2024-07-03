@@ -4,8 +4,13 @@
 
 #include "wamon/enum_def.h"
 #include "wamon/interpreter.h"
-#include "wamon/method_def.h"
 #include "wamon/struct_def.h"
+#include "wamon/variable_bool.h"
+#include "wamon/variable_byte.h"
+#include "wamon/variable_double.h"
+#include "wamon/variable_int.h"
+#include "wamon/variable_string.h"
+#include "wamon/variable_void.h"
 
 namespace wamon {
 
@@ -63,8 +68,6 @@ std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
                                           const std::string& name, Interpreter& ip) {
   return VariableFactory(type, vc, name, &ip);
 }
-
-std::shared_ptr<Variable> GetVoidVariable() { return std::make_shared<VoidVariable>(); }
 
 StructVariable::StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& ip, const std::string& name)
     : Variable(std::make_unique<BasicType>(sd->GetStructName()), vc, name), def_(sd), trait_def_(def_), ip_(ip) {}
@@ -340,6 +343,17 @@ void ListVariable::PopBack() {
     throw WamonException("List pop back error, empty list");
   }
   elements_.pop_back();
+}
+
+std::string ListVariable::get_string_only_for_byte_list() {
+  if (!IsByteType(element_type_)) {
+    throw WamonException("ListVariable.get_string_only_for_byte_list can only be called by List(byte) type");
+  }
+  std::string ret;
+  for (auto& each : elements_) {
+    ret.push_back(char(AsByteVariable(each)->GetValue()));
+  }
+  return ret;
 }
 
 void ListVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
