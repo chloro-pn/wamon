@@ -2,6 +2,7 @@
 
 #include "wamon/interpreter.h"
 #include "wamon/operator_def.h"
+#include "wamon/variable_list.h"
 
 namespace wamon {
 

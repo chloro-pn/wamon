@@ -1,7 +1,10 @@
 #include "wamon/inner_type_method.h"
 
+#include <wamon/interpreter.h>
+
 #include "wamon/exception.h"
 #include "wamon/package_unit.h"
+#include "wamon/variable_list.h"
 
 namespace wamon {
 
@@ -140,14 +143,14 @@ static void register_builtin_type_method_check(std::unordered_map<std::string, I
 
 static void register_builtin_type_method_handle(std::unordered_map<std::string, InnerTypeMethod::HandleType>& handles) {
   handles[concat("string", "len")] = [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params,
-                                        const PackageUnit& pu) -> std::shared_ptr<Variable> {
+                                        Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.empty());
     int ret = AsStringVariable(obj)->GetValue().size();
     return std::make_shared<IntVariable>(ret, Variable::ValueCategory::RValue, "");
   };
 
   handles[concat("string", "at")] = [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params,
-                                       const PackageUnit& pu) -> std::shared_ptr<Variable> {
+                                       Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.size() == 1);
     const std::string& v = AsStringVariable(obj)->GetValue();
     int index = AsIntVariable(params[0])->GetValue();
@@ -159,7 +162,7 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
 
   handles[concat("string", "append")] = [](std::shared_ptr<Variable>& obj,
                                            std::vector<std::shared_ptr<Variable>>&& params,
-                                           const PackageUnit& pu) -> std::shared_ptr<Variable> {
+                                           Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.size() == 1);
     std::string& v = AsStringVariable(obj)->GetValue();
     if (IsStringType(params[0]->GetType())) {
@@ -173,14 +176,14 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
   };
 
   handles[concat("list", "size")] = [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params,
-                                       const PackageUnit& pu) -> std::shared_ptr<Variable> {
+                                       Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.empty());
     int ret = AsListVariable(obj)->Size();
     return std::make_shared<IntVariable>(ret, Variable::ValueCategory::RValue, "");
   };
 
   handles[concat("list", "at")] = [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params,
-                                     const PackageUnit& pu) -> std::shared_ptr<Variable> {
+                                     Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.size() == 1);
     int index = AsIntVariable(params[0])->GetValue();
     return AsListVariable(obj)->at(index);
@@ -188,7 +191,7 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
 
   handles[concat("list", "insert")] = [](std::shared_ptr<Variable>& obj,
                                          std::vector<std::shared_ptr<Variable>>&& params,
-                                         const PackageUnit& pu) -> std::shared_ptr<Variable> {
+                                         Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.size() == 2);
     int index = AsIntVariable(params[0])->GetValue();
     AsListVariable(obj)->Insert(index, params[1]);
@@ -197,7 +200,7 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
 
   handles[concat("list", "push_back")] = [](std::shared_ptr<Variable>& obj,
                                             std::vector<std::shared_ptr<Variable>>&& params,
-                                            const PackageUnit& pu) -> std::shared_ptr<Variable> {
+                                            Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.size() == 1);
     AsListVariable(obj)->PushBack(params[0]);
     return GetVoidVariable();
@@ -205,7 +208,7 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
 
   handles[concat("list", "pop_back")] = [](std::shared_ptr<Variable>& obj,
                                            std::vector<std::shared_ptr<Variable>>&& params,
-                                           const PackageUnit& pu) -> std::shared_ptr<Variable> {
+                                           Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.size() == 0);
     AsListVariable(obj)->PopBack();
     return GetVoidVariable();
@@ -213,28 +216,28 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
 
   handles[concat("list", "resize")] = [](std::shared_ptr<Variable>& obj,
                                          std::vector<std::shared_ptr<Variable>>&& params,
-                                         const PackageUnit& pu) -> std::shared_ptr<Variable> {
+                                         Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.size() == 1);
-    AsListVariable(obj)->Resize(AsIntVariable(params[0])->GetValue());
+    AsListVariable(obj)->Resize(AsIntVariable(params[0])->GetValue(), ip);
     return GetVoidVariable();
   };
 
   handles[concat("list", "erase")] = [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params,
-                                        const PackageUnit& pu) -> std::shared_ptr<Variable> {
+                                        Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.size() == 1);
     AsListVariable(obj)->Erase(AsIntVariable(params[0])->GetValue());
     return GetVoidVariable();
   };
 
   handles[concat("list", "clear")] = [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params,
-                                        const PackageUnit& pu) -> std::shared_ptr<Variable> {
+                                        Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.size() == 0);
     AsListVariable(obj)->Clear();
     return GetVoidVariable();
   };
 
   handles[concat("list", "empty")] = [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params,
-                                        const PackageUnit& pu) -> std::shared_ptr<Variable> {
+                                        Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.size() == 0);
     bool empty = AsListVariable(obj)->Size() == 0;
     return std::make_shared<BoolVariable>(empty, Variable::ValueCategory::RValue, "");

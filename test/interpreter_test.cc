@@ -7,6 +7,7 @@
 #include "wamon/type_checker.h"
 #include "wamon/var_as.h"
 #include "wamon/variable.h"
+#include "wamon/variable_list.h"
 
 TEST(interpreter, callfunction) {
   wamon::Scanner scan;

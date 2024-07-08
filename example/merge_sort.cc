@@ -6,6 +6,7 @@
 #include "wamon/scanner.h"
 #include "wamon/type_checker.h"
 #include "wamon/variable.h"
+#include "wamon/variable_list.h"
 
 int main() {
   std::string script = R"(

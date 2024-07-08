@@ -3,13 +3,13 @@
 #include <iostream>
 #include <string>
 
-#include "nlohmann/json.hpp"
 #include "wamon/ast.h"
 #include "wamon/exception.h"
 #include "wamon/interpreter.h"
 #include "wamon/package_unit.h"
 #include "wamon/type_checker.h"
 #include "wamon/variable.h"
+#include "wamon/variable_list.h"
 
 namespace wamon {
 
