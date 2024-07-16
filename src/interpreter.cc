@@ -1,7 +1,6 @@
 #include "wamon/interpreter.h"
 
 #include "wamon/exception.h"
-#include "wamon/move_wrapper.h"
 #include "wamon/operator.h"
 #include "wamon/parser.h"
 #include "wamon/parsing_package.h"

@@ -1,7 +1,7 @@
 #include "wamon/scanner.h"
 
 #include <regex>
-#include <stdexcept>
+#include <sstream>
 
 #include "wamon/exception.h"
 #include "wamon/key_words.h"

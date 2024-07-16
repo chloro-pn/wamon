@@ -1,10 +1,7 @@
 #pragma once
 
 #include <cassert>
-#include <exception>
 #include <memory>
-#include <optional>
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 

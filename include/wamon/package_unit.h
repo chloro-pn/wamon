@@ -13,7 +13,6 @@
 #include "wamon/exception.h"
 #include "wamon/function_def.h"
 #include "wamon/method_def.h"
-#include "wamon/operator_def.h"
 #include "wamon/prepared_package_name.h"
 #include "wamon/struct_def.h"
 #include "wamon/type.h"

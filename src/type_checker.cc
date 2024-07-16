@@ -4,11 +4,11 @@
 #include <string>
 #include <vector>
 
-#include "fmt/format.h"
 #include "wamon/builtin_functions.h"
 #include "wamon/exception.h"
 #include "wamon/function_def.h"
 #include "wamon/inner_type_method.h"
+#include "wamon/operator_def.h"
 #include "wamon/package_unit.h"
 #include "wamon/static_analyzer.h"
 #include "wamon/token.h"

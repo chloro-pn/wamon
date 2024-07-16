@@ -1,9 +1,6 @@
 #pragma once
 
-#include <set>
-
 #include "wamon/ast.h"
-#include "wamon/context.h"
 #include "wamon/static_analyzer.h"
 #include "wamon/type.h"
 

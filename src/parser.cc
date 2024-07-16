@@ -2,12 +2,9 @@
 
 #include <cassert>
 #include <stack>
-#include <stdexcept>
 #include <utility>
 
-#include "fmt/format.h"
 #include "wamon/capture_id_item.h"
-#include "wamon/lambda_function_set.h"
 #include "wamon/method_def.h"
 #include "wamon/operator.h"
 #include "wamon/package_unit.h"

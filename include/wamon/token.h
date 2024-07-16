@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdexcept>
-
 #include "wamon/exception.h"
 
 namespace wamon {

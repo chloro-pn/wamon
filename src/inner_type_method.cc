@@ -3,7 +3,6 @@
 #include <wamon/interpreter.h>
 
 #include "wamon/exception.h"
-#include "wamon/package_unit.h"
 #include "wamon/variable_list.h"
 
 namespace wamon {

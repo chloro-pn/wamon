@@ -1,7 +1,5 @@
 #include "wamon/parsing_package.h"
 
-#include <algorithm>
-
 #include "wamon/exception.h"
 #include "wamon/package_unit.h"
 #include "wamon/prepared_package_name.h"

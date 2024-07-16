@@ -4,12 +4,8 @@
 #include <cassert>
 #include <memory>
 #include <string>
-#include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <vector>
-
-#include "wamon/token.h"
 
 /*
  * 类型系统：
@@ -113,7 +109,7 @@ class FuncType : public CompoundType {
                                                              const FuncCallExpr* call_expr);
 
   FuncType(std::vector<std::unique_ptr<Type>>&& param_type, std::unique_ptr<Type>&& return_type)
-      : param_type_(std::move(param_type)), return_type_(std::move(return_type)) {}
+      : return_type_(std::move(return_type)), param_type_(std::move(param_type)) {}
 
   void SetParamTypeAndReturnType(std::vector<std::unique_ptr<Type>>&& param_type, std::unique_ptr<Type>&& return_type) {
     param_type_ = std::move(param_type);

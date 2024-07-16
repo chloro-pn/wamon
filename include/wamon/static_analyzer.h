@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cassert>
-#include <stack>
 
 #include "wamon/ast.h"
 #include "wamon/builtin_functions.h"

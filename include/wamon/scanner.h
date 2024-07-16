@@ -2,7 +2,6 @@
 
 #include <any>
 #include <iostream>
-#include <sstream>
 #include <vector>
 
 #include "wamon/token.h"
