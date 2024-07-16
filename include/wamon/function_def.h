@@ -59,6 +59,8 @@ class FunctionDef {
 
   bool IsDeclaration() const { return block_stmt_ == nullptr; }
 
+  bool IsExecutableBlockStmt() const;
+
  private:
   std::string name_;
   std::vector<ParameterListItem> param_list_;

@@ -1,6 +1,9 @@
 #include "wamon/type_checker.h"
 
+#include <wamon/ast.h>
+
 #include <cassert>
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -120,6 +123,10 @@ void TypeChecker::CheckFunctions() {
     // 跳过所有的lambda函数，因为lambda的绑定列表需要在声明时的上下文进行查找
     auto& capture_ids = each.second->GetCaptureIds();
     if (capture_ids.empty() == false) {
+      continue;
+    }
+    // 跳过用户实现BlockStmt的函数
+    if (each.second->IsExecutableBlockStmt()) {
       continue;
     }
     // 首先进行上下文相关的检测、表达式类型检测、语句合法性检测
