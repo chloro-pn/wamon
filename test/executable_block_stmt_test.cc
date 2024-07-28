@@ -19,6 +19,20 @@
 
 using namespace wamon;
 
+std::unique_ptr<ExecutableBlockStmt> get_executable_block_stmt() {
+  auto executable_block_stmt = [](Interpreter& ip) -> std::shared_ptr<Variable> {
+    auto va = ip.FindVariableById("main$param_a");
+    auto vref = ip.FindVariableById("main$param_ref");
+    va = ip.CallFunctionByName("main$update_value_from_script", {va});
+    int ret = AsIntVariable(va)->GetValue();
+    AsStringVariable(vref)->SetValue("changed");
+    return std::make_shared<IntVariable>(ret * 2, Variable::ValueCategory::RValue, "");
+  };
+  auto executable_block = std::make_unique<ExecutableBlockStmt>();
+  executable_block->SetExecutable(std::move(executable_block_stmt));
+  return executable_block;
+}
+
 std::shared_ptr<FunctionDef> generate_func_for_test() {
   std::shared_ptr<FunctionDef> fd(new FunctionDef("my_fn"));
   fd->AddParamList({
@@ -34,18 +48,7 @@ std::shared_ptr<FunctionDef> generate_func_for_test() {
   });
 
   fd->SetReturnType(TypeFactory<int>::Get());
-
-  auto executable_block = std::make_unique<ExecutableBlockStmt>();
-  executable_block->SetExecutable([](Interpreter& ip) -> std::shared_ptr<Variable> {
-    auto va = ip.FindVariableById("main$param_a");
-    auto vref = ip.FindVariableById("main$param_ref");
-    va = ip.CallFunctionByName("main$update_value_from_script", {va});
-    int ret = AsIntVariable(va)->GetValue();
-    AsStringVariable(vref)->SetValue("changed");
-    return std::make_shared<IntVariable>(ret * 2, Variable::ValueCategory::RValue, "");
-  });
-
-  fd->SetBlockStmt(std::move(executable_block));
+  fd->SetBlockStmt(get_executable_block_stmt());
   return fd;
 }
 

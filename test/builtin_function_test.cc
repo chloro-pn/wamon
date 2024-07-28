@@ -3,7 +3,6 @@
 #include "wamon/interpreter.h"
 #include "wamon/parser.h"
 #include "wamon/scanner.h"
-#include "wamon/static_analyzer.h"
 #include "wamon/type_checker.h"
 #include "wamon/variable.h"
 
