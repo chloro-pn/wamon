@@ -6,8 +6,7 @@ namespace wamon {
 
 class IntVariable : public Variable {
  public:
-  IntVariable(int v, ValueCategory vc, const std::string& name)
-      : Variable(TypeFactory<int>::Get(), vc, name), value_(v) {}
+  IntVariable(int v, ValueCategory vc) : Variable(TypeFactory<int>::Get(), vc), value_(v) {}
 
   int GetValue() const { return value_; }
 
@@ -28,7 +27,7 @@ class IntVariable : public Variable {
   void DefaultConstruct() override { value_ = 0; }
 
   std::shared_ptr<Variable> Clone() override {
-    return std::make_shared<IntVariable>(GetValue(), ValueCategory::RValue, "");
+    return std::make_shared<IntVariable>(GetValue(), ValueCategory::RValue);
   }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {

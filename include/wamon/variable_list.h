@@ -7,8 +7,8 @@ namespace wamon {
 
 class ListVariable : public CompoundVariable {
  public:
-  ListVariable(std::unique_ptr<Type>&& element_type, ValueCategory vc, const std::string& name)
-      : CompoundVariable(std::make_unique<ListType>(element_type->Clone()), vc, name),
+  ListVariable(std::unique_ptr<Type>&& element_type, ValueCategory vc)
+      : CompoundVariable(std::make_unique<ListType>(element_type->Clone()), vc),
         element_type_(std::move(element_type)) {}
 
   void PushBack(std::shared_ptr<Variable> element);
@@ -25,7 +25,7 @@ class ListVariable : public CompoundVariable {
       elements_.resize(new_size);
     } else {
       for (size_t i = 0; i < (new_size - old_size); ++i) {
-        auto v = VariableFactory(element_type_, vc_, "", ip);
+        auto v = VariableFactory(element_type_, vc_, ip);
         v->DefaultConstruct();
         elements_.push_back(std::move(v));
       }

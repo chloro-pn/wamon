@@ -21,12 +21,12 @@ auto my_cpp_func_check(const wamon::PackageUnit&, const std::vector<std::unique_
 auto my_cpp_func(wamon::Interpreter&, std::vector<std::shared_ptr<wamon::Variable>>&& params)
     -> std::shared_ptr<wamon::Variable> {
   auto len = wamon::AsStringVariable(params[0])->GetValue().size();
-  return std::make_shared<wamon::IntVariable>(static_cast<int>(len), wamon::Variable::ValueCategory::RValue, "");
+  return std::make_shared<wamon::IntVariable>(static_cast<int>(len), wamon::Variable::ValueCategory::RValue);
 }
 
 auto my_type_cpp_func(wamon::Interpreter&, std::vector<std::shared_ptr<wamon::Variable>>&& params)
     -> std::shared_ptr<wamon::Variable> {
-  return std::make_shared<wamon::IntVariable>(12138, wamon::Variable::ValueCategory::RValue, "");
+  return std::make_shared<wamon::IntVariable>(12138, wamon::Variable::ValueCategory::RValue);
 }
 
 int main() {
@@ -58,7 +58,7 @@ int main() {
 
   wamon::Interpreter ip(package_unit);
   auto string_v =
-      wamon::VariableFactory(wamon::TypeFactory<std::string>::Get(), wamon::Variable::ValueCategory::RValue, "", ip);
+      wamon::VariableFactory(wamon::TypeFactory<std::string>::Get(), wamon::Variable::ValueCategory::RValue, ip);
   wamon::AsStringVariable(string_v)->SetValue("hello");
 
   auto ret = ip.CallFunctionByName("main$call_cpp_function", {std::move(string_v)});

@@ -6,8 +6,7 @@ namespace wamon {
 
 class BoolVariable : public Variable {
  public:
-  BoolVariable(bool v, ValueCategory vc, const std::string& name)
-      : Variable(TypeFactory<bool>::Get(), vc, name), value_(v) {}
+  BoolVariable(bool v, ValueCategory vc) : Variable(TypeFactory<bool>::Get(), vc), value_(v) {}
 
   bool GetValue() const { return value_; }
 
@@ -28,7 +27,7 @@ class BoolVariable : public Variable {
   void DefaultConstruct() override { value_ = true; }
 
   std::shared_ptr<Variable> Clone() override {
-    return std::make_shared<BoolVariable>(GetValue(), ValueCategory::RValue, "");
+    return std::make_shared<BoolVariable>(GetValue(), ValueCategory::RValue);
   }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {

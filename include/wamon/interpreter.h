@@ -56,12 +56,6 @@ struct RuntimeContext {
     symbol_table_.insert({tmp_name, variable});
   }
 
-  template <bool check_value_category = true>
-  void RegisterVariable(const std::shared_ptr<Variable>& variable) {
-    std::string name = variable->GetName();
-    RegisterVariable<check_value_category>(variable, name);
-  }
-
   std::shared_ptr<Variable> FindVariable(const std::string& id_name) {
     auto it = symbol_table_.find(id_name);
     if (it == symbol_table_.end()) {

@@ -145,7 +145,7 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
                                         Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.empty());
     int ret = AsStringVariable(obj)->GetValue().size();
-    return std::make_shared<IntVariable>(ret, Variable::ValueCategory::RValue, "");
+    return std::make_shared<IntVariable>(ret, Variable::ValueCategory::RValue);
   };
 
   handles[concat("string", "at")] = [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params,
@@ -156,7 +156,7 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
     if (static_cast<size_t>(index) >= v.size()) {
       throw WamonException("string.at error, index out of range : {} >= {}", index, v.size());
     }
-    return std::make_shared<ByteVariable>(v[index], Variable::ValueCategory::RValue, "");
+    return std::make_shared<ByteVariable>(v[index], Variable::ValueCategory::RValue);
   };
 
   handles[concat("string", "append")] = [](std::shared_ptr<Variable>& obj,
@@ -178,7 +178,7 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
                                        Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.empty());
     int ret = AsListVariable(obj)->Size();
-    return std::make_shared<IntVariable>(ret, Variable::ValueCategory::RValue, "");
+    return std::make_shared<IntVariable>(ret, Variable::ValueCategory::RValue);
   };
 
   handles[concat("list", "at")] = [](std::shared_ptr<Variable>& obj, std::vector<std::shared_ptr<Variable>>&& params,
@@ -239,7 +239,7 @@ static void register_builtin_type_method_handle(std::unordered_map<std::string, 
                                         Interpreter& ip) -> std::shared_ptr<Variable> {
     assert(params.size() == 0);
     bool empty = AsListVariable(obj)->Size() == 0;
-    return std::make_shared<BoolVariable>(empty, Variable::ValueCategory::RValue, "");
+    return std::make_shared<BoolVariable>(empty, Variable::ValueCategory::RValue);
   };
 }
 

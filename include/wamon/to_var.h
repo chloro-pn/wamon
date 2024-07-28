@@ -12,15 +12,15 @@ namespace wamon {
  * API : ToVar
  *
  * ********************************************************************/
-#define WAMON_TO_VAR(basic_type, transform_type)                                                     \
-  if constexpr (std::is_same_v<type, basic_type>) {                                                  \
-    auto ret = VariableFactory(TypeFactory<basic_type>::Get(), Variable::ValueCategory::LValue, ""); \
-    As##transform_type##Variable(ret)->SetValue(std::forward<T>(v));                                 \
-    return ret;                                                                                      \
+#define WAMON_TO_VAR(basic_type, transform_type)                                                 \
+  if constexpr (std::is_same_v<type, basic_type>) {                                              \
+    auto ret = VariableFactory(TypeFactory<basic_type>::Get(), Variable::ValueCategory::LValue); \
+    As##transform_type##Variable(ret)->SetValue(std::forward<T>(v));                             \
+    return ret;                                                                                  \
   }
 
 inline std::shared_ptr<Variable> ToVar(std::string_view strv) {
-  auto ret = VariableFactory(TypeFactory<std::string>::Get(), Variable::ValueCategory::LValue, "");
+  auto ret = VariableFactory(TypeFactory<std::string>::Get(), Variable::ValueCategory::LValue);
   AsStringVariable(ret)->SetValue(strv);
   return ret;
 }

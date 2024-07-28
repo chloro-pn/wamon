@@ -6,8 +6,7 @@ namespace wamon {
 
 class StringVariable : public Variable {
  public:
-  StringVariable(const std::string& v, ValueCategory vc, const std::string& name)
-      : Variable(TypeFactory<std::string>::Get(), vc, name), value_(v) {}
+  StringVariable(const std::string& v, ValueCategory vc) : Variable(TypeFactory<std::string>::Get(), vc), value_(v) {}
 
   const std::string& GetValue() const { return value_; }
 
@@ -36,9 +35,9 @@ class StringVariable : public Variable {
   std::shared_ptr<Variable> Clone() override {
     std::shared_ptr<StringVariable> ret;
     if (IsRValue()) {
-      ret = std::make_shared<StringVariable>(std::move(value_), ValueCategory::RValue, "");
+      ret = std::make_shared<StringVariable>(std::move(value_), ValueCategory::RValue);
     } else {
-      ret = std::make_shared<StringVariable>(GetValue(), ValueCategory::RValue, "");
+      ret = std::make_shared<StringVariable>(GetValue(), ValueCategory::RValue);
     }
     return ret;
   }

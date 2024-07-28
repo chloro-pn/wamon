@@ -198,7 +198,7 @@ class StringIteralExpr : public Expression {
   void SetStringIter(const std::string& str) { str_ = str; }
 
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
-    return std::make_shared<StringVariable>(str_, Variable::ValueCategory::RValue, "");
+    return std::make_shared<StringVariable>(str_, Variable::ValueCategory::RValue);
   }
 
  private:
@@ -210,7 +210,7 @@ class IntIteralExpr : public Expression {
   void SetIntIter(const int64_t& n) { num_ = n; }
 
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
-    return std::make_shared<IntVariable>(static_cast<int>(num_), Variable::ValueCategory::RValue, "");
+    return std::make_shared<IntVariable>(static_cast<int>(num_), Variable::ValueCategory::RValue);
   }
 
  private:
@@ -223,7 +223,7 @@ class DoubleIteralExpr : public Expression {
 
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
     // not implemented now
-    return std::make_shared<DoubleVariable>(d_, Variable::ValueCategory::RValue, "");
+    return std::make_shared<DoubleVariable>(d_, Variable::ValueCategory::RValue);
   }
 
  private:
@@ -235,7 +235,7 @@ class BoolIteralExpr : public Expression {
   void SetBoolIter(bool b) { b_ = b; }
 
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
-    return std::make_shared<BoolVariable>(b_, Variable::ValueCategory::RValue, "");
+    return std::make_shared<BoolVariable>(b_, Variable::ValueCategory::RValue);
   }
 
  private:
@@ -248,7 +248,7 @@ class ByteIteralExpr : public Expression {
 
   std::shared_ptr<Variable> Calculate(Interpreter& interpreter) override {
     // not implemented now
-    return std::make_shared<ByteVariable>(byte_, Variable::ValueCategory::RValue, "");
+    return std::make_shared<ByteVariable>(byte_, Variable::ValueCategory::RValue);
   }
 
  private:

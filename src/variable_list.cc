@@ -55,7 +55,7 @@ std::shared_ptr<Variable> ListVariable::Clone() {
       elements.push_back(each->Clone());
     }
   }
-  auto ret = std::make_shared<ListVariable>(element_type_->Clone(), ValueCategory::RValue, "");
+  auto ret = std::make_shared<ListVariable>(element_type_->Clone(), ValueCategory::RValue);
   ret->elements_ = std::move(elements);
   return ret;
 }

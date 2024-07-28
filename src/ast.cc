@@ -69,8 +69,8 @@ std::shared_ptr<Variable> BinaryExpr::Calculate(Interpreter& interpreter) {
   // 数据成员访问运算符特殊处理，因为第二个操作数的计算完全依赖于第一个操作数的计算，因此这里我们仅仅将其转换为string的Variable
   // right_的动态类型为IdExpr指针需要类型检测阶段保证
   if (op_ == Token::MEMBER_ACCESS) {
-    rightop = std::make_shared<StringVariable>(dynamic_cast<IdExpr*>(right_.get())->GetId(),
-                                               Variable::ValueCategory::RValue, "");
+    rightop =
+        std::make_shared<StringVariable>(dynamic_cast<IdExpr*>(right_.get())->GetId(), Variable::ValueCategory::RValue);
   } else {
     rightop = right_->Calculate(interpreter);
   }
@@ -103,22 +103,22 @@ std::shared_ptr<Variable> IdExpr::Calculate(Interpreter& interpreter) {
   } else if (type_ == Type::BuiltinFunc) {
     auto type = interpreter.GetPackageUnit().GetBuiltinFunctions().GetType(GenerateIdent());
     assert(type != nullptr);
-    auto ret = std::make_shared<FunctionVariable>(GetParamType(type), GetReturnType(type),
-                                                  Variable::ValueCategory::RValue, "");
+    auto ret =
+        std::make_shared<FunctionVariable>(GetParamType(type), GetReturnType(type), Variable::ValueCategory::RValue);
     ret->SetFuncName(GenerateIdent());
     return ret;
   } else {
     auto func_def = interpreter.GetPackageUnit().FindFunction(GenerateIdent());
     auto type = func_def->GetType();
-    auto ret = std::make_shared<FunctionVariable>(GetParamType(type), GetReturnType(type),
-                                                  Variable::ValueCategory::RValue, "");
+    auto ret =
+        std::make_shared<FunctionVariable>(GetParamType(type), GetReturnType(type), Variable::ValueCategory::RValue);
     ret->SetFuncName(GenerateIdent());
     return ret;
   }
 }
 
 std::shared_ptr<Variable> EnumIteralExpr::Calculate(Interpreter& Interpreter) {
-  auto v = VariableFactory(type_, Variable::ValueCategory::RValue, "", Interpreter);
+  auto v = VariableFactory(type_, Variable::ValueCategory::RValue, Interpreter);
   AsEnumVariable(v)->SetEnumItem(enum_item_);
   return v;
 }
@@ -144,14 +144,14 @@ std::shared_ptr<Variable> LambdaExpr::Calculate(Interpreter& interpreter) {
       capture_variables.push_back({false, VariableMoveOrCopy(v)});
     }
   }
-  auto call_obj = VariableFactory(func_def->GetType(), Variable::ValueCategory::RValue, "", interpreter);
+  auto call_obj = VariableFactory(func_def->GetType(), Variable::ValueCategory::RValue, interpreter);
   AsFunctionVariable(call_obj)->SetFuncName(lambda_func_name_);
   AsFunctionVariable(call_obj)->SetCaptureVariables(std::move(capture_variables));
   return call_obj;
 }
 
 std::shared_ptr<Variable> NewExpr::Calculate(Interpreter& interpreter) {
-  auto v = VariableFactory(type_, Variable::ValueCategory::RValue, "", interpreter);
+  auto v = VariableFactory(type_, Variable::ValueCategory::RValue, interpreter);
   std::vector<std::shared_ptr<Variable>> fields;
   for (auto& each : parameters_) {
     fields.push_back(each->Calculate(interpreter));
@@ -296,13 +296,12 @@ ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
   auto context = interpreter.GetCurrentContext();
   std::shared_ptr<Variable> v;
   std::vector<std::shared_ptr<Variable>> fields;
-  bool change_name = true;
   for (auto& each : constructors_) {
     fields.push_back(each->Calculate(interpreter));
   }
   if (fields.empty() == true) {
     assert(IsRef() == false);
-    v = VariableFactory(type_, Variable::ValueCategory::LValue, var_name_, interpreter);
+    v = VariableFactory(type_, Variable::ValueCategory::LValue, interpreter);
     v->DefaultConstruct();
   } else if (fields.size() == 1 && fields[0]->GetTypeInfo() == GetType()->GetTypeInfo()) {
     if (IsRef()) {
@@ -311,17 +310,14 @@ ExecuteResult VariableDefineStmt::Execute(Interpreter& interpreter) {
         throw WamonException("VariableDefineStmt::Execute failed, let ref can not be constructed by rvalue");
       } else {
         v = fields[0];
-        // let ref构造不改变原变量的名字
-        change_name = false;
       }
     } else {
       v = VariableMoveOrCopy(fields[0]);
     }
-    if (change_name) v->SetName(var_name_);
     assert(!v->IsRValue());
   } else {
     assert(IsRef() == false);
-    v = VariableFactory(type_, Variable::ValueCategory::LValue, var_name_, interpreter);
+    v = VariableFactory(type_, Variable::ValueCategory::LValue, interpreter);
     v->ConstructByFields(fields);
   }
   assert(v != nullptr);

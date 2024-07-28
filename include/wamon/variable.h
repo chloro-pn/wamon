@@ -14,7 +14,7 @@ class EnumDef;
 
 /*
  * Variable为运行时变量类型的基类，每个Variable一定包含一个type成员标识其类型
- * 以及一个变量名字，当其为空的时候标识匿名变量
+ * Variable本身不包含名字，其名字需要被使用者持有
  * 每个Variable都具有值型别(like c++)，左值或者右值
  */
 class Variable {
@@ -24,8 +24,7 @@ class Variable {
     RValue,
   };
 
-  explicit Variable(std::unique_ptr<Type>&& t, ValueCategory vc, const std::string& name = "")
-      : type_(std::move(t)), name_(name), vc_(vc) {}
+  explicit Variable(std::unique_ptr<Type>&& t, ValueCategory vc) : type_(std::move(t)), vc_(vc) {}
 
   virtual void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) = 0;
 
@@ -46,10 +45,6 @@ class Variable {
 
   virtual std::unique_ptr<Type> GetType() const { return type_->Clone(); }
 
-  void SetName(const std::string& name) { name_ = name; }
-
-  const std::string& GetName() const { return name_; }
-
   ValueCategory GetValueCategory() const { return vc_; }
 
   virtual void ChangeTo(ValueCategory vc) { vc_ = vc; }
@@ -66,7 +61,6 @@ class Variable {
 
  private:
   std::unique_ptr<Type> type_;
-  std::string name_;
 
  protected:
   ValueCategory vc_;
@@ -79,16 +73,16 @@ std::shared_ptr<Variable> VariableMoveOrCopy(const std::shared_ptr<Variable>& v)
 class PackageUnit;
 class Interpreter;
 std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                          const std::string& name, Interpreter* ip = nullptr);
+                                          Interpreter* ip = nullptr);
 
 std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                          const std::string& name, Interpreter& ip);
+                                          Interpreter& ip);
 
 class Interpreter;
 
 class StructVariable : public Variable {
  public:
-  StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& i, const std::string& name);
+  StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& i);
 
   std::string GetTypeInfo() const override;
 
@@ -145,7 +139,7 @@ inline StructVariable* AsStructVariable(const std::shared_ptr<Variable>& v) {
 
 class EnumVariable : public Variable {
  public:
-  EnumVariable(const EnumDef* def, ValueCategory vc, const std::string& name);
+  EnumVariable(const EnumDef* def, ValueCategory vc);
 
   void ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) override;
 
@@ -173,14 +167,13 @@ inline EnumVariable* AsEnumVariable(const std::shared_ptr<Variable>& v) { return
 
 class CompoundVariable : public Variable {
  public:
-  CompoundVariable(std::unique_ptr<Type>&& t, ValueCategory vc, const std::string& name)
-      : Variable(std::move(t), vc, name) {}
+  CompoundVariable(std::unique_ptr<Type>&& t, ValueCategory vc) : Variable(std::move(t), vc) {}
 };
 
 class PointerVariable : public CompoundVariable {
  public:
-  PointerVariable(std::unique_ptr<Type>&& hold_type, ValueCategory vc, const std::string& name)
-      : CompoundVariable(std::make_unique<PointerType>(std::move(hold_type)), vc, name) {}
+  PointerVariable(std::unique_ptr<Type>&& hold_type, ValueCategory vc)
+      : CompoundVariable(std::make_unique<PointerType>(std::move(hold_type)), vc) {}
 
   std::shared_ptr<Variable> GetHoldVariable() { return obj_.lock(); }
 
@@ -230,9 +223,8 @@ class FunctionVariable : public CompoundVariable {
     std::shared_ptr<Variable> v;
   };
 
-  FunctionVariable(std::vector<std::unique_ptr<Type>>&& param, std::unique_ptr<Type>&& ret, ValueCategory vc,
-                   const std::string& name)
-      : CompoundVariable(std::make_unique<FuncType>(std::move(param), std::move(ret)), vc, name) {}
+  FunctionVariable(std::vector<std::unique_ptr<Type>>&& param, std::unique_ptr<Type>&& ret, ValueCategory vc)
+      : CompoundVariable(std::make_unique<FuncType>(std::move(param), std::move(ret)), vc) {}
 
   void SetFuncName(const std::string& func_name) { func_name_ = func_name; }
 
@@ -277,7 +269,6 @@ class FunctionVariable : public CompoundVariable {
           capture_variables_.push_back(each);
         } else {
           auto tmp = each.v->Clone();
-          tmp->SetName(each.v->GetName());
           tmp->ChangeTo(vc_);
           capture_variables_.push_back({each.is_ref, tmp});
         }

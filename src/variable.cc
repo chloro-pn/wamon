@@ -18,26 +18,26 @@
 namespace wamon {
 
 std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                          const std::string& name, Interpreter* ip) {
+                                          Interpreter* ip) {
   if (IsBuiltInType(type)) {
     std::string typeinfo = type->GetTypeInfo();
     if (typeinfo == "string") {
-      return std::make_unique<StringVariable>("", vc, name);
+      return std::make_unique<StringVariable>("", vc);
     }
     if (typeinfo == "void") {
       return std::make_unique<VoidVariable>();
     }
     if (typeinfo == "bool") {
-      return std::make_unique<BoolVariable>(true, vc, name);
+      return std::make_unique<BoolVariable>(true, vc);
     }
     if (typeinfo == "int") {
-      return std::make_unique<IntVariable>(0, vc, name);
+      return std::make_unique<IntVariable>(0, vc);
     }
     if (typeinfo == "double") {
-      return std::make_unique<DoubleVariable>(0.0, vc, name);
+      return std::make_unique<DoubleVariable>(0.0, vc);
     }
     if (typeinfo == "byte") {
-      return std::make_unique<ByteVariable>(0, vc, name);
+      return std::make_unique<ByteVariable>(0, vc);
     }
   }
   if (type->IsBasicType() == true) {
@@ -46,34 +46,34 @@ std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Var
     }
     auto struct_def = ip->GetPackageUnit().FindStruct(type->GetTypeInfo());
     if (struct_def != nullptr) {
-      return std::make_shared<StructVariable>(struct_def, vc, *ip, name);
+      return std::make_shared<StructVariable>(struct_def, vc, *ip);
     }
     // enum
     auto enum_def = ip->GetPackageUnit().FindEnum(type->GetTypeInfo());
     if (enum_def == nullptr) {
       throw WamonException("VariableFactory error, invalid struct and enum type {}", type->GetTypeInfo());
     }
-    return std::make_shared<EnumVariable>(enum_def, vc, name);
+    return std::make_shared<EnumVariable>(enum_def, vc);
   }
   if (IsPtrType(type)) {
-    return std::make_unique<PointerVariable>(GetHoldType(type), vc, name);
+    return std::make_unique<PointerVariable>(GetHoldType(type), vc);
   }
   if (IsListType(type)) {
-    return std::make_unique<ListVariable>(GetElementType(type), vc, name);
+    return std::make_unique<ListVariable>(GetElementType(type), vc);
   }
   if (IsFuncType(type)) {
-    return std::make_unique<FunctionVariable>(GetParamType(type), GetReturnType(type), vc, name);
+    return std::make_unique<FunctionVariable>(GetParamType(type), GetReturnType(type), vc);
   }
   throw WamonException("VariableFactory error, invalid type {}", type->GetTypeInfo());
 }
 
 std::shared_ptr<Variable> VariableFactory(const std::unique_ptr<Type>& type, Variable::ValueCategory vc,
-                                          const std::string& name, Interpreter& ip) {
-  return VariableFactory(type, vc, name, &ip);
+                                          Interpreter& ip) {
+  return VariableFactory(type, vc, &ip);
 }
 
-StructVariable::StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& ip, const std::string& name)
-    : Variable(std::make_unique<BasicType>(sd->GetStructName()), vc, name), def_(sd), trait_def_(def_), ip_(ip) {}
+StructVariable::StructVariable(const StructDef* sd, ValueCategory vc, Interpreter& ip)
+    : Variable(std::make_unique<BasicType>(sd->GetStructName()), vc), def_(sd), trait_def_(def_), ip_(ip) {}
 
 std::string StructVariable::GetTypeInfo() const { return trait_def_->GetStructName(); }
 
@@ -138,7 +138,7 @@ void StructVariable::DefaultConstruct() {
   data_members_.clear();
   auto& members = def_->GetDataMembers();
   for (auto& each : members) {
-    auto member = VariableFactory(each.second, vc_, each.first, ip_);
+    auto member = VariableFactory(each.second, vc_, ip_);
     member->DefaultConstruct();
     data_members_.push_back({each.first, std::move(member)});
   }
@@ -154,7 +154,7 @@ std::shared_ptr<Variable> StructVariable::Clone() {
     }
   }
   // all variable in variables is rvalue now
-  auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, ip_, "");
+  auto ret = std::make_shared<StructVariable>(def_, ValueCategory::RValue, ip_);
   ret->data_members_ = std::move(variables);
   ret->set_trait_def(trait_def_);
   return ret;
@@ -273,8 +273,8 @@ nlohmann::json StructVariable::Print() {
   return obj;
 }
 
-EnumVariable::EnumVariable(const EnumDef* def, ValueCategory vc, const std::string& name)
-    : Variable(std::make_unique<BasicType>(def->GetEnumName()), vc, name), def_(def) {}
+EnumVariable::EnumVariable(const EnumDef* def, ValueCategory vc)
+    : Variable(std::make_unique<BasicType>(def->GetEnumName()), vc), def_(def) {}
 
 void EnumVariable::ConstructByFields(const std::vector<std::shared_ptr<Variable>>& fields) {
   if (fields.size() != 1) {
@@ -293,7 +293,7 @@ void EnumVariable::DefaultConstruct() {
 }
 
 std::shared_ptr<Variable> EnumVariable::Clone() {
-  auto tmp = std::make_shared<EnumVariable>(def_, Variable::ValueCategory::RValue, "");
+  auto tmp = std::make_shared<EnumVariable>(def_, Variable::ValueCategory::RValue);
   tmp->enum_item_ = enum_item_;
   return tmp;
 }
@@ -327,7 +327,7 @@ void PointerVariable::ConstructByFields(const std::vector<std::shared_ptr<Variab
 void PointerVariable::DefaultConstruct() { obj_.reset(); }
 
 std::shared_ptr<Variable> PointerVariable::Clone() {
-  auto ret = std::make_shared<PointerVariable>(GetHoldType(), ValueCategory::RValue, "");
+  auto ret = std::make_shared<PointerVariable>(GetHoldType(), ValueCategory::RValue);
   ret->obj_ = obj_;
   return ret;
 }
@@ -372,7 +372,6 @@ void FunctionVariable::ConstructByFields(const std::vector<std::shared_ptr<Varia
         capture_variables_.push_back(each);
       } else {
         auto tmp = each.v->Clone();
-        tmp->SetName(each.v->GetName());
         tmp->ChangeTo(vc_);
         capture_variables_.push_back({each.is_ref, tmp});
       }
@@ -395,7 +394,7 @@ std::shared_ptr<Variable> FunctionVariable::Clone() {
     param_type.push_back(each->Clone());
   }
   auto obj = std::make_shared<FunctionVariable>(std::move(param_type), fun_type->GetReturnType()->Clone(),
-                                                ValueCategory::RValue, "");
+                                                ValueCategory::RValue);
   obj->SetFuncName(func_name_);
   if (obj_) {
     if (IsRValue()) {
@@ -412,7 +411,6 @@ std::shared_ptr<Variable> FunctionVariable::Clone() {
         obj->capture_variables_.push_back(each);
       } else {
         auto tmp = each.v->Clone();
-        tmp->SetName(each.v->GetName());
         obj->capture_variables_.push_back({each.is_ref, tmp});
       }
     }
@@ -426,7 +424,6 @@ std::shared_ptr<Variable> VariableMove(const std::shared_ptr<Variable>& v) {
   }
   v->ChangeTo(Variable::ValueCategory::RValue);
   auto tmp = v->Clone();
-  tmp->SetName(v->GetName());
   v->DefaultConstruct();
   v->ChangeTo(Variable::ValueCategory::LValue);
   return tmp;
@@ -438,7 +435,6 @@ std::shared_ptr<Variable> VariableMoveOrCopy(const std::shared_ptr<Variable>& v)
     return v;
   }
   auto tmp = v->Clone();
-  tmp->SetName(v->GetName());
   tmp->ChangeTo(Variable::ValueCategory::LValue);
   return tmp;
 }

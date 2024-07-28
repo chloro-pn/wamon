@@ -30,9 +30,9 @@ static auto _context_stack(Interpreter& ip, std::vector<std::shared_ptr<Variable
   assert(descs.size() >= 2);
   auto it = descs.begin();
   descs.erase(it);
-  auto ret = VariableFactory(TypeFactory<std::vector<std::string>>::Get(), Variable::ValueCategory::RValue, "", ip);
+  auto ret = VariableFactory(TypeFactory<std::vector<std::string>>::Get(), Variable::ValueCategory::RValue, ip);
   for (auto& each : descs) {
-    auto desc_v = VariableFactory(TypeFactory<std::string>::Get(), Variable::ValueCategory::RValue, "", ip);
+    auto desc_v = VariableFactory(TypeFactory<std::string>::Get(), Variable::ValueCategory::RValue, ip);
     AsStringVariable(desc_v)->SetValue(each);
     AsListVariable(ret)->PushBack(std::move(desc_v));
   }
@@ -57,7 +57,7 @@ static auto _to_string(Interpreter& ip, std::vector<std::shared_ptr<Variable>>&&
     const auto& enum_item = AsEnumVariable(v)->GetEnumItem();
     result = enum_def->GetEnumName() + ":" + enum_item;
   }
-  return std::make_shared<StringVariable>(result, wamon::Variable::ValueCategory::RValue, "");
+  return std::make_shared<StringVariable>(result, wamon::Variable::ValueCategory::RValue);
 }
 
 static void register_builtin_handles(const std::string& prefix,

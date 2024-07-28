@@ -23,8 +23,7 @@ inline void byte_to_string(unsigned char c, char (&buf)[4]) {
 
 class ByteVariable : public Variable {
  public:
-  ByteVariable(unsigned char v, ValueCategory vc, const std::string& name)
-      : Variable(TypeFactory<unsigned char>::Get(), vc, name), value_(v) {}
+  ByteVariable(unsigned char v, ValueCategory vc) : Variable(TypeFactory<unsigned char>::Get(), vc), value_(v) {}
 
   unsigned char GetValue() const { return value_; }
 
@@ -45,7 +44,7 @@ class ByteVariable : public Variable {
   void DefaultConstruct() override { value_ = 0; }
 
   std::shared_ptr<Variable> Clone() override {
-    return std::make_shared<ByteVariable>(GetValue(), ValueCategory::RValue, "");
+    return std::make_shared<ByteVariable>(GetValue(), ValueCategory::RValue);
   }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {

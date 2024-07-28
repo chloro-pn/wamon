@@ -6,8 +6,7 @@ namespace wamon {
 
 class DoubleVariable : public Variable {
  public:
-  DoubleVariable(double v, ValueCategory vc, const std::string& name)
-      : Variable(TypeFactory<double>::Get(), vc, name), value_(v) {}
+  DoubleVariable(double v, ValueCategory vc) : Variable(TypeFactory<double>::Get(), vc), value_(v) {}
 
   double GetValue() const { return value_; }
 
@@ -28,7 +27,7 @@ class DoubleVariable : public Variable {
   void DefaultConstruct() override { value_ = 0.0; }
 
   std::shared_ptr<Variable> Clone() override {
-    return std::make_shared<DoubleVariable>(GetValue(), ValueCategory::RValue, "");
+    return std::make_shared<DoubleVariable>(GetValue(), ValueCategory::RValue);
   }
 
   bool Compare(const std::shared_ptr<Variable>& other) override {

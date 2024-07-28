@@ -26,7 +26,7 @@ std::unique_ptr<ExecutableBlockStmt> get_executable_block_stmt() {
     va = ip.CallFunctionByName("main$update_value_from_script", {va});
     int ret = AsIntVariable(va)->GetValue();
     AsStringVariable(vref)->SetValue("changed");
-    return std::make_shared<IntVariable>(ret * 2, Variable::ValueCategory::RValue, "");
+    return std::make_shared<IntVariable>(ret * 2, Variable::ValueCategory::RValue);
   };
   auto executable_block = std::make_unique<ExecutableBlockStmt>();
   executable_block->SetExecutable(std::move(executable_block_stmt));
@@ -66,8 +66,8 @@ TEST(executable_block_stmt, basic) {
   auto pu = Parse(tokens);
   pu.AddFuncDef(generate_func_for_test());
   pu = MergePackageUnits(std::move(pu));
-  auto va = std::make_shared<IntVariable>(1, Variable::ValueCategory::RValue, "");
-  auto vb = std::make_shared<StringVariable>("hello", Variable::ValueCategory::LValue, "");
+  auto va = std::make_shared<IntVariable>(1, Variable::ValueCategory::RValue);
+  auto vb = std::make_shared<StringVariable>("hello", Variable::ValueCategory::LValue);
   TypeChecker tc(pu);
   std::string reason;
   bool succ = tc.CheckAll(reason);

@@ -22,7 +22,7 @@ Interpreter::Interpreter(PackageUnit& pu) : pu_(pu) {
 
 std::shared_ptr<Variable> Interpreter::Alloc(const std::unique_ptr<Type>& type,
                                              std::vector<std::shared_ptr<Variable>>&& params) {
-  auto v = VariableFactory(type, wamon::Variable::ValueCategory::LValue, "", *this);
+  auto v = VariableFactory(type, wamon::Variable::ValueCategory::LValue, *this);
   if (params.empty()) {
     v->DefaultConstruct();
   } else {
@@ -31,17 +31,17 @@ std::shared_ptr<Variable> Interpreter::Alloc(const std::unique_ptr<Type>& type,
   assert(heap_.find(v) == heap_.end());
   heap_.insert(v);
   std::unique_ptr<Type> ptr_type = std::unique_ptr<PointerType>(new PointerType(type->Clone()));
-  auto ptr = VariableFactory(ptr_type, wamon::Variable::ValueCategory::RValue, "", *this);
+  auto ptr = VariableFactory(ptr_type, wamon::Variable::ValueCategory::RValue, *this);
   AsPointerVariable(ptr)->SetHoldVariable(v);
   return ptr;
 }
 
+// todo: 记录堆变量的名字
 void Interpreter::Dealloc(std::shared_ptr<Variable> v) {
   auto ptr_to = AsPointerVariable(v)->GetHoldVariable();
   auto it = heap_.find(ptr_to);
   if (it == heap_.end()) {
-    throw WamonException("Interpreter::Dealloc error, variable {}:{} not exist in heap", ptr_to->GetName(),
-                         ptr_to->GetTypeInfo());
+    throw WamonException("Interpreter::Dealloc error, variable type {}; not exist in heap", ptr_to->GetTypeInfo());
   }
   heap_.erase(it);
 }
@@ -131,8 +131,7 @@ std::shared_ptr<Variable> Interpreter::CallMethod(std::shared_ptr<Variable> obj,
   GetCurrentContext()->RegisterVariable<false>(obj, "__self__");
   auto result = method_def->GetBlockStmt()->Execute(*this);
   if (!IsVoidType(method_def->GetReturnType()) && result.state_ != ExecuteState::Return) {
-    throw WamonException("interpreter call method {}.{} error, diden't end by return stmt", obj->GetName(),
-                         method_def->GetMethodName());
+    throw WamonException("interpreter call method {} error, diden't end by return stmt", method_def->GetMethodName());
   }
   if (IsVoidType(method_def->GetReturnType()) && result.result_ == nullptr) {
     result.result_ = GetVoidVariable();
